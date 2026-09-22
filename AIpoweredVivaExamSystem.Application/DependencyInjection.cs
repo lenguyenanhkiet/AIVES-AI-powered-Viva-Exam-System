@@ -1,10 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using AIpoweredVivaExamSystem.Application.Authentication;
+using Microsoft.Extensions.DependencyInjection;
+namespace AIpoweredVivaExamSystem.Application;
 
-namespace AIpoweredVivaExamSystem.Application
+public static class DependencyInjection
 {
-    internal class DependencyInjection
+    public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddScoped<LoginService>();
+        return services;
     }
 }

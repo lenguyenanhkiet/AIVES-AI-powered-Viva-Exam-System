@@ -22,6 +22,8 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
 
+        services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ILoginUserRepository,
+            AIpoweredVivaExamSystem.Persistence.Repositories.LoginUserRepository>();
         return services;
     }
 }
