@@ -1,4 +1,4 @@
-﻿using AIpoweredVivaExamSystem.Domain.Common;
+using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -12,6 +12,8 @@ public class User : AuditableEntity, IAggregateRoot
     public string PasswordHash { get; private set; } = string.Empty;
     public string FullName { get; private set; } = string.Empty;
     public UserStatus Status { get; private set; }
+
+    public ICollection<UserRole> UserRoles { get; private set; } = new List<UserRole>();
     private User() { } // Private constructor for EF Core
 
     public User(string email, string passwordHash, string fullName, UserStatus status)
