@@ -4,12 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>88b430ea-becd-4286-a2cb-71471903c40b</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="Properties\launchSettings.json" />
+    <!-- Luôn copy cấu hình khi build; cấu hình Development chứa secret không được publish. -->
+    <Content Update="appsettings.json" CopyToOutputDirectory="Always" />
+    <Content Update="appsettings.Development.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <ItemGroup>

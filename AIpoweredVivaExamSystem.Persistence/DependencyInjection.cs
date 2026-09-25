@@ -14,6 +14,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Local đọc appsettings.Development.json; Docker ghi đè bằng biến môi trường.
+        // DbContext chỉ nhận options qua DI, không tự đọc file hoặc lưu credentials.
         var connectionString =
             configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
