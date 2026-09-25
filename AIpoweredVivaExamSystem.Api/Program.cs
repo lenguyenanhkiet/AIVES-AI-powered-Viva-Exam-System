@@ -4,11 +4,12 @@ var builder = WebApplication.CreateBuilder(args);
 AIpoweredVivaExamSystem.Application.DependencyInjection.AddApplication(builder.Services);
 AIpoweredVivaExamSystem.Infrastructure.DependencyInjection.AddInfrastructure(builder.Services);
 builder.Services.AddPersistence(builder.Configuration);
+AIpoweredVivaExamSystem.Api.Authentication.JwtConfiguration.AddJwtAuthentication(builder.Services, builder.Configuration);
 // Add services to the container.
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+AIpoweredVivaExamSystem.Api.Authentication.JwtConfiguration.AddJwtSwagger(builder.Services);
 
 var app = builder.Build();
 
@@ -21,6 +22,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Xác định danh tính từ JWT trước khi đánh giá quyền trên endpoint.
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

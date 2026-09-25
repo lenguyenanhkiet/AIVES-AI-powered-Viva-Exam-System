@@ -12,6 +12,8 @@ public static class DependencyInjection
         // Đăng ký và Login phải dùng cùng định dạng hash.
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IPasswordVerifier, IdentityPasswordVerifier>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         return services;
     }
 }

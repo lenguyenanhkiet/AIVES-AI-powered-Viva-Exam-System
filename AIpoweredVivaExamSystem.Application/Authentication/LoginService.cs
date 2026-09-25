@@ -1,7 +1,7 @@
 using AIpoweredVivaExamSystem.Domain.Enums;
 namespace AIpoweredVivaExamSystem.Application.Authentication;
 
-public sealed class LoginService(ILoginUserRepository users, IPasswordVerifier passwords)
+public sealed class LoginService(ILoginUserRepository users, IPasswordVerifier passwords, IAccessTokenIssuer tokens)
 {
     public async Task<LoginResponse?> LoginAsync(string email, string password, CancellationToken cancellationToken)
     {
@@ -11,7 +11,8 @@ public sealed class LoginService(ILoginUserRepository users, IPasswordVerifier p
         if (user is null || !passwords.Verify(user, password) || user.Status != UserStatus.Active)
             return null;
 
-        // Branch Login chỉ xác minh tài khoản; phát JWT thuộc task tiếp theo.
-        return new LoginResponse(user.Id, user.Email, user.FullName);
+        // Chỉ phát token sau khi mật khẩu và trạng thái user đã được xác minh.
+        var token = tokens.Issue(user);
+        return new LoginResponse(user.Id, user.Email, user.FullName, token.Value, token.ExpiresAtUtc);
     }
 }
