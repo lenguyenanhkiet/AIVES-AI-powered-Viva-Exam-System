@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace AIpoweredVivaExamSystem.Tests;
@@ -33,7 +34,8 @@ public sealed class LoginApiTests
         Assert.Equal(user.Id, body.GetProperty("id").GetGuid());
         Assert.Equal(user.Email, body.GetProperty("email").GetString());
         Assert.Equal(user.FullName, body.GetProperty("fullName").GetString());
-        Assert.Equal(3, body.EnumerateObject().Count());
+        Assert.False(body.TryGetProperty("passwordHash", out _));
+        Assert.False(body.TryGetProperty("password", out _));
     }
 
     [Theory]
@@ -97,17 +99,33 @@ public sealed class LoginApiTests
     }
 
     // Mỗi test dùng database SQLite riêng, không chạm vào SQL Server của nhóm.
-    private sealed class LoginFactory : WebApplicationFactory<Program>
+    public sealed class LoginFactory(Dictionary<string, string?>? overrides = null) : WebApplicationFactory<Program>
     {
+        public const string TestKey = "Test-only-signing-key-with-at-least-32-bytes-2026";
         private readonly SqliteConnection connection = new("Data Source=:memory:");
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureLogging(logging => logging.ClearProviders());
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                var settings = new Dictionary<string, string?>
+                {
+                    ["Jwt:Key"] = TestKey,
+                    ["Jwt:Issuer"] = "aives-tests",
+                    ["Jwt:Audience"] = "aives-test-client",
+                    ["Jwt:ExpirationMinutes"] = "7"
+                };
+                if (overrides is not null)
+                    foreach (var pair in overrides) settings[pair.Key] = pair.Value;
+                config.AddInMemoryCollection(settings);
+            });
             ClientOptions.BaseAddress = new Uri("https://localhost");
             connection.Open();
             builder.ConfigureServices(services =>
             {
+                // Endpoint bảo vệ chỉ tồn tại trong assembly test, không đưa vào API thật.
+                services.AddControllers().AddApplicationPart(typeof(JwtProbeController).Assembly);
                 services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
                 services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connection));
