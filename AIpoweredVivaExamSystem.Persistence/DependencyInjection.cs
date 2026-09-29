@@ -26,6 +26,8 @@ public static class DependencyInjection
 
         services.AddScoped<IRubricRepository, RubricRepository>();
         services.AddScoped<IQuestionLookup, QuestionLookup>();
+        services.AddScoped<ISubjectRepository, SubjectRepository>();
+        services.AddScoped<ITopicRepository, TopicRepository>();
 
         return services;
     }
