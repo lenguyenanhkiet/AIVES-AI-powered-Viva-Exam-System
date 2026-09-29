@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
 using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Topics;
@@ -16,6 +17,7 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<IRubricService, RubricService>();
             services.AddScoped<ISubjectService, SubjectService>();
             services.AddScoped<ITopicService, TopicService>();
+            services.AddScoped<IQuestionService, QuestionService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }
