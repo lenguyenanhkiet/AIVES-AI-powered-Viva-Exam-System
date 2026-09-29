@@ -229,7 +229,8 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
 
                     b.ToTable("Subjects", (string)null);
                 });

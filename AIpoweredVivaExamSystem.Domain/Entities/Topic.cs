@@ -16,9 +16,16 @@ public class Topic : AuditableEntity
         AcademicStatus status = AcademicStatus.Active)
     {
         DomainRules.RequiredId(subjectId, nameof(SubjectId));
-        DomainRules.DefinedEnum(status, nameof(Status));
         SubjectId = subjectId;
-        Name = DomainRules.RequiredText(name, nameof(Name), 255);
+        Update(name, description, status);
+    }
+
+    // SubjectId is part of the alternate key used by Questions, so a topic cannot move between subjects.
+    public void Update(string name, string? description, AcademicStatus status)
+    {
+        var normalizedName = DomainRules.RequiredText(name, nameof(Name), 255);
+        DomainRules.DefinedEnum(status, nameof(Status));
+        Name = normalizedName;
         Description = description;
         Status = status;
     }

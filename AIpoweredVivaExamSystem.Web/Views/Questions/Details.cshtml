@@ -1,0 +1,175 @@
+@model QuestionDetailsViewModel
+@using Microsoft.AspNetCore.Html
+@{
+    var q = Model.Question;
+    var rubric = Model.Rubric;
+    ViewData["Title"] = "Chi tiết câu hỏi";
+    var isDraft = q.Status == QuestionStatus.Draft;
+    string Step(bool done, bool failed = false) => failed ? "failed" : done ? "done" : "";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Câu hỏi</a> @Icons.Get("chevron-right", 14) <span>Chi tiết</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <div class="head-tags">
+                <a asp-controller="Subjects" asp-action="Details" asp-route-id="@Model.Subject.Id" title="@Model.Subject.Name"><span class="code-chip">@Model.Subject.Code</span></a>
+                @if (Model.Topic is not null)
+                {
+                    <a class="chip" asp-controller="Topics" asp-action="Details" asp-route-id="@Model.Topic.Id">@Icons.Get("layers", 12) @Model.Topic.Name</a>
+                }
+                <partial name="_QuestionStatus" model="q.Status" />
+            </div>
+            <h1 class="page-title">Chi tiết câu hỏi</h1>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@q.Id">@Icons.Get("edit") Sửa</a>
+            <a class="btn btn-secondary" asp-action="Delete" asp-route-id="@q.Id"
+               data-confirm-action="@Url.Action("Delete", new { id = q.Id })"
+               data-confirm-title="Xóa câu hỏi này?"
+               data-confirm-text="Câu hỏi và rubric đi kèm sẽ bị xóa khỏi ngân hàng câu hỏi.">@Icons.Get("trash") Xóa</a>
+        </div>
+    </div>
+
+    <ol class="progress-steps">
+        <li class="done"><span class="step-dot">@Icons.Get("check", 14)</span> Soạn câu hỏi</li>
+        <li class="@Step(q.HasRubric)"><span class="step-dot">@(q.HasRubric ? Icons.Get("check", 14) : new HtmlString("2"))</span> Gắn rubric</li>
+        <li class="@Step(q.Status == QuestionStatus.Approved, q.Status == QuestionStatus.Rejected)">
+            <span class="step-dot">@(q.Status switch { QuestionStatus.Approved => Icons.Get("check", 14), QuestionStatus.Rejected => Icons.Get("x", 14), _ => new HtmlString("3") })</span>
+            @(q.Status == QuestionStatus.Rejected ? "Bị từ chối" : "Duyệt")
+        </li>
+    </ol>
+
+    <div class="detail-grid">
+        <div class="stack">
+            <div class="card">
+                <div class="card-head"><div class="card-title">Nội dung câu hỏi</div></div>
+                <div class="card-body">
+                    <p class="question-text">@q.Content</p>
+                    <div class="answer">
+                        <div class="answer-label">Đáp án mong đợi</div>
+                        <p class="prose">@(string.IsNullOrWhiteSpace(q.ExpectedAnswer) ? "Chưa có đáp án mong đợi." : q.ExpectedAnswer)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <div class="card-title">Rubric chấm điểm</div>
+                        <span class="muted">AI dùng rubric để chấm câu trả lời của sinh viên theo từng tiêu chí.</span>
+                    </div>
+                    @if (rubric is not null)
+                    {
+                        <div class="head-actions">
+                            <a class="btn btn-secondary btn-sm" asp-controller="Rubrics" asp-action="Edit" asp-route-id="@rubric.Id">@Icons.Get("edit", 14) Sửa</a>
+                            <button type="button" hidden="@(q.Status == QuestionStatus.Approved)" class="icon-btn danger" title="Xóa rubric"
+                                    data-confirm-action="@Url.Action("Delete", "Rubrics", new { id = rubric.Id })"
+                                    data-confirm-title="Xóa rubric &quot;@rubric.Name&quot;?"
+                                    data-confirm-text="Câu hỏi sẽ không thể được duyệt cho đến khi có rubric mới.">@Icons.Get("trash")</button>
+                        </div>
+                    }
+                </div>
+                @if (rubric is null)
+                {
+                    <div class="empty">
+                        <div class="empty-icon">@Icons.Get("checklist", 20)</div>
+                        <div class="empty-title">Câu hỏi chưa có rubric</div>
+                        <p class="empty-text">Cần rubric với các tiêu chí và điểm tối đa trước khi duyệt câu hỏi.</p>
+                        <a class="btn btn-primary" asp-controller="Rubrics" asp-action="Create" asp-route-questionId="@q.Id">@Icons.Get("plus") Tạo rubric</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="card-body rubric-summary">
+                        <div class="rubric-name">@rubric.Name</div>
+                        @if (!string.IsNullOrWhiteSpace(rubric.Description))
+                        {
+                            <p class="prose muted">@rubric.Description</p>
+                        }
+                    </div>
+                    <ul class="criteria-list">
+                        @foreach (var c in rubric.Criteria)
+                        {
+                            <li>
+                                <span class="criterion-index">@c.DisplayOrder</span>
+                                <div class="criterion-main">
+                                    <div class="criterion-name">@c.Name</div>
+                                    @if (!string.IsNullOrWhiteSpace(c.Description))
+                                    {
+                                        <div class="criterion-desc">@c.Description</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(c.ExpectedConcepts))
+                                    {
+                                        <div class="criterion-concepts"><span>Khái niệm cần có:</span> @c.ExpectedConcepts</div>
+                                    }
+                                </div>
+                                <span class="score-pill">@c.MaxScore.ToScore() đ</span>
+                            </li>
+                        }
+                    </ul>
+                    <div class="rubric-total">Tổng điểm <strong>@rubric.TotalScore.ToScore() điểm</strong></div>
+                }
+            </div>
+        </div>
+
+        <div class="stack">
+            <div class="card">
+                <div class="card-head"><div class="card-title">Duyệt câu hỏi</div></div>
+                <div class="card-body">
+                    @switch (q.Status)
+                    {
+                        case QuestionStatus.Draft when !q.HasRubric:
+                            <p class="review-text">Câu hỏi đang là <strong>Nháp</strong>. Thêm rubric để có thể duyệt.</p>
+                            break;
+                        case QuestionStatus.Draft:
+                            <p class="review-text">Câu hỏi đã đủ nội dung và rubric. Kiểm tra lại rồi duyệt để dùng trong kỳ thi.</p>
+                            break;
+                        case QuestionStatus.Approved:
+                            <p class="review-text">@Icons.Get("check", 14) Câu hỏi <strong>đã được duyệt</strong> và có thể dùng trong kỳ thi. Nếu sửa nội dung, câu hỏi sẽ về Nháp để duyệt lại.</p>
+                            break;
+                        case QuestionStatus.Rejected:
+                            <p class="review-text">Câu hỏi <strong>bị từ chối</strong>. Sửa lại nội dung để đưa về Nháp và gửi duyệt lần nữa.</p>
+                            break;
+                        default:
+                            <p class="review-text">Trạng thái: @q.Status.ToLabel().</p>
+                            break;
+                    }
+                    @if (isDraft)
+                    {
+                        <div class="review-actions">
+                            <form method="post" asp-action="Approve" asp-route-id="@q.Id">
+                                <button type="submit" class="btn btn-success" disabled="@(!q.HasRubric)"
+                                        title="@(q.HasRubric ? "" : "Cần rubric trước khi duyệt")">@Icons.Get("check") Duyệt</button>
+                            </form>
+                            <form method="post" asp-action="Reject" asp-route-id="@q.Id">
+                                <button type="submit" class="btn btn-secondary">@Icons.Get("x") Từ chối</button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="btn btn-secondary btn-block" asp-action="Edit" asp-route-id="@q.Id">@Icons.Get("edit") Sửa câu hỏi</a>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><div class="card-title">Thông tin</div></div>
+                <div class="card-body">
+                    <dl class="meta">
+                        <div><dt>Môn học</dt><dd>@Model.Subject.Code — @Model.Subject.Name</dd></div>
+                        <div><dt>Chủ đề</dt><dd>@(Model.Topic?.Name ?? "—")</dd></div>
+                        <div><dt>Mức Bloom</dt><dd><partial name="_Bloom" model="q.BloomLevel" /> <span class="muted">@q.BloomLevel.ToHint()</span></dd></div>
+                        <div><dt>Độ khó</dt><dd><partial name="_Difficulty" model="q.Difficulty" /></dd></div>
+                        <div><dt>Nguồn</dt><dd>@q.SourceType.ToLabel()</dd></div>
+                        <div><dt>Ngày tạo</dt><dd>@q.CreatedAt.ToLocalText()</dd></div>
+                        <div><dt>Cập nhật lần cuối</dt><dd>@(q.UpdatedAt?.ToLocalText() ?? "—")</dd></div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,22 @@
+@model TopicDetailsViewModel
+@{
+    ViewData["Title"] = "Xóa chủ đề";
+}
+
+<div class="container" style="max-width:560px">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Chủ đề</a> @Icons.Get("chevron-right", 14)
+        <a asp-action="Details" asp-route-id="@Model.Topic.Id">@Model.Topic.Name</a> @Icons.Get("chevron-right", 14) <span>Xóa</span>
+    </nav>
+    <form method="post" class="card">
+        <div class="card-body">
+            <div class="modal-icon">@Icons.Get("trash", 20)</div>
+            <h1 class="modal-title">Xóa chủ đề "@Model.Topic.Name"?</h1>
+            <p class="modal-text">Chủ đề sẽ bị ẩn khỏi môn @(Model.Subject?.Code). Không thể xóa nếu chủ đề vẫn còn câu hỏi.</p>
+        </div>
+        <div class="form-actions">
+            <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Topic.Id">Hủy</a>
+            <button type="submit" class="btn btn-danger">@Icons.Get("trash") Xóa chủ đề</button>
+        </div>
+    </form>
+</div>

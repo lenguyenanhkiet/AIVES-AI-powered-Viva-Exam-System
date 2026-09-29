@@ -1,0 +1,23 @@
+@model QuestionResponse
+@{
+    ViewData["Title"] = "Xóa câu hỏi";
+}
+
+<div class="container" style="max-width:560px">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Câu hỏi</a> @Icons.Get("chevron-right", 14)
+        <a asp-action="Details" asp-route-id="@Model.Id">Chi tiết</a> @Icons.Get("chevron-right", 14) <span>Xóa</span>
+    </nav>
+    <form method="post" class="card">
+        <div class="card-body">
+            <div class="modal-icon">@Icons.Get("trash", 20)</div>
+            <h1 class="modal-title">Xóa câu hỏi này?</h1>
+            <p class="modal-text clamp-2">"@Model.Content"</p>
+            <p class="modal-text">Câu hỏi@(Model.HasRubric ? " và rubric đi kèm" : "") sẽ bị xóa khỏi ngân hàng câu hỏi.</p>
+        </div>
+        <div class="form-actions">
+            <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Id">Hủy</a>
+            <button type="submit" class="btn btn-danger">@Icons.Get("trash") Xóa câu hỏi</button>
+        </div>
+    </form>
+</div>

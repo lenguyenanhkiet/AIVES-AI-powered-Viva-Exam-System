@@ -1,0 +1,90 @@
+@model SubjectDetailsViewModel
+@{
+    var s = Model.Subject;
+    ViewData["Title"] = s.Code;
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Môn học</a> @Icons.Get("chevron-right", 14) <span>@s.Code</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span class="code-chip">@s.Code</span>
+                <partial name="_StatusBadge" model="s.Status" />
+            </div>
+            <h1 class="page-title">@s.Name</h1>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@s.Id">@Icons.Get("edit") Sửa</a>
+            <a class="btn btn-secondary" asp-action="Delete" asp-route-id="@s.Id"
+               data-confirm-action="@Url.Action("Delete", new { id = s.Id })"
+               data-confirm-title="Xóa môn @s.Code?"
+               data-confirm-text="Môn học sẽ bị ẩn khỏi hệ thống. Không thể xóa nếu môn vẫn còn chủ đề hoặc câu hỏi.">@Icons.Get("trash") Xóa</a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="card">
+            <div class="card-head">
+                <div>
+                    <div class="card-title">Chủ đề</div>
+                    <span class="muted">@Model.Topics.TotalCount chủ đề trong môn này</span>
+                </div>
+                <a class="btn btn-primary btn-sm" asp-controller="Topics" asp-action="Create" asp-route-subjectId="@s.Id">@Icons.Get("plus", 14) Thêm chủ đề</a>
+            </div>
+            @if (Model.Topics.Items.Count == 0)
+            {
+                <div class="empty">
+                    <div class="empty-icon">@Icons.Get("layers", 20)</div>
+                    <div class="empty-title">Môn này chưa có chủ đề</div>
+                    <p class="empty-text">Chia môn học thành các chủ đề để phân loại câu hỏi dễ hơn.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead><tr><th>Tên chủ đề</th><th>Trạng thái</th><th>Cập nhật</th><th class="actions"></th></tr></thead>
+                        <tbody>
+                            @foreach (var t in Model.Topics.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <a class="cell-title" asp-controller="Topics" asp-action="Details" asp-route-id="@t.Id">@t.Name</a>
+                                        @if (!string.IsNullOrWhiteSpace(t.Description))
+                                        {
+                                            <span class="cell-sub">@t.Description</span>
+                                        }
+                                    </td>
+                                    <td><partial name="_StatusBadge" model="t.Status" /></td>
+                                    <td class="muted">@((t.UpdatedAt ?? t.CreatedAt).ToLocalText())</td>
+                                    <td class="actions">
+                                        <a class="icon-btn" title="Sửa" asp-controller="Topics" asp-action="Edit" asp-route-id="@t.Id">@Icons.Get("edit")</a>
+                                        <a class="icon-btn danger" title="Xóa" asp-controller="Topics" asp-action="Delete" asp-route-id="@t.Id"
+                                           data-confirm-action="@Url.Action("Delete", "Topics", new { id = t.Id })"
+                                           data-confirm-title="Xóa chủ đề &quot;@t.Name&quot;?"
+                                           data-confirm-text="Không thể xóa nếu chủ đề vẫn còn câu hỏi.">@Icons.Get("trash")</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Thông tin</div></div>
+            <div class="card-body">
+                <dl class="meta">
+                    <div><dt>Câu hỏi</dt><dd><a class="stat-link" asp-controller="Questions" asp-action="Index" asp-route-subjectId="@s.Id">@Model.QuestionCount câu hỏi · Xem →</a></dd></div>
+                    <div><dt>Mô tả</dt><dd><p class="prose">@(string.IsNullOrWhiteSpace(s.Description) ? "—" : s.Description)</p></dd></div>
+                    <div><dt>Ngày tạo</dt><dd>@s.CreatedAt.ToLocalText()</dd></div>
+                    <div><dt>Cập nhật lần cuối</dt><dd>@(s.UpdatedAt?.ToLocalText() ?? "—")</dd></div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

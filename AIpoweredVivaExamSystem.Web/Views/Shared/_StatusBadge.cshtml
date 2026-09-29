@@ -1,0 +1,3 @@
+@model AcademicStatus
+
+<span class="badge @(Model == AcademicStatus.Active ? "badge-active" : "badge-inactive")">@Model.ToLabel()</span>

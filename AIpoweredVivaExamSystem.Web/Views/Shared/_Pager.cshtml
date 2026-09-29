@@ -1,0 +1,14 @@
+@model PagerModel
+
+<div class="pager">
+    <span>Hiển thị @Model.From–@Model.To trên @Model.TotalCount</span>
+    <div class="pager-nav">
+        <a class="btn btn-secondary btn-sm @(Model.Page <= 1 ? "disabled" : "")" asp-all-route-data="Model.For(Model.Page - 1)">
+            @Icons.Get("chevron-left", 14) Trước
+        </a>
+        <span>Trang @Model.Page / @Model.TotalPages</span>
+        <a class="btn btn-secondary btn-sm @(Model.Page >= Model.TotalPages ? "disabled" : "")" asp-all-route-data="Model.For(Model.Page + 1)">
+            Sau @Icons.Get("chevron-right", 14)
+        </a>
+    </div>
+</div>

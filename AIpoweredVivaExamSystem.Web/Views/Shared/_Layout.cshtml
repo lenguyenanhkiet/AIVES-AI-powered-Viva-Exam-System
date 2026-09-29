@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    string Active(string name) => string.Equals(controller, name, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · AIVES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">@Icons.Get("mic", 18)</span>
+                <span>
+                    <span class="brand-name">AIVES</span>
+                    <span class="brand-sub">AI Viva Exam System</span>
+                </span>
+            </a>
+
+            <nav class="nav">
+                <a class="nav-item @Active("Home")" asp-controller="Home" asp-action="Index">@Icons.Get("home") Tổng quan</a>
+
+                <div class="nav-label">Ngân hàng câu hỏi</div>
+                <a class="nav-item @Active("Subjects")" asp-controller="Subjects" asp-action="Index">@Icons.Get("book") Môn học</a>
+                <a class="nav-item @Active("Topics")" asp-controller="Topics" asp-action="Index">@Icons.Get("layers") Chủ đề</a>
+                <a class="nav-item @(Active("Questions") + Active("Rubrics"))" asp-controller="Questions" asp-action="Index">@Icons.Get("help") Câu hỏi &amp; rubric</a>
+
+                <div class="nav-label">Thi vấn đáp</div>
+                <span class="nav-item disabled" title="Đang phát triển">@Icons.Get("calendar") Kỳ thi <span class="soon">Sắp có</span></span>
+            </nav>
+
+            <div class="sidebar-foot">PRN222 · Fall 2026</div>
+        </aside>
+
+        <main class="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    @if (TempData["Toast"] is string toast)
+    {
+        var ok = (TempData["ToastType"] as string) != "error";
+        <div class="toast @(ok ? "toast-success" : "toast-error")" role="status" data-toast>
+            @(ok ? Icons.Get("check") : Icons.Get("alert"))
+            <span>@toast</span>
+            <button type="button" class="toast-close" aria-label="Đóng" data-toast-close>@Icons.Get("x", 14)</button>
+        </div>
+    }
+
+    <dialog class="modal" id="confirm-dialog">
+        <form method="post" data-confirm-form>
+            @Html.AntiForgeryToken()
+            <div class="modal-icon">@Icons.Get("trash", 20)</div>
+            <h2 class="modal-title" data-confirm-title>Xóa mục này?</h2>
+            <p class="modal-text" data-confirm-text>Thao tác này không thể hoàn tác.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-confirm-cancel>Hủy</button>
+                <button type="submit" class="btn btn-danger">Xóa</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

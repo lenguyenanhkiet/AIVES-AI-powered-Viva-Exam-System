@@ -1,0 +1,116 @@
+@model QuestionFormViewModel
+@{
+    var isEdit = Model.Id is not null;
+    var subjects = (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Subjects;
+    var topics = (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Topics;
+}
+
+<form method="post" class="card" novalidate>
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="alert"></div>
+        @if (isEdit && Model.CurrentStatus is not null and not QuestionStatus.Draft)
+        {
+            <div class="alert alert-info">@Icons.Get("alert") <span>Câu hỏi đang ở trạng thái <strong>@Model.CurrentStatus.Value.ToLabel()</strong>. Lưu thay đổi sẽ chuyển về <strong>Nháp</strong> và cần duyệt lại.</span></div>
+        }
+
+        <div class="form-grid">
+            <div class="form-intro">
+                <h2>Phân loại</h2>
+                <p>Câu hỏi thuộc một môn học, có thể gắn thêm chủ đề để dễ lọc khi tạo đề.</p>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label class="label" asp-for="SubjectId">Môn học <span class="req">*</span></label>
+                    @if (isEdit)
+                    {
+                        <select class="select" asp-for="SubjectId" asp-items="subjects" disabled></select>
+                        <span class="hint">Không thể chuyển câu hỏi sang môn khác.</span>
+                    }
+                    else
+                    {
+                        <select class="select" asp-for="SubjectId" asp-items="subjects" data-subject-select>
+                            <option value="">— Chọn môn học —</option>
+                        </select>
+                    }
+                    <span class="field-error" asp-validation-for="SubjectId"></span>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="TopicId"></label>
+                    <select class="select" asp-for="TopicId" asp-items="topics"
+                            data-topic-select data-topic-source="@Url.Action("TopicOptions")">
+                        <option value="">— Không gắn chủ đề —</option>
+                    </select>
+                    <span class="field-error" asp-validation-for="TopicId"></span>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="form-grid">
+            <div class="form-intro">
+                <h2>Nội dung</h2>
+                <p>Câu hỏi giảng viên sẽ hỏi sinh viên trong buổi vấn đáp, kèm đáp án mong đợi để AI tham chiếu khi chấm.</p>
+            </div>
+            <div>
+                <div class="field">
+                    <label class="label" asp-for="Content">Nội dung câu hỏi <span class="req">*</span></label>
+                    <textarea class="textarea" asp-for="Content" rows="4" maxlength="4000" autofocus
+                              placeholder="VD: Giải thích sự khác nhau giữa AddScoped, AddTransient và AddSingleton trong ASP.NET Core."></textarea>
+                    <span class="field-error" asp-validation-for="Content"></span>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="ExpectedAnswer"></label>
+                    <textarea class="textarea" asp-for="ExpectedAnswer" rows="4" maxlength="8000"
+                              placeholder="Các ý chính một câu trả lời tốt cần có…"></textarea>
+                    <span class="hint">Không bắt buộc.</span>
+                    <span class="field-error" asp-validation-for="ExpectedAnswer"></span>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="form-grid">
+            <div class="form-intro">
+                <h2>Mức độ</h2>
+                <p>Mức Bloom mô tả loại tư duy câu hỏi kiểm tra. Kỳ thi sẽ trộn câu hỏi theo mức Bloom và độ khó.</p>
+            </div>
+            <div>
+                <fieldset class="field">
+                    <legend class="label">Mức Bloom <span class="req">*</span></legend>
+                    <div class="choice-grid">
+                        @foreach (var level in Enum.GetValues<BloomLevel>())
+                        {
+                            <label class="choice">
+                                <input type="radio" name="@nameof(Model.BloomLevel)" value="@level" checked="@(Model.BloomLevel == level)" />
+                                <span class="choice-body">
+                                    <span class="choice-title"><span class="choice-dot bloom-@((int)level)"></span>@((int)level). @level.ToLabel()</span>
+                                    <span class="choice-hint">@level.ToHint()</span>
+                                </span>
+                            </label>
+                        }
+                    </div>
+                    <span class="field-error" asp-validation-for="BloomLevel"></span>
+                </fieldset>
+                <fieldset class="field">
+                    <legend class="label">Độ khó <span class="req">*</span></legend>
+                    <div class="segmented">
+                        @foreach (var difficulty in Enum.GetValues<QuestionDifficulty>())
+                        {
+                            <label>
+                                <input type="radio" name="@nameof(Model.Difficulty)" value="@difficulty" checked="@(Model.Difficulty == difficulty)" />
+                                <span>@difficulty.ToLabel()</span>
+                            </label>
+                        }
+                    </div>
+                    <span class="field-error" asp-validation-for="Difficulty"></span>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="btn btn-secondary" href="@(isEdit ? Url.Action("Details", new { id = Model.Id }) : Url.Action("Index"))">Hủy</a>
+        <button type="submit" class="btn btn-primary">@Icons.Get("check") @(isEdit ? "Lưu thay đổi" : "Tạo câu hỏi")</button>
+    </div>
+</form>

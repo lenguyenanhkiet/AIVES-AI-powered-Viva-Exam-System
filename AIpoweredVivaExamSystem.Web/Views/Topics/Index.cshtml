@@ -1,0 +1,116 @@
+@model TopicIndexViewModel
+@{
+    ViewData["Title"] = "Chủ đề";
+    var filtered = Model.Query.SubjectId is not null || !string.IsNullOrWhiteSpace(Model.Query.Keyword) || Model.Query.Status is not null;
+    var pager = new PagerModel(Model.Page.Page, Model.Page.PageSize, Model.Page.TotalCount, new Dictionary<string, string?>
+    {
+        ["subjectId"] = Model.Query.SubjectId?.ToString(), ["keyword"] = Model.Query.Keyword, ["status"] = Model.Query.Status?.ToString()
+    });
+}
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Chủ đề</h1>
+            <p class="page-sub">Mỗi môn học gồm nhiều chủ đề; câu hỏi vấn đáp được phân loại theo chủ đề.</p>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-primary" asp-action="Create" asp-route-subjectId="@Model.Query.SubjectId">@Icons.Get("plus") Thêm chủ đề</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <form class="toolbar" method="get" asp-action="Index">
+            <label class="search">
+                @Icons.Get("search")
+                <input class="input" type="search" name="keyword" value="@Model.Query.Keyword" placeholder="Tìm theo tên chủ đề…" maxlength="255" />
+            </label>
+            <select class="select" name="subjectId" data-auto-submit>
+                <option value="">Tất cả môn học</option>
+                @foreach (var subject in Model.Subjects.Values.OrderBy(x => x.Code))
+                {
+                    <option value="@subject.Id" selected="@(Model.Query.SubjectId == subject.Id)">@subject.Code — @subject.Name</option>
+                }
+            </select>
+            <select class="select" name="status" data-auto-submit>
+                <option value="">Tất cả trạng thái</option>
+                @foreach (var status in Enum.GetValues<AcademicStatus>())
+                {
+                    <option value="@status" selected="@(Model.Query.Status == status)">@status.ToLabel()</option>
+                }
+            </select>
+            <button class="btn btn-secondary" type="submit">Lọc</button>
+            @if (filtered)
+            {
+                <a class="btn btn-ghost" asp-action="Index">Xóa bộ lọc</a>
+            }
+        </form>
+
+        @if (Model.Page.Items.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("inbox", 20)</div>
+                @if (filtered)
+                {
+                    <div class="empty-title">Không tìm thấy chủ đề phù hợp</div>
+                    <p class="empty-text">Thử từ khóa khác hoặc bỏ bộ lọc.</p>
+                    <a class="btn btn-secondary" asp-action="Index">Xóa bộ lọc</a>
+                }
+                else if (Model.Subjects.Count == 0)
+                {
+                    <div class="empty-title">Chưa có môn học nào</div>
+                    <p class="empty-text">Cần tạo môn học trước khi thêm chủ đề.</p>
+                    <a class="btn btn-primary" asp-controller="Subjects" asp-action="Create">@Icons.Get("plus") Thêm môn học</a>
+                }
+                else
+                {
+                    <div class="empty-title">Chưa có chủ đề nào</div>
+                    <p class="empty-text">Thêm chủ đề đầu tiên cho một môn học.</p>
+                    <a class="btn btn-primary" asp-action="Create">@Icons.Get("plus") Thêm chủ đề</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr><th>Tên chủ đề</th><th>Môn học</th><th>Trạng thái</th><th>Cập nhật</th><th class="actions"></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var topic in Model.Page.Items)
+                        {
+                            Model.Subjects.TryGetValue(topic.SubjectId, out var subject);
+                            <tr>
+                                <td>
+                                    <a class="cell-title" asp-action="Details" asp-route-id="@topic.Id">@topic.Name</a>
+                                    @if (!string.IsNullOrWhiteSpace(topic.Description))
+                                    {
+                                        <span class="cell-sub">@topic.Description</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (subject is not null)
+                                    {
+                                        <a asp-controller="Subjects" asp-action="Details" asp-route-id="@subject.Id" title="@subject.Name"><span class="code-chip">@subject.Code</span></a>
+                                    }
+                                </td>
+                                <td><partial name="_StatusBadge" model="topic.Status" /></td>
+                                <td class="muted">@((topic.UpdatedAt ?? topic.CreatedAt).ToLocalText())</td>
+                                <td class="actions">
+                                    <a class="icon-btn" title="Xem" asp-action="Details" asp-route-id="@topic.Id">@Icons.Get("eye")</a>
+                                    <a class="icon-btn" title="Sửa" asp-action="Edit" asp-route-id="@topic.Id">@Icons.Get("edit")</a>
+                                    <a class="icon-btn danger" title="Xóa" asp-action="Delete" asp-route-id="@topic.Id"
+                                       data-confirm-action="@Url.Action("Delete", new { id = topic.Id })"
+                                       data-confirm-title="Xóa chủ đề &quot;@topic.Name&quot;?"
+                                       data-confirm-text="Không thể xóa nếu chủ đề vẫn còn câu hỏi.">@Icons.Get("trash")</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="pager" />
+        }
+    </div>
+</div>

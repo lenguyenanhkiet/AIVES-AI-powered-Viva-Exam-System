@@ -12,7 +12,8 @@ public class SubjectConfiguration : IEntityTypeConfiguration<Subject>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).ValueGeneratedNever();
         builder.Property(x => x.Code).IsRequired().HasMaxLength(50);
-        builder.HasIndex(x => x.Code).IsUnique();
+        // Soft-deleted subjects release their code so it can be reused.
+        builder.HasIndex(x => x.Code).IsUnique().HasFilter("[DeletedAt] IS NULL");
         builder.Property(x => x.Name).IsRequired().HasMaxLength(255);
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
     }

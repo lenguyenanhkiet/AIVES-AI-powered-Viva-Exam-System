@@ -13,11 +13,17 @@ public class Subject : AuditableEntity, IAggregateRoot
     private Subject() { }
 
     public Subject(string code, string name, string? description = null,
-        AcademicStatus status = AcademicStatus.Active)
+        AcademicStatus status = AcademicStatus.Active) =>
+        Update(code, name, description, status);
+
+    // Validates every field before changing the entity.
+    public void Update(string code, string name, string? description, AcademicStatus status)
     {
-        Code = DomainRules.RequiredText(code, nameof(Code), 50);
-        Name = DomainRules.RequiredText(name, nameof(Name), 255);
+        var normalizedCode = DomainRules.RequiredText(code, nameof(Code), 50);
+        var normalizedName = DomainRules.RequiredText(name, nameof(Name), 255);
         DomainRules.DefinedEnum(status, nameof(Status));
+        Code = normalizedCode;
+        Name = normalizedName;
         Description = description;
         Status = status;
     }

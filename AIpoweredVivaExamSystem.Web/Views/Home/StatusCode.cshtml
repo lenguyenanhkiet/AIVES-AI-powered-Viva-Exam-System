@@ -1,0 +1,11 @@
+@model int
+@{
+    ViewData["Title"] = Model == 404 ? "Không tìm thấy" : "Lỗi";
+}
+
+<div class="status-page">
+    <div class="status-code">@Model</div>
+    <h1 class="page-title">@(Model == 404 ? "Không tìm thấy trang" : "Đã có lỗi xảy ra")</h1>
+    <p class="page-sub">@(Model == 404 ? "Dữ liệu có thể đã bị xóa hoặc đường dẫn không đúng." : "Vui lòng thử lại sau.")</p>
+    <a class="btn btn-primary" style="margin-top:12px" asp-controller="Home" asp-action="Index">@Icons.Get("arrow-left") Về trang tổng quan</a>
+</div>

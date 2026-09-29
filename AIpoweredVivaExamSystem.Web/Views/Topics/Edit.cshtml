@@ -1,0 +1,19 @@
+@model TopicFormViewModel
+@{
+    ViewData["Title"] = "Sửa chủ đề";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Chủ đề</a> @Icons.Get("chevron-right", 14)
+        <a asp-action="Details" asp-route-id="@Model.Id">@Model.Name</a> @Icons.Get("chevron-right", 14)
+        <span>Chỉnh sửa</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Sửa chủ đề</h1>
+            <p class="page-sub">Cập nhật tên, mô tả hoặc trạng thái của chủ đề.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>

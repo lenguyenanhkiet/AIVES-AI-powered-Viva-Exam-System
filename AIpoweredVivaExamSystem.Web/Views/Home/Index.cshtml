@@ -1,0 +1,123 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan";
+}
+
+<div class="container">
+    <div class="hero">
+        <div>
+            <h1>Hệ thống thi vấn đáp thông minh</h1>
+            <p>Xây dựng ngân hàng câu hỏi theo môn học và chủ đề, gắn rubric chấm điểm cho AI.</p>
+        </div>
+        <a class="btn" asp-controller="Questions" asp-action="Create">@Icons.Get("plus") Soạn câu hỏi</a>
+    </div>
+
+    <div class="stats">
+        <a class="card stat" asp-controller="Subjects" asp-action="Index">
+            <div class="stat-top">Môn học <span class="stat-icon">@Icons.Get("book")</span></div>
+            <div class="stat-value">@Model.SubjectCount</div>
+            <span class="stat-link">Xem danh sách →</span>
+        </a>
+        <a class="card stat" asp-controller="Topics" asp-action="Index">
+            <div class="stat-top">Chủ đề <span class="stat-icon">@Icons.Get("layers")</span></div>
+            <div class="stat-value">@Model.TopicCount</div>
+            <span class="stat-link">Xem danh sách →</span>
+        </a>
+        <a class="card stat" asp-controller="Questions" asp-action="Index">
+            <div class="stat-top">Câu hỏi <span class="stat-icon">@Icons.Get("help")</span></div>
+            <div class="stat-value">@Model.QuestionCount</div>
+            <span class="muted">@Model.ApprovedCount đã duyệt · @Model.RubricCount có rubric</span>
+        </a>
+        <a class="card stat" asp-controller="Questions" asp-action="Index" asp-route-status="@QuestionStatus.Draft">
+            <div class="stat-top">Chờ duyệt <span class="stat-icon">@Icons.Get("checklist")</span></div>
+            <div class="stat-value">@Model.DraftCount</div>
+            <span class="stat-link">Đi tới duyệt →</span>
+        </a>
+    </div>
+
+    <div class="dash-grid">
+        <div class="stack">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title">Câu hỏi chờ duyệt</div>
+                    <a class="btn btn-ghost btn-sm" asp-controller="Questions" asp-action="Index" asp-route-status="@QuestionStatus.Draft">Xem tất cả</a>
+                </div>
+                @if (Model.PendingQuestions.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty-icon">@Icons.Get("check", 20)</div>
+                        <div class="empty-title">Không có câu hỏi nào chờ duyệt</div>
+                        <a class="btn btn-primary" asp-controller="Questions" asp-action="Create">@Icons.Get("plus") Soạn câu hỏi</a>
+                    </div>
+                }
+                else
+                {
+                    <table class="table">
+                        <tbody>
+                            @foreach (var q in Model.PendingQuestions)
+                            {
+                                <tr>
+                                    <td class="q-cell"><a class="cell-title clamp-2" asp-controller="Questions" asp-action="Details" asp-route-id="@q.Id">@q.Content</a></td>
+                                    <td style="width:1%"><partial name="_Bloom" model="q.BloomLevel" /></td>
+                                    <td class="actions">
+                                        @if (q.HasRubric)
+                                        {
+                                            <span class="rubric-yes">@Icons.Get("check", 14) Có rubric</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="muted">Chưa có rubric</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title">Môn học gần đây</div>
+                    <a class="btn btn-ghost btn-sm" asp-controller="Subjects" asp-action="Index">Xem tất cả</a>
+                </div>
+                @if (Model.RecentSubjects.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty-icon">@Icons.Get("inbox", 20)</div>
+                        <div class="empty-title">Chưa có môn học nào</div>
+                        <a class="btn btn-primary" asp-controller="Subjects" asp-action="Create">@Icons.Get("plus") Thêm môn học</a>
+                    </div>
+                }
+                else
+                {
+                    <table class="table">
+                        <tbody>
+                            @foreach (var s in Model.RecentSubjects)
+                            {
+                                <tr>
+                                    <td style="width:1%"><span class="code-chip">@s.Code</span></td>
+                                    <td><a class="cell-title" asp-controller="Subjects" asp-action="Details" asp-route-id="@s.Id">@s.Name</a></td>
+                                    <td class="actions"><partial name="_StatusBadge" model="s.Status" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><div class="card-title">Luồng xây dựng ngân hàng câu hỏi</div></div>
+            <div class="card-body">
+                <ol class="steps">
+                    <li><div><strong>Tạo môn học</strong><span>Mã môn, tên và mô tả.</span></div></li>
+                    <li><div><strong>Chia chủ đề</strong><span>Các mảng kiến thức trong môn.</span></div></li>
+                    <li><div><strong>Soạn câu hỏi</strong><span>Gắn chủ đề, mức Bloom và độ khó.</span></div></li>
+                    <li><div><strong>Gắn rubric</strong><span>Tiêu chí và điểm tối đa để AI chấm.</span></div></li>
+                    <li><div><strong>Duyệt câu hỏi</strong><span>Chỉ câu hỏi đã duyệt mới dùng cho kỳ thi.</span></div></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
