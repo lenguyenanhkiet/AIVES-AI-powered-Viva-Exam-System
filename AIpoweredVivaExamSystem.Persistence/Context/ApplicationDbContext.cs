@@ -16,6 +16,11 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Subject> Subjects => Set<Subject>();
+    public DbSet<Topic> Topics => Set<Topic>();
+    public DbSet<Question> Questions => Set<Question>();
+    public DbSet<Rubric> Rubrics => Set<Rubric>();
+    public DbSet<RubricCriterion> RubricCriteria => Set<RubricCriterion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

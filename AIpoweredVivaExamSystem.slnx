@@ -7,4 +7,5 @@
   <Project Path="AIpoweredVivaExamSystem.Domain/AIpoweredVivaExamSystem.Domain.csproj" />
   <Project Path="AIpoweredVivaExamSystem.Infrastructure/AIpoweredVivaExamSystem.Infrastructure.csproj" />
   <Project Path="AIpoweredVivaExamSystem.Persistence/AIpoweredVivaExamSystem.Persistence.csproj" />
+  <Project Path="AIpoweredVivaExamSystem.Tests/AIpoweredVivaExamSystem.Tests.csproj" />
 </Solution>

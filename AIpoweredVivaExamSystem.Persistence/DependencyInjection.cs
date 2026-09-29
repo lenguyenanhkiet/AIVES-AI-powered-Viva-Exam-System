@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using AIpoweredVivaExamSystem.Application.Interfaces;
+using AIpoweredVivaExamSystem.Persistence.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -21,6 +23,9 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
+
+        services.AddScoped<IRubricRepository, RubricRepository>();
+        services.AddScoped<IQuestionLookup, QuestionLookup>();
 
         return services;
     }
