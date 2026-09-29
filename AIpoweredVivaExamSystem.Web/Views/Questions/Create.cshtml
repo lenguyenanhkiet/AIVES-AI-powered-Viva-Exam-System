@@ -1,0 +1,17 @@
+@model QuestionFormViewModel
+@{
+    ViewData["Title"] = "Soạn câu hỏi";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Câu hỏi</a> @Icons.Get("chevron-right", 14) <span>Soạn mới</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Soạn câu hỏi</h1>
+            <p class="page-sub">Câu hỏi mới ở trạng thái Nháp. Sau khi tạo, thêm rubric chấm điểm rồi gửi duyệt.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>

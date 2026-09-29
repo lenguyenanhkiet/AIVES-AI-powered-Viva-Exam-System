@@ -1,0 +1,89 @@
+@model TopicDetailsViewModel
+@{
+    var t = Model.Topic;
+    ViewData["Title"] = t.Name;
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Chủ đề</a> @Icons.Get("chevron-right", 14) <span>@t.Name</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                @if (Model.Subject is not null)
+                {
+                    <a asp-controller="Subjects" asp-action="Details" asp-route-id="@Model.Subject.Id"><span class="code-chip">@Model.Subject.Code</span></a>
+                }
+                <partial name="_StatusBadge" model="t.Status" />
+            </div>
+            <h1 class="page-title">@t.Name</h1>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-primary" asp-controller="Questions" asp-action="Create" asp-route-subjectId="@t.SubjectId" asp-route-topicId="@t.Id">@Icons.Get("plus") Soạn câu hỏi</a>
+            <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@t.Id">@Icons.Get("edit") Sửa</a>
+            <a class="btn btn-secondary" asp-action="Delete" asp-route-id="@t.Id"
+               data-confirm-action="@Url.Action("Delete", new { id = t.Id })"
+               data-confirm-title="Xóa chủ đề &quot;@t.Name&quot;?"
+               data-confirm-text="Không thể xóa nếu chủ đề vẫn còn câu hỏi.">@Icons.Get("trash") Xóa</a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="stack">
+            <div class="card">
+                <div class="card-head"><div class="card-title">Mô tả</div></div>
+                <div class="card-body">
+                    <p class="prose">@(string.IsNullOrWhiteSpace(t.Description) ? "Chưa có mô tả." : t.Description)</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <div class="card-title">Câu hỏi</div>
+                        <span class="muted">@Model.Questions.TotalCount câu hỏi thuộc chủ đề này</span>
+                    </div>
+                    @if (Model.Questions.TotalCount > Model.Questions.Items.Count)
+                    {
+                        <a class="btn btn-ghost btn-sm" asp-controller="Questions" asp-action="Index" asp-route-topicId="@t.Id" asp-route-subjectId="@t.SubjectId">Xem tất cả</a>
+                    }
+                </div>
+                @if (Model.Questions.Items.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty-icon">@Icons.Get("help", 20)</div>
+                        <div class="empty-title">Chủ đề chưa có câu hỏi</div>
+                        <a class="btn btn-primary" asp-controller="Questions" asp-action="Create" asp-route-subjectId="@t.SubjectId" asp-route-topicId="@t.Id">@Icons.Get("plus") Soạn câu hỏi</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <tbody>
+                                @foreach (var q in Model.Questions.Items)
+                                {
+                                    <tr>
+                                        <td class="q-cell"><a class="cell-title clamp-2" asp-controller="Questions" asp-action="Details" asp-route-id="@q.Id">@q.Content</a></td>
+                                        <td style="width:1%"><partial name="_Bloom" model="q.BloomLevel" /></td>
+                                        <td class="actions"><partial name="_QuestionStatus" model="q.Status" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Thông tin</div></div>
+            <div class="card-body">
+                <dl class="meta">
+                    <div><dt>Môn học</dt><dd>@(Model.Subject is null ? "—" : $"{Model.Subject.Code} — {Model.Subject.Name}")</dd></div>
+                    <div><dt>Ngày tạo</dt><dd>@t.CreatedAt.ToLocalText()</dd></div>
+                    <div><dt>Cập nhật lần cuối</dt><dd>@(t.UpdatedAt?.ToLocalText() ?? "—")</dd></div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

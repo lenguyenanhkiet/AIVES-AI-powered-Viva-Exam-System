@@ -1,0 +1,19 @@
+@model RubricFormViewModel
+@{
+    ViewData["Title"] = "Tạo rubric";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-controller="Questions" asp-action="Index">Câu hỏi</a> @Icons.Get("chevron-right", 14)
+        <a asp-controller="Questions" asp-action="Details" asp-route-id="@Model.QuestionId">Chi tiết</a> @Icons.Get("chevron-right", 14)
+        <span>Tạo rubric</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Tạo rubric</h1>
+            <p class="page-sub">Định nghĩa các tiêu chí và điểm tối đa để AI chấm câu trả lời.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>

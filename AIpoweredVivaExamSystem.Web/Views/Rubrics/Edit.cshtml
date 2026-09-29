@@ -1,0 +1,19 @@
+@model RubricFormViewModel
+@{
+    ViewData["Title"] = "Sửa rubric";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-controller="Questions" asp-action="Index">Câu hỏi</a> @Icons.Get("chevron-right", 14)
+        <a asp-controller="Questions" asp-action="Details" asp-route-id="@Model.QuestionId">Chi tiết</a> @Icons.Get("chevron-right", 14)
+        <span>Sửa rubric</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Sửa rubric</h1>
+            <p class="page-sub">Thêm, bớt hoặc chỉnh điểm các tiêu chí. Tiêu chí bị xóa khỏi danh sách sẽ bị xóa khi lưu.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>

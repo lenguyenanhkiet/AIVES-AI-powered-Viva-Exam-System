@@ -1,0 +1,45 @@
+@model SubjectFormViewModel
+@{
+    var isEdit = Model.Id is not null;
+}
+
+<form method="post" class="card" novalidate>
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="alert"></div>
+        <div class="form-grid">
+            <div class="form-intro">
+                <h2>Thông tin môn học</h2>
+                <p>Mã môn là duy nhất trong hệ thống và dùng để nhận diện môn trong câu hỏi, kỳ thi.</p>
+            </div>
+            <div>
+                <div class="field-row">
+                    <div class="field">
+                        <label class="label" asp-for="Code">Mã môn <span class="req">*</span></label>
+                        <input class="input" asp-for="Code" placeholder="VD: PRN222" maxlength="50" autofocus />
+                        <span class="hint">Tối đa 50 ký tự, không phân biệt hoa thường.</span>
+                        <span class="field-error" asp-validation-for="Code"></span>
+                    </div>
+                    <div class="field">
+                        <label class="label" asp-for="Status"></label>
+                        <select class="select" asp-for="Status" asp-items="SelectLists.Statuses()"></select>
+                        <span class="field-error" asp-validation-for="Status"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="Name">Tên môn học <span class="req">*</span></label>
+                    <input class="input" asp-for="Name" placeholder="VD: Programming with C#" maxlength="255" />
+                    <span class="field-error" asp-validation-for="Name"></span>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="Description"></label>
+                    <textarea class="textarea" asp-for="Description" placeholder="Mục tiêu, phạm vi kiến thức của môn…"></textarea>
+                    <span class="hint">Không bắt buộc.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="btn btn-secondary" href="@(isEdit ? Url.Action("Details", new { id = Model.Id }) : Url.Action("Index"))">Hủy</a>
+        <button type="submit" class="btn btn-primary">@Icons.Get("check") @(isEdit ? "Lưu thay đổi" : "Tạo môn học")</button>
+    </div>
+</form>

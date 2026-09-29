@@ -1,0 +1,54 @@
+@model TopicFormViewModel
+@{
+    var isEdit = Model.Id is not null;
+    var subjects = (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Subjects;
+}
+
+<form method="post" class="card" novalidate>
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="alert"></div>
+        <div class="form-grid">
+            <div class="form-intro">
+                <h2>Thông tin chủ đề</h2>
+                <p>Chủ đề thuộc về đúng một môn học. Tên chủ đề không được trùng trong cùng môn.</p>
+            </div>
+            <div>
+                <div class="field-row">
+                    <div class="field">
+                        <label class="label" asp-for="SubjectId">Môn học <span class="req">*</span></label>
+                        @if (isEdit)
+                        {
+                            <select class="select" asp-for="SubjectId" asp-items="subjects" disabled></select>
+                            <span class="hint">Không thể chuyển chủ đề sang môn khác.</span>
+                        }
+                        else
+                        {
+                            <select class="select" asp-for="SubjectId" asp-items="subjects">
+                                <option value="">— Chọn môn học —</option>
+                            </select>
+                        }
+                        <span class="field-error" asp-validation-for="SubjectId"></span>
+                    </div>
+                    <div class="field">
+                        <label class="label" asp-for="Status"></label>
+                        <select class="select" asp-for="Status" asp-items="SelectLists.Statuses()"></select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="Name">Tên chủ đề <span class="req">*</span></label>
+                    <input class="input" asp-for="Name" placeholder="VD: LINQ và Entity Framework Core" maxlength="255" autofocus />
+                    <span class="field-error" asp-validation-for="Name"></span>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="Description"></label>
+                    <textarea class="textarea" asp-for="Description" placeholder="Kiến thức chính của chủ đề…"></textarea>
+                    <span class="hint">Không bắt buộc.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="btn btn-secondary" href="@(isEdit ? Url.Action("Details", new { id = Model.Id }) : Url.Action("Index"))">Hủy</a>
+        <button type="submit" class="btn btn-primary">@Icons.Get("check") @(isEdit ? "Lưu thay đổi" : "Tạo chủ đề")</button>
+    </div>
+</form>

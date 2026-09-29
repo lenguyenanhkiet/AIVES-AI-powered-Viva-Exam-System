@@ -1,0 +1,22 @@
+@model SubjectResponse
+@{
+    ViewData["Title"] = "Xóa môn học";
+}
+
+<div class="container" style="max-width:560px">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Môn học</a> @Icons.Get("chevron-right", 14)
+        <a asp-action="Details" asp-route-id="@Model.Id">@Model.Code</a> @Icons.Get("chevron-right", 14) <span>Xóa</span>
+    </nav>
+    <form method="post" class="card">
+        <div class="card-body">
+            <div class="modal-icon">@Icons.Get("trash", 20)</div>
+            <h1 class="modal-title">Xóa môn @Model.Code?</h1>
+            <p class="modal-text">Môn học <strong>@Model.Name</strong> sẽ bị ẩn khỏi hệ thống. Không thể xóa nếu môn vẫn còn chủ đề hoặc câu hỏi.</p>
+        </div>
+        <div class="form-actions">
+            <a class="btn btn-secondary" asp-action="Details" asp-route-id="@Model.Id">Hủy</a>
+            <button type="submit" class="btn btn-danger">@Icons.Get("trash") Xóa môn học</button>
+        </div>
+    </form>
+</div>

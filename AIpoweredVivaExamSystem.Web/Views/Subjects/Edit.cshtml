@@ -1,0 +1,19 @@
+@model SubjectFormViewModel
+@{
+    ViewData["Title"] = "Sửa môn học";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Môn học</a> @Icons.Get("chevron-right", 14)
+        <a asp-action="Details" asp-route-id="@Model.Id">@Model.Code</a> @Icons.Get("chevron-right", 14)
+        <span>Chỉnh sửa</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Sửa môn học</h1>
+            <p class="page-sub">Cập nhật thông tin môn học. Các chủ đề và câu hỏi đã gắn vẫn được giữ nguyên.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>

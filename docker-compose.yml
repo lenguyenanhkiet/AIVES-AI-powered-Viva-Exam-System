@@ -62,6 +62,32 @@ services:
     restart: unless-stopped
 
 
+  web:
+    build:
+      context: .
+      dockerfile: AIpoweredVivaExamSystem.Web/Dockerfile
+
+    container_name: aives-web
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ASPNETCORE_URLS: "http://+:8080"
+
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AIpoweredVivaExamSystemDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
+
+    ports:
+      - "8081:8080"
+
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+    networks:
+      - aives-network
+
+    restart: unless-stopped
+
+
 volumes:
   sqlserver_data:
 

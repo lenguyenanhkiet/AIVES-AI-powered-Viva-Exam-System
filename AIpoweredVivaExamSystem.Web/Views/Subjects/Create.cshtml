@@ -1,0 +1,17 @@
+@model SubjectFormViewModel
+@{
+    ViewData["Title"] = "Thêm môn học";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Môn học</a> @Icons.Get("chevron-right", 14) <span>Thêm mới</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Thêm môn học</h1>
+            <p class="page-sub">Tạo môn học mới để gắn chủ đề và câu hỏi vấn đáp.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>

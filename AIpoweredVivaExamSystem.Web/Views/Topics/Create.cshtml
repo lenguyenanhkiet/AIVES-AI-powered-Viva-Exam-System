@@ -1,0 +1,17 @@
+@model TopicFormViewModel
+@{
+    ViewData["Title"] = "Thêm chủ đề";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Chủ đề</a> @Icons.Get("chevron-right", 14) <span>Thêm mới</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Thêm chủ đề</h1>
+            <p class="page-sub">Tạo chủ đề mới cho một môn học.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model" />
+</div>
