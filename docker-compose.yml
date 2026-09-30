@@ -30,38 +30,6 @@ services:
       start_period: 20s
 
 
-  api:
-    build:
-      context: .
-      dockerfile: AIpoweredVivaExamSystem.Api/Dockerfile
-
-    container_name: aives-api
-
-    environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
-      ASPNETCORE_URLS: "http://+:8080"
-
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AIpoweredVivaExamSystemDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
-
-      Jwt__Key: "${JWT_KEY}"
-      Jwt__Issuer: "AIpoweredVivaExamSystem"
-      Jwt__Audience: "AIpoweredVivaExamSystem"
-
-      AI__ApiKey: "${AI_API_KEY}"
-
-    ports:
-      - "8080:8080"
-
-    depends_on:
-      sqlserver:
-        condition: service_healthy
-
-    networks:
-      - aives-network
-
-    restart: unless-stopped
-
-
   web:
     build:
       context: .
