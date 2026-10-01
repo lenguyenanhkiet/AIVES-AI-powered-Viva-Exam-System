@@ -10,4 +10,7 @@ public sealed class LoginUserRepository(ApplicationDbContext context) : ILoginUs
 {
     public Task<User?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken) =>
         context.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Email == normalizedEmail, cancellationToken);
+
+    public Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        context.Users.AsNoTracking().SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 }

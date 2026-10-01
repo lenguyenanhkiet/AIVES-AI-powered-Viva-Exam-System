@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <ProjectReference Include="..\AIpoweredVivaExamSystem.Infrastructure\AIpoweredVivaExamSystem.Infrastructure.csproj" />
     <ProjectReference Include="..\AIpoweredVivaExamSystem.Application\AIpoweredVivaExamSystem.Application.csproj" />
     <ProjectReference Include="..\AIpoweredVivaExamSystem.Persistence\AIpoweredVivaExamSystem.Persistence.csproj" />

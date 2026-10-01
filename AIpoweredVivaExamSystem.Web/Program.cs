@@ -3,8 +3,7 @@ using AIpoweredVivaExamSystem.Application;
 using AIpoweredVivaExamSystem.Persistence;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Infrastructure;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
+using AIpoweredVivaExamSystem.Web.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,21 +12,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddControllersWithViews(options => options.Filters.Add<NotFoundExceptionFilter>());
-// MVC mặc định dùng cookie; fallback bảo vệ cả controller mới chưa gắn [Authorize].
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "AIVES.Auth";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Home/StatusCode/403";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-        options.SlidingExpiration = false;
-    });
-builder.Services.AddAuthorization(options => options.FallbackPolicy = new AuthorizationPolicyBuilder()
-    .RequireAuthenticatedUser().Build());
+builder.Services.AddAivesAuthentication();
 
 var app = builder.Build();
 

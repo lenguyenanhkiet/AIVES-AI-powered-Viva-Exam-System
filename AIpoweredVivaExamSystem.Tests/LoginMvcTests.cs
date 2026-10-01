@@ -137,6 +137,33 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Account/Profile")).StatusCode);
     }
 
+    [Fact]
+    public async Task Locking_account_revokes_existing_cookie_on_next_request()
+    {
+        var email = await SeedAsync(UserStatus.Active);
+        await using var factory = CreateFactory();
+        using var client = Client(factory);
+        await LoginAsync(client, email, "Test-password-123!");
+        await using var context = fixture.CreateContext();
+        var user = await context.Users.SingleAsync(u => u.Email == email);
+        user.Lock();
+        await context.SaveChangesAsync();
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Account/Profile")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Personalized_page_is_not_cached_and_failed_login_does_not_echo_password()
+    {
+        var email = await SeedAsync(UserStatus.Active);
+        await using var factory = CreateFactory();
+        using var client = Client(factory);
+        var failed = await LoginAsync(client, email, "secret-not-to-echo-123!");
+        Assert.DoesNotContain("secret-not-to-echo-123!", await failed.Content.ReadAsStringAsync());
+        await LoginAsync(client, email, "Test-password-123!");
+        var profile = await client.GetAsync("/Account/Profile");
+        Assert.True(profile.Headers.CacheControl?.NoStore);
+    }
+
     private async Task<string> SeedAsync(UserStatus status, bool deleted = false, bool badHash = false, string password = "Test-password-123!")
     {
         await using var context = fixture.CreateContext();

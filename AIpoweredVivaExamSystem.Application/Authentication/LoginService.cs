@@ -15,4 +15,11 @@ public sealed class LoginService(ILoginUserRepository users, IPasswordVerifier p
             || !passwords.Verify(user, password)) return null;
         return new(user.Id, user.Email, user.FullName);
     }
+
+    /// <summary>Kiểm tra lại trạng thái từ DB để cookie cũ không tiếp tục dùng sau khi tài khoản bị khóa/xóa.</summary>
+    public async Task<bool> IsSessionActiveAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await users.FindByIdAsync(userId, cancellationToken);
+        return user is not null && user.Status == UserStatus.Active && user.DeletedAt is null;
+    }
 }

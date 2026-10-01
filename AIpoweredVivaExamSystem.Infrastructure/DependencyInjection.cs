@@ -13,6 +13,8 @@ public static class DependencyInjection
     {
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<IPasswordVerifier, IdentityPasswordVerifier>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
         return services;
     }
 }

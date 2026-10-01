@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
 /// <summary>Presentation MVC: nhận form, gọi LoginService và quản lý cookie; không truy vấn DB trực tiếp.</summary>
+[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 public sealed class AccountController(LoginService login) : Controller
 {
     [AllowAnonymous, HttpGet]
