@@ -14,6 +14,7 @@ namespace AIpoweredVivaExamSystem.Application
     {
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
+            services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.LoginService>();
             services.AddScoped<IRubricService, RubricService>();
             services.AddScoped<ISubjectService, SubjectService>();
             services.AddScoped<ITopicService, TopicService>();

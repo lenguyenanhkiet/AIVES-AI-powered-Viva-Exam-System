@@ -40,6 +40,7 @@ logs/
 # ASP.NET local secrets
 # =========================
 secrets.json
+**/appsettings.Development.json
 
 # =========================
 # Rider / JetBrains

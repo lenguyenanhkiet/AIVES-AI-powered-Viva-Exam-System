@@ -1,0 +1,8 @@
+@using System.Security.Claims
+@{ ViewData["Title"] = "Tài khoản"; }
+<div class="page-head"><div><h1>Tài khoản</h1><p>Thông tin của phiên đăng nhập hiện tại.</p></div></div>
+<section class="card" style="max-width:480px;padding:24px">
+    <p><strong>Họ tên:</strong> @User.Identity?.Name</p>
+    <p><strong>Email:</strong> @User.FindFirst(ClaimTypes.Email)?.Value</p>
+    <a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Về tổng quan</a>
+</section>
