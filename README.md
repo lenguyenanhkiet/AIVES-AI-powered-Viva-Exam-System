@@ -2,6 +2,8 @@
 
 Ứng dụng **ASP.NET Core MVC (.NET 10)** theo mô hình 3 tầng, chạy bằng Docker cùng SQL Server 2022.
 
+Login MVC, cookie/JWT, cấu hình cá nhân và các lệnh test SQL/smoke test: xem [docs/AUTH_MVC.md](docs/AUTH_MVC.md).
+
 ---
 
 ## 1. Cấu trúc solution
@@ -51,6 +53,7 @@ aives-sqlserver  SQL Server 2022    → localhost,1433
 
    ```env
    DB_PASSWORD=mat_khau_manh_cua_ban
+   JWT_KEY=key_ngau_nhien_it_nhat_32_byte
    ```
 
 2. Build và chạy:
