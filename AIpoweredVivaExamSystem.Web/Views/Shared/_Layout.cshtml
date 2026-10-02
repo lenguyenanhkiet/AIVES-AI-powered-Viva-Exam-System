@@ -35,7 +35,20 @@
                 <span class="nav-item disabled" title="Đang phát triển">@Icons.Get("calendar") Kỳ thi <span class="soon">Sắp có</span></span>
             </nav>
 
-            <div class="sidebar-foot">PRN222 · Fall 2026</div>
+            <div class="sidebar-foot">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Account" asp-action="Profile">@User.Identity.Name</a>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button class="btn btn-secondary" type="submit">Đăng xuất</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                }
+                <div>PRN222 · Fall 2026</div>
+            </div>
         </aside>
 
         <main class="main">

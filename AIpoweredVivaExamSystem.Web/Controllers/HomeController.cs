@@ -10,6 +10,7 @@ using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
@@ -37,14 +38,14 @@ public sealed class HomeController(
         });
     }
 
-    [Route("Home/StatusCode/{code:int}")]
+    [AllowAnonymous, Route("Home/StatusCode/{code:int}")]
     public new IActionResult StatusCode(int code)
     {
         Response.StatusCode = code;
         return View("StatusCode", code);
     }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    [AllowAnonymous, ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error() =>
         View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
 }

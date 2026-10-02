@@ -40,6 +40,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "Development"
       ASPNETCORE_URLS: "http://+:8080"
+      Jwt__Key: "${JWT_KEY:?Set JWT_KEY in your local .env (at least 32 random bytes)}"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AIpoweredVivaExamSystemDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
 

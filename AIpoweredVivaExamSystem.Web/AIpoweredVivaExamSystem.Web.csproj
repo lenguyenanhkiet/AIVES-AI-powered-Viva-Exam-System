@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <ProjectReference Include="..\AIpoweredVivaExamSystem.Infrastructure\AIpoweredVivaExamSystem.Infrastructure.csproj" />
     <ProjectReference Include="..\AIpoweredVivaExamSystem.Application\AIpoweredVivaExamSystem.Application.csproj" />
     <ProjectReference Include="..\AIpoweredVivaExamSystem.Persistence\AIpoweredVivaExamSystem.Persistence.csproj" />
   </ItemGroup>
@@ -17,5 +19,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build local luôn copy config mới; publish không được mang theo thông tin SQL/JWT cá nhân. -->
+    <Content Update="appsettings.json" CopyToOutputDirectory="Always" />
+    <Content Update="appsettings.Development.json" CopyToOutputDirectory="Always" CopyToPublishDirectory="Never" />
+  </ItemGroup>
 
 </Project>

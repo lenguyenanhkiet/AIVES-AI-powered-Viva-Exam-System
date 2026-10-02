@@ -2,13 +2,17 @@ using System.Globalization;
 using AIpoweredVivaExamSystem.Application;
 using AIpoweredVivaExamSystem.Persistence;
 using AIpoweredVivaExamSystem.Web.Common;
+using AIpoweredVivaExamSystem.Infrastructure;
+using AIpoweredVivaExamSystem.Web.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Presentation layer (MVC) reuses the Business (Application) and Data Access (Persistence) layers.
 builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddControllersWithViews(options => options.Filters.Add<NotFoundExceptionFilter>());
+builder.Services.AddAivesAuthentication();
 
 var app = builder.Build();
 
@@ -28,9 +32,10 @@ app.UseRequestLocalization(options =>
 app.UseStatusCodePagesWithReExecute("/Home/StatusCode/{0}");
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+app.MapStaticAssets().AllowAnonymous();
 
 app.MapControllerRoute(
     name: "default",
