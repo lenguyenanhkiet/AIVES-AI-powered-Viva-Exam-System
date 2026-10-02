@@ -1,0 +1,106 @@
+@model RubricDetailsViewModel
+@{
+    var q = Model.Question;
+    var rubric = Model.Rubric;
+    ViewData["Title"] = "Rubric câu hỏi";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-controller="Questions" asp-action="Index">Câu hỏi</a> @Icons.Get("chevron-right", 14)
+        <a asp-controller="Questions" asp-action="Details" asp-route-id="@q.Id">Chi tiết câu hỏi</a> @Icons.Get("chevron-right", 14)
+        <span>Rubric</span>
+    </nav>
+
+    <div class="page-head">
+        <div>
+            <div class="head-tags">
+                <partial name="_QuestionStatus" model="q.Status" />
+                <partial name="_Bloom" model="q.BloomLevel" />
+                <partial name="_Difficulty" model="q.Difficulty" />
+            </div>
+            <h1 class="page-title">Rubric chấm điểm</h1>
+            <p class="page-sub">Tiêu chí và thang điểm dùng để AI và giảng viên đánh giá câu trả lời của sinh viên.</p>
+        </div>
+        <div class="head-actions">
+            @if (rubric is not null)
+            {
+                <a class="btn btn-secondary" asp-action="Edit" asp-route-id="@rubric.Id">@Icons.Get("edit") Sửa rubric</a>
+                <button type="button" hidden="@(q.Status == QuestionStatus.Approved)" class="btn btn-secondary danger"
+                        data-confirm-action="@Url.Action("Delete", "Rubrics", new { id = rubric.Id })"
+                        data-confirm-title="Xóa rubric &quot;@rubric.Name&quot;?"
+                        data-confirm-text="Câu hỏi sẽ không thể duyệt cho đến khi có rubric mới.">@Icons.Get("trash") Xóa rubric</button>
+            }
+            else
+            {
+                <a class="btn btn-primary" asp-action="Create" asp-route-questionId="@q.Id">@Icons.Get("plus") Tạo rubric</a>
+            }
+            <a class="btn btn-secondary" asp-controller="Questions" asp-action="Details" asp-route-id="@q.Id">@Icons.Get("chevron-right") Xem câu hỏi</a>
+        </div>
+    </div>
+
+    <div class="card question-context" style="margin-bottom: 24px;">
+        <div class="card-body">
+            <div class="answer-label">Nội dung câu hỏi</div>
+            <p class="question-text">@q.Content</p>
+            @if (!string.IsNullOrWhiteSpace(q.ExpectedAnswer))
+            {
+                <div class="answer" style="margin-top: 12px;">
+                    <div class="answer-label">Đáp án mong đợi</div>
+                    <p class="prose">@q.ExpectedAnswer</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <div class="card-title">@(rubric is not null ? rubric.Name : "Thông tin rubric")</div>
+                <span class="muted">@(rubric is not null ? (rubric.Description ?? "Không có mô tả bổ sung.") : "Rubric cho câu hỏi này.")</span>
+            </div>
+            @if (rubric is not null)
+            {
+                <span class="score-pill" style="font-size: 1rem; padding: 6px 14px;">Tổng điểm: <strong>@rubric.TotalScore.ToScore() đ</strong></span>
+            }
+        </div>
+
+        @if (rubric is null)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("checklist", 20)</div>
+                <div class="empty-title">Câu hỏi chưa có rubric</div>
+                <p class="empty-text">Câu hỏi cần có ít nhất một tiêu chí rubric và thang điểm tối đa trước khi có thể được duyệt để đưa vào kỳ thi.</p>
+                <a class="btn btn-primary" asp-action="Create" asp-route-questionId="@q.Id">@Icons.Get("plus") Tạo rubric ngay</a>
+            </div>
+        }
+        else
+        {
+            <div class="card-body">
+                <ul class="criteria-list">
+                    @foreach (var c in rubric.Criteria)
+                    {
+                        <li>
+                            <span class="criterion-index">@c.DisplayOrder</span>
+                            <div class="criterion-main">
+                                <div class="criterion-name">@c.Name</div>
+                                @if (!string.IsNullOrWhiteSpace(c.Description))
+                                {
+                                    <div class="criterion-desc">@c.Description</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(c.ExpectedConcepts))
+                                {
+                                    <div class="criterion-concepts"><span>Khái niệm cần có:</span> @c.ExpectedConcepts</div>
+                                }
+                            </div>
+                            <span class="score-pill">@c.MaxScore.ToScore() đ</span>
+                        </li>
+                    }
+                </ul>
+                <div class="rubric-total" style="margin-top: 20px;">
+                    Tổng điểm tối đa: <strong>@rubric.TotalScore.ToScore() điểm</strong>
+                </div>
+            </div>
+        }
+    </div>
+</div>

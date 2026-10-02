@@ -12,6 +12,9 @@ public sealed class RubricRepository(ApplicationDbContext context) : IRubricRepo
     public Task<Rubric?> GetAsync(Guid id, CancellationToken cancellationToken) =>
         context.Rubrics.Include(x => x.Criteria).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
+    public Task<Rubric?> GetByQuestionIdAsync(Guid questionId, CancellationToken cancellationToken) =>
+        context.Rubrics.Include(x => x.Criteria).SingleOrDefaultAsync(x => x.QuestionId == questionId, cancellationToken);
+
     public Task<bool> ExistsForQuestionAsync(Guid questionId, CancellationToken cancellationToken) =>
         context.Rubrics.AnyAsync(x => x.QuestionId == questionId, cancellationToken);
 

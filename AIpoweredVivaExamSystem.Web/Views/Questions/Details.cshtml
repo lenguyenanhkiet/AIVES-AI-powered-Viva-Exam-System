@@ -64,6 +64,7 @@
                     @if (rubric is not null)
                     {
                         <div class="head-actions">
+                            <a class="btn btn-secondary btn-sm" asp-controller="Rubrics" asp-action="Details" asp-route-questionId="@q.Id">@Icons.Get("checklist", 14) Trang rubric</a>
                             <a class="btn btn-secondary btn-sm" asp-controller="Rubrics" asp-action="Edit" asp-route-id="@rubric.Id">@Icons.Get("edit", 14) Sửa</a>
                             <button type="button" hidden="@(q.Status == QuestionStatus.Approved)" class="icon-btn danger" title="Xóa rubric"
                                     data-confirm-action="@Url.Action("Delete", "Rubrics", new { id = rubric.Id })"

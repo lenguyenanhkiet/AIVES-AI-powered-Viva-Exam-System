@@ -52,7 +52,7 @@ public sealed class QuestionsController(
     {
         var question = await questions.GetAsync(id, cancellationToken);
         var rubric = question.HasRubric
-            ? (await rubrics.ListAsync(new RubricListQuery { QuestionId = id, PageSize = 1 }, cancellationToken)).Items.FirstOrDefault()
+            ? await rubrics.GetByQuestionIdAsync(id, cancellationToken)
             : null;
         return View(new QuestionDetailsViewModel
         {
