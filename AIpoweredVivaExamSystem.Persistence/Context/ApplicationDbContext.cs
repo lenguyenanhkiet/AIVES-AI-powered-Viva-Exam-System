@@ -1,4 +1,4 @@
-﻿using AIpoweredVivaExamSystem.Domain.Common;
+using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -16,6 +16,8 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
