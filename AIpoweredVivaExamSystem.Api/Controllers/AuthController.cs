@@ -25,9 +25,10 @@ public class AuthController : ControllerBase
             var result = await _mediator.Send(command);
             return Ok(new { success = result, message = "User registered successfully." });
         }
-        catch (InvalidOperationException ex)
+        catch (EmailAlreadyExistsException ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            // 409 Conflict - email already registered
+            return Conflict(new { success = false, message = ex.Message });
         }
         catch (Exception)
         {
@@ -35,3 +36,4 @@ public class AuthController : ControllerBase
         }
     }
 }
+
