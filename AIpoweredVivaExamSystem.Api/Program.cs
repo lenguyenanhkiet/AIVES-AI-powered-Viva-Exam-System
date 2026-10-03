@@ -1,7 +1,12 @@
+using AIpoweredVivaExamSystem.Application;
+using AIpoweredVivaExamSystem.Infrastructure;
 using AIpoweredVivaExamSystem.Persistence;
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices();
 builder.Services.AddPersistence(builder.Configuration);
 // Add services to the container.
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

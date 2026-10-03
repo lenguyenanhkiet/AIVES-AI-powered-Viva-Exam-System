@@ -1,10 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using AIpoweredVivaExamSystem.Application.Common.Interfaces;
+using AIpoweredVivaExamSystem.Infrastructure.Services;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace AIpoweredVivaExamSystem.Infrastructure
+namespace AIpoweredVivaExamSystem.Infrastructure;
+
+public static class DependencyInjection
 {
-    internal class DependencyInjection
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
+        services.AddTransient<IPasswordHasher, PasswordHasher>();
+        return services;
     }
 }
+

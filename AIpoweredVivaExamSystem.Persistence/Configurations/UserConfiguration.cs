@@ -1,4 +1,4 @@
-﻿using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -20,6 +20,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(255);
 
         builder.HasIndex(x => x.Email)
+            .IsUnique();
+
+        builder.Property(x => x.PhoneNumber)
+            .IsRequired()
+            .HasMaxLength(20);
+
+        builder.HasIndex(x => x.PhoneNumber)
             .IsUnique();
 
         builder.Property(x => x.PasswordHash)

@@ -5,9 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using AIpoweredVivaExamSystem.Application.Common.Interfaces;
+
 namespace AIpoweredVivaExamSystem.Persistence.Context;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(
        DbContextOptions<ApplicationDbContext> options)

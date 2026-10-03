@@ -1,10 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
-namespace AIpoweredVivaExamSystem.Application
+namespace AIpoweredVivaExamSystem.Application;
+
+public static class DependencyInjection
 {
-    internal class DependencyInjection
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        return services;
     }
 }
+

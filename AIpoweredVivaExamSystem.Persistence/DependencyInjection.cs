@@ -1,4 +1,4 @@
-﻿using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +21,9 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
+
+        services.AddScoped<AIpoweredVivaExamSystem.Application.Common.Interfaces.IApplicationDbContext>(provider => 
+            provider.GetRequiredService<ApplicationDbContext>());
 
         return services;
     }
