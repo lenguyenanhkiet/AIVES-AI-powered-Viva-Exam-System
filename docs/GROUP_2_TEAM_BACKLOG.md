@@ -2,6 +2,12 @@
 
 Phạm vi nhóm 2 chỉ là kế hoạch. Nhóm 1 và cấu trúc MVC là nền tảng đã có; không giao lại import/RAG như công việc chưa làm. Các thành viên giữ nguyên dependency direction trong [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md).
 
+## Cách sử dụng backlog
+
+Chưa có tên thành viên nên tạm dùng TV1–TV6; thay bằng tên thật khi nhận việc. Mỗi mã task dưới đây có thể dùng làm tên issue/PR. Tất cả task đang ở trạng thái **TODO**; tài liệu này không có nghĩa chức năng nhóm 2 đã được triển khai.
+
+Mỗi người chịu trách nhiệm cả Domain/Application, Persistence và MVC của module mình. TV1 quản lý hợp đồng dùng chung và tích hợp migration; TV6 cung cấp notifier để các module gọi sau commit. Các con số ngày công bên dưới chỉ là ước lượng để lập kế hoạch, cần điều chỉnh theo năng lực thực tế.
+
 | Thành viên | Phạm vi chính | File/module dự kiến | Phụ thuộc |
 |---|---|---|---|
 | 1 | Kiến trúc, RBAC và tích hợp | Application/Exams contracts, policies, Persistence migration integration | Chốt contracts trước khi 2–6 bắt đầu |
@@ -69,3 +75,70 @@ Phạm vi nhóm 2 chỉ là kế hoạch. Nhóm 1 và cấu trúc MVC là nền 
 4. 1 tích hợp migration, cả nhóm chạy smoke flow: tạo exam → pool → roster → lịch → publish/start → session/refresh → complete.
 
 Definition of Done chung: migration + snapshot khớp model, MVC có antiforgery cho mutation, service kiểm tra RBAC/ownership, dữ liệu batch atomic, test module và regression nhóm 1 qua, README cập nhật, PR có hướng dẫn kiểm thử. Chưa coi nhóm 2 hoàn thành chỉ vì có entity hoặc giao diện.
+
+## Danh sách task chi tiết
+
+### TV1 — Architecture, RBAC và integration (ước lượng 5–7 ngày công)
+
+| Mã | Task và mô tả | Kết quả bàn giao / tiêu chí nghiệm thu | Phụ thuộc |
+|---|---|---|---|
+| G2-01 | Chốt contracts: mô tả Exam, ExamStudent, ExamQuestionPool, VivaSession, SessionQuestion; DTO, service/repository interfaces, lỗi và các trạng thái. Chốt thời điểm snapshot, quyền dùng câu hỏi và chính sách trùng lịch. | Tài liệu contracts + interface trong Application; TV2–TV6 thống nhất trước khi tích hợp. Không để Business tham chiếu Web/SignalR/EF. | Không |
+| G2-02 | Triển khai quyền quản lý exam và quyền xem ca thi cá nhân; tái dùng ICurrentUser, lecturer assignment và ownership. Kiểm tra quyền ở service cho cả đọc và ghi. | Admin quản trị toàn bộ; lecturer quản lý exam của mình trong môn được phân công; student chỉ xem session/lịch của mình. Test ID truy cập trực tiếp và thu hồi quyền. | G2-01 |
+| G2-03 | Tích hợp EF schema, transaction boundary, RowVersion và unique indexes từ các module; review migration/snapshot theo thứ tự dependency. | Migration chạy được trên database tạm; hai request cạnh tranh không tạo dữ liệu trùng hoặc mất cập nhật. Có hướng dẫn migration trong PR. | G2-05, G2-09, G2-13, G2-21 |
+| G2-04 | Review dependency, tích hợp DI/routes/menu và chạy regression nhóm 1 cùng smoke flow nhóm 2. | Build/test qua; demo đầy đủ từ tạo exam đến complete; không làm hỏng import/RAG/CRUD câu hỏi đã có. | Tất cả module |
+
+### TV2 — Exam CRUD và lifecycle (ước lượng 5–7 ngày công)
+
+| Mã | Task và mô tả | Kết quả bàn giao / tiêu chí nghiệm thu | Phụ thuộc |
+|---|---|---|---|
+| G2-05 | Xây dựng Exam aggregate, validation cấu hình và EF mapping: môn, chủ sở hữu, tên, cửa sổ thi, thời lượng, số câu chính, follow-up, ngôn ngữ, trạng thái, RowVersion. | Domain tests cho thời gian/ngưỡng cấu hình; schema có FK và concurrency token. Không nhận LecturerId tùy ý từ form. | G2-01 |
+| G2-06 | Làm MVC danh sách/lọc/chi tiết/tạo/sửa kỳ thi; ViewModels riêng, form hiển thị validation và giới hạn theo quyền. Xóa chỉ với Draft chưa có dữ liệu phụ thuộc; trường hợp khác dùng Cancel. | Lecturer tạo và sửa Draft được; không sửa exam người khác; mọi mutation dùng POST + antiforgery. | G2-02, G2-05 |
+| G2-07 | Triển khai publish/start/complete/cancel với state machine và kiểm tra pool/roster/lịch. Chốt thao tác start thủ công hay tự động trong contracts. | Không publish khi thiếu điều kiện; không start ngoài cửa sổ thi; không sửa cấu hình Published; trạng thái cuối không mở lại. Có test transition sai. | G2-05, G2-10, G2-14, G2-18 |
+| G2-08 | Bổ sung concurrency handling, audit và event thay đổi lifecycle qua abstraction của TV6 sau commit. | UI báo conflict khi phiên sửa cũ; transaction lỗi không gửi event; test service/MVC và hướng dẫn demo. | G2-06, G2-07, G2-24 |
+
+### TV3 — Question pool (ước lượng 4–6 ngày công)
+
+| Mã | Task và mô tả | Kết quả bàn giao / tiêu chí nghiệm thu | Phụ thuộc |
+|---|---|---|---|
+| G2-09 | Tạo ExamQuestionPool, unique (ExamId, QuestionId), repository và service thêm/bỏ câu hỏi theo batch. | Thêm trùng không tạo thêm bản ghi; pool chỉ sửa được khi Draft; batch sai rollback toàn bộ. | G2-01, G2-05 |
+| G2-10 | Xây dựng bộ kiểm tra eligibility: đúng môn, Approved, chưa xóa, có rubric và người dùng được phép sử dụng. Revalidate khi publish/start. | Test câu Draft/Rejected/sai môn/thiếu rubric và câu bị sửa sau khi thêm pool; không bypass ownership bằng ID. | G2-02, G2-09 |
+| G2-11 | Làm MVC chọn/lọc câu hỏi và xem/bỏ khỏi pool; hiển thị số câu hợp lệ so với số câu chính. | Form thêm nhiều câu có validation rõ; không lộ đáp án ra màn hình sinh viên; có MVC tests. | G2-09, G2-10 |
+| G2-12 | Chốt với TV2/TV6 việc snapshot câu hỏi/rubric và khóa thay đổi trong kỳ thi; nối event PoolChanged sau commit. | Kỳ thi đã bắt đầu không bị đổi nội dung do sửa ngân hàng; có integration test snapshot và event sau commit. | G2-07, G2-21, G2-24 |
+
+### TV4 — Roster và import sinh viên (ước lượng 5–7 ngày công)
+
+| Mã | Task và mô tả | Kết quả bàn giao / tiêu chí nghiệm thu | Phụ thuộc |
+|---|---|---|---|
+| G2-13 | Xây dựng ExamStudent và trạng thái tham dự, unique (ExamId, StudentId), quan hệ tới tài khoản và exam. | Không enroll lecturer/admin hoặc tài khoản khóa/xóa; trạng thái ban đầu và transition được kiểm thử. | G2-01, G2-05 |
+| G2-14 | Service và MVC thêm/bỏ sinh viên thủ công, tìm kiếm theo email/student code, danh sách roster và thống kê. | Không thêm trùng; lecturer không sửa roster exam khác; không bỏ sinh viên đã bắt đầu thi. | G2-02, G2-13 |
+| G2-15 | Import CSV/XLSX roster theo template, preview lỗi từng dòng, confirm theo batch và chống submit lại. Tái dùng kỹ thuật đọc file khi phù hợp, không sao chép nghiệp vụ import câu hỏi. | Template tải được; dòng lỗi không tạo dữ liệu; file hợp lệ lưu atomic; request lặp không enroll trùng; có parser/service/MVC tests. | G2-13, G2-14 |
+| G2-16 | Tích hợp roster với lịch và session; hiển thị Scheduled/InProgress/Completed/Absent theo contracts. Nối event RosterChanged sau commit. | Trạng thái khớp session/lịch trong SQL; không tự đánh dấu vắng trước khi slot kết thúc; có test integration và event. | G2-18, G2-21, G2-24 |
+
+### TV5 — Scheduling và lịch cá nhân (ước lượng 5–7 ngày công)
+
+| Mã | Task và mô tả | Kết quả bàn giao / tiêu chí nghiệm thu | Phụ thuộc |
+|---|---|---|---|
+| G2-17 | Chốt cấu trúc slot và thuật toán sinh lịch từ cửa sổ thi, duration, break, số sinh viên và số kênh/phòng theo cấu hình thống nhất. | Service sinh preview xác định được; không tạo slot vượt exam window; báo rõ khi không đủ thời gian. | G2-01, G2-05, G2-13 |
+| G2-18 | Kiểm tra giao giờ giữa student/lecturer/phòng; lưu lịch theo batch transaction và chống hai request đặt cùng slot. | Không lưu một phần lịch; test cạnh tranh và biên start/end; có unique constraint/locking phù hợp với mô hình slot đã chốt. | G2-17 |
+| G2-19 | Làm MVC lịch giảng viên, danh sách slot và lịch cá nhân sinh viên; hỗ trợ đổi ca/hủy ca theo lifecycle. | Student chỉ thấy lịch của mình; không reschedule ca đang thi; hiển thị rõ múi giờ Việt Nam từ DateTimeOffset/UTC. | G2-02, G2-18 |
+| G2-20 | Nối ScheduleChanged sau commit và cơ chế đọc lại lịch mới; bổ sung test quyền, lệch múi giờ và biên ngày. | Refresh/reconnect luôn lấy lịch từ SQL; rollback không phát lịch sai; có kịch bản demo reschedule. | G2-19, G2-24 |
+
+### TV6 — Session, selection và SignalR (ước lượng 7–9 ngày công)
+
+| Mã | Task và mô tả | Kết quả bàn giao / tiêu chí nghiệm thu | Phụ thuộc |
+|---|---|---|---|
+| G2-21 | Tạo VivaSession/SessionQuestion, snapshot nội dung/rubric, thứ tự câu hỏi, quan hệ main/follow-up và unique constraints. | Một session trên một ExamStudent; unique vị trí/câu chính; snapshot ổn định khi ngân hàng bị sửa; có EF integration tests. | G2-01, G2-05, G2-09, G2-13 |
+| G2-22 | Thuật toán chọn câu chính: random từ pool hợp lệ, không trùng trong session, tránh bộ liền trước nếu đủ pool, fallback khi pool nhỏ. Lưu kết quả idempotent trong transaction. | Refresh không random lại; hai request đồng thời trả cùng bộ đã lưu; luôn đủ số câu hoặc báo lỗi trước khi commit. Có test pool nhỏ và cạnh tranh. | G2-10, G2-18, G2-21 |
+| G2-23 | Service/MVC bắt đầu, tiếp tục, hoàn thành session; chỉ mở đúng slot; quản lý giới hạn follow-up và bảo vệ dữ liệu nội bộ. | Student không xem session người khác; không truy cập đáp án/rubric; follow-up không vượt MaxFollowUpPerQuestion; request lặp không tạo câu mới. Sinh nội dung follow-up bằng AI chỉ bổ sung khi yêu cầu nghiệp vụ được xác nhận. | G2-02, G2-19, G2-22 |
+| G2-24 | Cung cấp IExamNotifier/events trong Application, Hub/adapter trong Web và JavaScript client có reconnect. Kiểm tra quyền khi join group; mỗi module gửi event sau commit. | Event cho lifecycle/pool/roster/schedule/session; rollback không phát event; không lộ nhóm giữa exam/student; reconnect đọc lại SQL. Bàn giao contract sớm để TV2–TV5 tích hợp; delivery bền vững bằng outbox là hạng mục mở rộng nếu cần. | Contract: G2-01, G2-02; tích hợp: G2-08, G2-12, G2-16, G2-20, G2-23 |
+
+## Checklist theo dõi tiến độ
+
+- [ ] TV1: G2-01, G2-02, G2-03, G2-04.
+- [ ] TV2: G2-05, G2-06, G2-07, G2-08.
+- [ ] TV3: G2-09, G2-10, G2-11, G2-12.
+- [ ] TV4: G2-13, G2-14, G2-15, G2-16.
+- [ ] TV5: G2-17, G2-18, G2-19, G2-20.
+- [ ] TV6: G2-21, G2-22, G2-23, G2-24.
+
+Các dependency tích hợp không yêu cầu chờ module khác xong hoàn toàn: thống nhất interface/fixture trước, triển khai module riêng, sau đó nối adapter và kiểm thử toàn luồng. G2-24 cần bàn giao abstraction trước khi làm Hub/client để tránh vòng chờ giữa các thành viên.
