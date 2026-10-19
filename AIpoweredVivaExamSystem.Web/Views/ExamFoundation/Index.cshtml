@@ -1,0 +1,14 @@
+@model IReadOnlyList<AIpoweredVivaExamSystem.Application.Exams.ExamSummary>
+@{ ViewData["Title"] = "Nền tảng kỳ thi"; }
+<div class="container stack">
+    <h1 class="page-title">Nền tảng kỳ thi — tích hợp nhóm 2</h1>
+    <div class="alert">Đã có schema, contracts và phân quyền. CRUD, pool, roster, lịch, session và SignalR đang chờ module của các thành viên; trang này chưa phải chức năng thi hoàn chỉnh.</div>
+    <div class="card table-wrap"><table class="table">
+        <thead><tr><th>Tên kỳ thi</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th></tr></thead>
+        <tbody>
+        @foreach (var exam in Model)
+        { <tr><td>@exam.Name</td><td>@exam.Status</td><td>@exam.StartAt.ToLocalText()</td><td>@exam.EndAt.ToLocalText()</td></tr> }
+        </tbody>
+    </table></div>
+    @if (Model.Count == 0) { <p>Chưa có kỳ thi thuộc quyền quản lý của bạn.</p> }
+</div>

@@ -5,7 +5,7 @@
 Login MVC, cookie/JWT, cấu hình cá nhân và các lệnh test SQL/smoke test: xem [docs/AUTH_MVC.md](docs/AUTH_MVC.md).
 
 Nhóm chức năng 1 (import CSV/XLSX, PDF/PPTX, AI/RAG có nguồn, RBAC/ownership): xem [hướng dẫn thiết lập](docs/GROUP_1_SETUP.md).
-Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Nhóm 2 **chỉ lập kế hoạch**, phân công 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md).
+Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Phân công nhóm 2 cho 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md). Foundation trên nhánh Kiệt (schema/contracts/RBAC/transaction/trang tích hợp) và phần còn chờ các module: [GROUP_2_KIET_HANDOFF.md](docs/GROUP_2_KIET_HANDOFF.md).
 
 ---
 

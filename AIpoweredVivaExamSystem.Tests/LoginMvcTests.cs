@@ -169,6 +169,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
     [InlineData("/QuestionImports")]
     [InlineData("/Documents")]
     [InlineData("/Access")]
+    [InlineData("/ExamFoundation")]
     public async Task Student_cannot_open_management_pages(string path)
     {
         var email = await SeedAsync(UserStatus.Active);
@@ -184,6 +185,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
     [InlineData("/QuestionImports")]
     [InlineData("/Documents")]
     [InlineData("/Access")]
+    [InlineData("/ExamFoundation")]
     public async Task Admin_can_render_new_management_forms(string path)
     {
         var email = await SeedAsync(UserStatus.Active, role: UserRole.ADMIN);

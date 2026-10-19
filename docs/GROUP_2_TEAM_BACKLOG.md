@@ -10,7 +10,7 @@
 
 Để khả thi trong một ngày, kế hoạch chốt **MVP** với một giảng viên, một kênh thi tuần tự, một môn mỗi kỳ thi, tài khoản sinh viên đã có và dữ liệu demo nhỏ. Không cam kết hoàn thành toàn bộ backlog mở rộng trong một ngày. Ước lượng giả định cả 6 người có thể làm việc tập trung, máy đã chạy được .NET/SQL Server và nhóm 1 đã được cấu hình; nếu không đạt mốc 10:00 hoặc 14:00 phải giảm phạm vi theo mục dự phòng.
 
-Đây là tài liệu phân công, **chưa triển khai code nhóm 2**. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
+Đây là kế hoạch phân công. Nhánh `codex/g2-integration` đã có foundation của Kiệt; xem [trạng thái bàn giao K1–K5](GROUP_2_KIET_HANDOFF.md). Các module nghiệp vụ của 5 thành viên còn lại và demo toàn luồng vẫn chưa triển khai. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
 
 ## Phạm vi bắt buộc và phần hoãn
 
@@ -173,7 +173,7 @@ Mỗi bước ghi người test, kết quả Pass/Fail và lỗi/commit liên qu
 
 | Người | Task | Trạng thái ban đầu | Giờ bàn giao module | Kết quả / link PR |
 |---|---|---|---|---|
-| Kiệt | K1–K5 | TODO | Tích hợp liên tục; chốt 17:00 | Chưa có |
+| Kiệt | K1–K5 | K1–K3 đã có; K4–K5 chờ tích hợp các module | Tích hợp liên tục; chốt 17:00 | Xem GROUP_2_KIET_HANDOFF.md |
 | Tuệ Minh | TM1–TM4 | TODO | 15:30 | Chưa có |
 | Sơn | S1–S4 | TODO | 15:30 | Chưa có |
 | Long | L1–L4 | TODO | 15:30 | Chưa có |

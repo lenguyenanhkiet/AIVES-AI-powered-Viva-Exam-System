@@ -89,6 +89,131 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.ToTable("DocumentChunks");
                 });
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Exam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("EndAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("LecturerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MaxFollowUpPerQuestion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("NumberOfMainQuestions")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("StartAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("LecturerId", "StartAt");
+
+                    b.ToTable("Exams", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Exams_Counts", "[DurationMinutes] > 0 AND [NumberOfMainQuestions] > 0 AND [MaxFollowUpPerQuestion] >= 0");
+
+                            t.HasCheckConstraint("CK_Exams_Window", "[StartAt] < [EndAt]");
+                        });
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.ExamQuestionPool", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("ExamId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("ExamQuestionPools", (string)null);
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.ExamStudent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("ScheduledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamId", "StudentId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId", "ScheduledAt");
+
+                    b.ToTable("ExamStudents", (string)null);
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.LecturerSubject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -328,6 +453,48 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.SessionQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RubricSnapshot")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("VivaSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("VivaSessionId", "Position")
+                        .IsUnique();
+
+                    b.HasIndex("VivaSessionId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("SessionQuestions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SessionQuestions_Position", "[Position] > 0");
+
+                            t.HasCheckConstraint("CK_SessionQuestions_RubricJson", "ISJSON([RubricSnapshot]) = 1");
+                        });
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Subject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -474,6 +641,38 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.VivaSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ExamStudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamStudentId")
+                        .IsUnique();
+
+                    b.ToTable("VivaSessions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_VivaSessions_Completion", "[CompletedAt] IS NULL OR [CompletedAt] >= [StartedAt]");
+                        });
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.CourseDocument", b =>
                 {
                     b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Subject", null)
@@ -488,6 +687,51 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.CourseDocument", null)
                         .WithMany()
                         .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Exam", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("LecturerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.ExamQuestionPool", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Exam", null)
+                        .WithMany()
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Question", null)
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.ExamStudent", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Exam", null)
+                        .WithMany()
+                        .HasForeignKey("ExamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -555,11 +799,35 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.SessionQuestion", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Question", null)
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.VivaSession", null)
+                        .WithMany()
+                        .HasForeignKey("VivaSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Topic", b =>
                 {
                     b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Subject", null)
                         .WithMany()
                         .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.VivaSession", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.ExamStudent", null)
+                        .WithMany()
+                        .HasForeignKey("ExamStudentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

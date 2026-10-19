@@ -15,6 +15,7 @@ builder.Services.AddControllersWithViews(options => options.Filters.Add<NotFound
 builder.Services.AddAivesAuthentication();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
+builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamNotifier, AIpoweredVivaExamSystem.Web.Realtime.PendingExamNotifier>();
 builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
