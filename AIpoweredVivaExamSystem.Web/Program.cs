@@ -13,6 +13,9 @@ builder.Services.AddInfrastructure();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddControllersWithViews(options => options.Filters.Add<NotFoundExceptionFilter>());
 builder.Services.AddAivesAuthentication();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
 

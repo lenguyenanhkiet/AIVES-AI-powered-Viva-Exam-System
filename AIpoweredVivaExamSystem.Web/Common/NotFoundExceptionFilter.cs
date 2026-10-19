@@ -9,6 +9,10 @@ public sealed class NotFoundExceptionFilter : IExceptionFilter
 {
     public void OnException(ExceptionContext context)
     {
+        if (context.Exception is UnauthorizedAccessException)
+        {
+            context.Result = new ForbidResult(); context.ExceptionHandled = true; return;
+        }
         if (context.Exception is not ResourceNotFoundException)
             return;
         context.Result = new NotFoundResult();

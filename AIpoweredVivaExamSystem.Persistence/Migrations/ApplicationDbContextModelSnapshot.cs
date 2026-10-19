@@ -22,6 +22,95 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.CourseDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId", "CreatedBy", "ContentHash")
+                        .IsUnique()
+                        .HasFilter("[CreatedBy] IS NOT NULL");
+
+                    b.ToTable("CourseDocuments");
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.DocumentChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PageNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2400)
+                        .HasColumnType("nvarchar(2400)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.ToTable("DocumentChunks");
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.LecturerSubject", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LecturerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("LecturerId", "SubjectId")
+                        .IsUnique();
+
+                    b.ToTable("LecturerSubjects");
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Question", b =>
                 {
                     b.Property<Guid>("Id")
@@ -82,6 +171,57 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.HasIndex("TopicId", "SubjectId");
 
                     b.ToTable("Questions", (string)null);
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.QuestionCitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentChunkId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Quote")
+                        .IsRequired()
+                        .HasMaxLength(2400)
+                        .HasColumnType("nvarchar(2400)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentChunkId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuestionCitations");
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.QuestionImportBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("QuestionCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ContentHash")
+                        .IsUnique();
+
+                    b.ToTable("QuestionImportBatches");
                 });
 
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Rubric", b =>
@@ -308,6 +448,13 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("STUDENT");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -327,6 +474,39 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.CourseDocument", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.DocumentChunk", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.CourseDocument", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.LecturerSubject", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("LecturerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Question", b =>
                 {
                     b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Subject", null)
@@ -340,6 +520,21 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                         .HasForeignKey("TopicId", "SubjectId")
                         .HasPrincipalKey("Id", "SubjectId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.QuestionCitation", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.DocumentChunk", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentChunkId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.Question", null)
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.Rubric", b =>

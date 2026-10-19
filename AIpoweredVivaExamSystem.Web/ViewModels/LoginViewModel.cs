@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AIpoweredVivaExamSystem.Web.Models;
+namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 /// <summary>Input cho form MVC; validation lỗi trả lại form trước khi gọi nghiệp vụ Login.</summary>
 public sealed class LoginViewModel

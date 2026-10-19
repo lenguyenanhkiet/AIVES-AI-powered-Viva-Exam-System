@@ -25,6 +25,8 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString));
 
         services.AddScoped<IRubricRepository, RubricRepository>();
+        services.AddScoped<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionBankStore, QuestionBankStore>();
+        services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.IAccessStore, AccessStore>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ILoginUserRepository, LoginUserRepository>();
         services.AddScoped<IQuestionLookup, QuestionLookup>();
         services.AddScoped<ISubjectRepository, SubjectRepository>();

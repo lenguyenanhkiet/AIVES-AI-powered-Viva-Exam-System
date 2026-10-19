@@ -1,4 +1,4 @@
-namespace AIpoweredVivaExamSystem.Web.Models;
+namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 public class ErrorViewModel
 {

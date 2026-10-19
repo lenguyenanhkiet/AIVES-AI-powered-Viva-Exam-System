@@ -18,7 +18,8 @@ public sealed class SubjectRepository(ApplicationDbContext context) : ISubjectRe
 
     public async Task<bool> HasActiveDependentsAsync(Guid id, CancellationToken cancellationToken) =>
         await context.Topics.AnyAsync(x => x.SubjectId == id && x.DeletedAt == null, cancellationToken)
-        || await context.Questions.AnyAsync(x => x.SubjectId == id && x.DeletedAt == null, cancellationToken);
+        || await context.Questions.AnyAsync(x => x.SubjectId == id && x.DeletedAt == null, cancellationToken)
+        || await context.CourseDocuments.AnyAsync(x => x.SubjectId == id && x.DeletedAt == null, cancellationToken);
 
     public async Task<(IReadOnlyList<Subject> Items, int TotalCount)> ListAsync(
         string? keyword, AcademicStatus? status, int page, int pageSize, CancellationToken cancellationToken)

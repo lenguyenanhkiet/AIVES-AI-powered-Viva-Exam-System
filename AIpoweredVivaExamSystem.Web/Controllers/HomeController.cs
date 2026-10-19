@@ -8,7 +8,7 @@ using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Web.Models;
+using AIpoweredVivaExamSystem.Web.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 

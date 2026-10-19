@@ -26,10 +26,17 @@
             <nav class="nav">
                 <a class="nav-item @Active("Home")" asp-controller="Home" asp-action="Index">@Icons.Get("home") Tổng quan</a>
 
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                {
                 <div class="nav-label">Ngân hàng câu hỏi</div>
                 <a class="nav-item @Active("Subjects")" asp-controller="Subjects" asp-action="Index">@Icons.Get("book") Môn học</a>
                 <a class="nav-item @Active("Topics")" asp-controller="Topics" asp-action="Index">@Icons.Get("layers") Chủ đề</a>
                 <a class="nav-item @(Active("Questions") + Active("Rubrics"))" asp-controller="Questions" asp-action="Index">@Icons.Get("help") Câu hỏi &amp; rubric</a>
+                <a class="nav-item @Active("QuestionImports")" asp-controller="QuestionImports" asp-action="Index">Import câu hỏi</a>
+                <a class="nav-item @Active("Documents")" asp-controller="Documents" asp-action="Index">Tài liệu &amp; sinh câu hỏi AI</a>
+                }
+                @if (User.IsInRole("ADMIN"))
+                { <a class="nav-item @Active("Access")" asp-controller="Access" asp-action="Index">Phân quyền &amp; phân môn</a> }
 
                 <div class="nav-label">Thi vấn đáp</div>
                 <span class="nav-item disabled" title="Đang phát triển">@Icons.Get("calendar") Kỳ thi <span class="soon">Sắp có</span></span>

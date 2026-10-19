@@ -4,6 +4,9 @@
 
 Login MVC, cookie/JWT, cấu hình cá nhân và các lệnh test SQL/smoke test: xem [docs/AUTH_MVC.md](docs/AUTH_MVC.md).
 
+Nhóm chức năng 1 (import CSV/XLSX, PDF/PPTX, AI/RAG có nguồn, RBAC/ownership): xem [hướng dẫn thiết lập](docs/GROUP_1_SETUP.md).
+Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Nhóm 2 **chỉ lập kế hoạch**, phân công 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md).
+
 ---
 
 ## 1. Cấu trúc solution
@@ -14,7 +17,7 @@ AIpoweredVivaExamSystem/
 ├── AIpoweredVivaExamSystem.Application/    # Business: Services, DTO, Validators, interface Repository
 ├── AIpoweredVivaExamSystem.Domain/         # Business: Entities, Enums, luật nghiệp vụ
 ├── AIpoweredVivaExamSystem.Persistence/    # Data access: DbContext, Configurations, Repositories, Migrations
-├── AIpoweredVivaExamSystem.Infrastructure/ # Dịch vụ ngoài (AI, email) – chưa dùng
+├── AIpoweredVivaExamSystem.Infrastructure/ # Authentication, đọc file CSV/XLSX/PDF/PPTX, gọi AI
 ├── AIpoweredVivaExamSystem.Tests/          # xUnit
 ├── docker-compose.yml
 ├── .env.example
@@ -25,7 +28,8 @@ Chiều tham chiếu:
 
 ```text
 Web ──► Application ──► Domain
- └────► Persistence ──► Application, Domain
+ ├────► Persistence ──► Application, Domain
+ └────► Infrastructure ──► Application, Domain
 ```
 
 Interface repository nằm ở `Application`, class cài đặt nằm ở `Persistence` (Dependency Inversion).

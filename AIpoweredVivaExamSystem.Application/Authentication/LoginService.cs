@@ -13,7 +13,7 @@ public sealed class LoginService(ILoginUserRepository users, IPasswordVerifier p
         // Tất cả trường hợp thất bại trả null: controller không tiết lộ email có tồn tại hay không.
         if (user is null || user.Status != UserStatus.Active || user.DeletedAt is not null
             || !passwords.Verify(user, password)) return null;
-        return new(user.Id, user.Email, user.FullName);
+        return new(user.Id, user.Email, user.FullName, user.Role.ToString());
     }
 
     /// <summary>Kiểm tra lại trạng thái từ DB để cookie cũ không tiếp tục dùng sau khi tài khoản bị khóa/xóa.</summary>
@@ -21,5 +21,12 @@ public sealed class LoginService(ILoginUserRepository users, IPasswordVerifier p
     {
         var user = await users.FindByIdAsync(userId, cancellationToken);
         return user is not null && user.Status == UserStatus.Active && user.DeletedAt is null;
+    }
+
+    public async Task<AuthenticatedUser?> GetSessionAsync(Guid userId, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(userId, ct);
+        return user is null || user.Status != UserStatus.Active || user.DeletedAt is not null
+            ? null : new(user.Id, user.Email, user.FullName, user.Role.ToString());
     }
 }

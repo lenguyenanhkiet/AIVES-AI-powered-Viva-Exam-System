@@ -21,7 +21,7 @@ public sealed class TopicRepository(ApplicationDbContext context) : ITopicReposi
             && x.DeletedAt == null && x.Id != excludeId, cancellationToken);
 
     public Task<bool> HasActiveQuestionsAsync(Guid id, CancellationToken cancellationToken) =>
-        context.Questions.AnyAsync(x => x.TopicId == id && x.DeletedAt == null, cancellationToken);
+        context.Questions.IgnoreQueryFilters().AnyAsync(x => x.TopicId == id && x.DeletedAt == null, cancellationToken);
 
     public async Task<(IReadOnlyList<Topic> Items, int TotalCount)> ListAsync(
         Guid? subjectId, string? keyword, AcademicStatus? status, int page, int pageSize,

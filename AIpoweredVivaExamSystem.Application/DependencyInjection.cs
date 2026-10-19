@@ -19,6 +19,9 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<ISubjectService, SubjectService>();
             services.AddScoped<ITopicService, TopicService>();
             services.AddScoped<IQuestionService, QuestionService>();
+            services.AddScoped<QuestionBank.QuestionImportService>();
+            services.AddScoped<QuestionBank.DocumentService>();
+            services.AddScoped<Authentication.AccessService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }

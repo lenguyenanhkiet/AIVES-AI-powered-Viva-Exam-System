@@ -15,6 +15,9 @@ public static class DependencyInjection
         services.AddScoped<IPasswordVerifier, IdentityPasswordVerifier>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+        services.AddScoped<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionFileReader, QuestionBank.QuestionFileReader>();
+        services.AddScoped<AIpoweredVivaExamSystem.Application.QuestionBank.IDocumentTextExtractor, QuestionBank.DocumentTextExtractor>();
+        services.AddHttpClient<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator, QuestionBank.OpenAiQuestionGenerator>(client => client.Timeout = TimeSpan.FromSeconds(90));
         return services;
     }
 }

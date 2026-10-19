@@ -10,15 +10,17 @@ using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
-using AIpoweredVivaExamSystem.Web.Models;
+using AIpoweredVivaExamSystem.Web.ViewModels;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
+[Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
 public sealed class QuestionsController(
-    IQuestionService questions, ISubjectService subjects, ITopicService topics, IRubricService rubrics) : Controller
+    IQuestionService questions, ISubjectService subjects, ITopicService topics, IRubricService rubrics,
+    AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionBankStore bank) : Controller
 {
     private static readonly QuestionStatus[] StatusTabs =
         [QuestionStatus.Draft, QuestionStatus.Approved, QuestionStatus.Rejected];
@@ -59,7 +61,8 @@ public sealed class QuestionsController(
             Question = question,
             Subject = await subjects.GetAsync(question.SubjectId, cancellationToken),
             Topic = question.TopicId is { } topicId ? await topics.GetAsync(topicId, cancellationToken) : null,
-            Rubric = rubric
+            Rubric = rubric,
+            Citations = await bank.CitationsAsync(id, cancellationToken)
         });
     }
 

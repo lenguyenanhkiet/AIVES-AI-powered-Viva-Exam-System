@@ -1,7 +1,7 @@
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 
-namespace AIpoweredVivaExamSystem.Web.Models;
+namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 public sealed class DashboardViewModel
 {

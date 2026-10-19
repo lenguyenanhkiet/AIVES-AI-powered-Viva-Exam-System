@@ -48,6 +48,16 @@
                 <div class="card-head"><div class="card-title">Nội dung câu hỏi</div></div>
                 <div class="card-body">
                     <p class="question-text">@q.Content</p>
+                    @if (Model.Citations.Count > 0)
+                    {
+                        <div class="answer"><div class="answer-label">Nguồn trích dẫn</div>
+                        @foreach (var citation in Model.Citations)
+                        {
+                            <p><strong>@citation.FileName — trang/slide @citation.PageNumber</strong></p>
+                            <blockquote class="prose">@citation.Quote</blockquote>
+                        }
+                        </div>
+                    }
                     <div class="answer">
                         <div class="answer-label">Đáp án mong đợi</div>
                         <p class="prose">@(string.IsNullOrWhiteSpace(q.ExpectedAnswer) ? "Chưa có đáp án mong đợi." : q.ExpectedAnswer)</p>

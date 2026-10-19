@@ -60,6 +60,7 @@ public static class UiExtensions
         QuestionSourceType.Manual => "Soạn thủ công",
         QuestionSourceType.AiGenerated => "AI sinh",
         QuestionSourceType.DocumentGenerated => "Sinh từ tài liệu",
+        QuestionSourceType.Imported => "Import CSV/Excel",
         _ => source.ToString()
     };
 

@@ -1,0 +1,16 @@
+@model GenerateQuestionsViewModel
+@{ ViewData["Title"] = "Sinh câu hỏi AI"; }
+<div class="container stack">
+    <h1 class="page-title">Sinh câu hỏi từ @Model.FileName</h1>
+    <p>Các đoạn tài liệu phù hợp được gửi đến OpenAI để sinh câu hỏi Nháp. Mỗi câu có trích dẫn trang/slide để bạn kiểm tra trước khi thêm rubric và duyệt.</p>
+    <div asp-validation-summary="All" class="alert"></div>
+    <form asp-action="Generate" method="post" class="card card-body stack">
+        <input asp-for="DocumentId" type="hidden" />
+        <label class="label" asp-for="TopicId">Chủ đề (tùy chọn)</label><select class="select" asp-for="TopicId" asp-items="Model.Topics"><option value="">Không chọn</option></select>
+        <label class="label" asp-for="Instruction">Nội dung cần kiểm tra</label><textarea class="textarea" asp-for="Instruction" required maxlength="1000" rows="4"></textarea>
+        <label class="label" asp-for="BloomLevel">Bloom</label><select class="select" asp-for="BloomLevel" asp-items="Html.GetEnumSelectList<BloomLevel>()"></select>
+        <label class="label" asp-for="Difficulty">Độ khó</label><select class="select" asp-for="Difficulty" asp-items="Html.GetEnumSelectList<QuestionDifficulty>()"></select>
+        <label class="label" asp-for="Count">Số câu hỏi</label><input class="input" asp-for="Count" type="number" min="1" max="10" />
+        <button class="btn btn-primary" type="submit">Sinh câu hỏi Nháp</button>
+    </form>
+</div>

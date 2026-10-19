@@ -7,12 +7,13 @@ using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
-using AIpoweredVivaExamSystem.Web.Models;
+using AIpoweredVivaExamSystem.Web.ViewModels;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
+[Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
 public sealed class SubjectsController(ISubjectService subjects, ITopicService topics, IQuestionService questions) : Controller
 {
     // GET: Subjects?keyword=&status=&page=
@@ -36,11 +37,13 @@ public sealed class SubjectsController(ISubjectService subjects, ITopicService t
     }
 
     // GET: Subjects/Create
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
     public IActionResult Create() => View(new SubjectFormViewModel());
 
     // POST: Subjects/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Create(SubjectFormViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
@@ -59,12 +62,14 @@ public sealed class SubjectsController(ISubjectService subjects, ITopicService t
     }
 
     // GET: Subjects/Edit/{id}
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Edit(Guid id, CancellationToken cancellationToken) =>
         View(SubjectFormViewModel.From(await subjects.GetAsync(id, cancellationToken)));
 
     // POST: Subjects/Edit/{id}
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Edit(Guid id, SubjectFormViewModel model, CancellationToken cancellationToken)
     {
         model.Id = id;
@@ -84,12 +89,14 @@ public sealed class SubjectsController(ISubjectService subjects, ITopicService t
     }
 
     // GET: Subjects/Delete/{id}
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken) =>
         View(await subjects.GetAsync(id, cancellationToken));
 
     // POST: Subjects/Delete/{id}
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
     public async Task<IActionResult> DeleteConfirmed(Guid id, CancellationToken cancellationToken)
     {
         try

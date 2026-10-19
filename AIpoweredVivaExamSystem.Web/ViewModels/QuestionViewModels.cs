@@ -6,7 +6,7 @@ using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace AIpoweredVivaExamSystem.Web.Models;
+namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 public sealed class QuestionFormViewModel
 {
@@ -61,6 +61,7 @@ public sealed class QuestionIndexViewModel
 
 public sealed class QuestionDetailsViewModel
 {
+    public IReadOnlyList<AIpoweredVivaExamSystem.Application.QuestionBank.CitationView> Citations { get; init; } = [];
     public required QuestionResponse Question { get; init; }
     public required SubjectResponse Subject { get; init; }
     public TopicResponse? Topic { get; init; }

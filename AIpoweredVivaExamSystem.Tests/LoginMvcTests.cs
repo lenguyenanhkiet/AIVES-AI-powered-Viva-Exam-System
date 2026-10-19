@@ -164,11 +164,127 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         Assert.True(profile.Headers.CacheControl?.NoStore);
     }
 
-    private async Task<string> SeedAsync(UserStatus status, bool deleted = false, bool badHash = false, string password = "Test-password-123!")
+    [Theory]
+    [InlineData("/Questions")]
+    [InlineData("/QuestionImports")]
+    [InlineData("/Documents")]
+    [InlineData("/Access")]
+    public async Task Student_cannot_open_management_pages(string path)
+    {
+        var email = await SeedAsync(UserStatus.Active);
+        await using var factory = CreateFactory();
+        using var client = Client(factory);
+        await LoginAsync(client, email, "Test-password-123!");
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Contains("403", response.Headers.Location!.OriginalString);
+    }
+
+    [Theory]
+    [InlineData("/QuestionImports")]
+    [InlineData("/Documents")]
+    [InlineData("/Access")]
+    public async Task Admin_can_render_new_management_forms(string path)
+    {
+        var email = await SeedAsync(UserStatus.Active, role: UserRole.ADMIN);
+        await using var factory = CreateFactory();
+        using var client = Client(factory);
+        await LoginAsync(client, email, "Test-password-123!");
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("__RequestVerificationToken", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Lecturer_can_preview_and_confirm_csv_through_real_mvc_forms()
+    {
+        var email = await SeedAsync(UserStatus.Active, role: UserRole.LECTURER);
+        Guid subjectId;
+        string code;
+        await using (var db = fixture.CreateContext())
+        {
+            var user = await db.Users.SingleAsync(u => u.Email == email);
+            var subject = new Subject("CSV"+Guid.NewGuid().ToString("N"), "CSV test subject");
+            db.AddRange(subject, new LecturerSubject(user.Id, subject.Id));
+            await db.SaveChangesAsync(); subjectId = subject.Id; code = subject.Code;
+        }
+        await using var factory = CreateFactory();
+        using var client = Client(factory);
+        await LoginAsync(client, email, "Test-password-123!");
+        var form = await client.GetStringAsync("/QuestionImports");
+        using var upload = new MultipartFormDataContent();
+        upload.Add(new StringContent(Token(form)), "__RequestVerificationToken");
+        upload.Add(new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes($"SubjectCode,Topic,Content,ExpectedAnswer,BloomLevel,Difficulty\n{code},,Explain MVC.,Model View Controller,Understand,Medium")), "File", "questions.csv");
+        var preview = await client.PostAsync("/QuestionImports/Preview", upload);
+        Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
+        var html = await preview.Content.ReadAsStringAsync();
+        var previewToken = Regex.Match(html, "name=\"token\" value=\"([^\"]+)\"").Groups[1].Value;
+        Assert.NotEmpty(previewToken);
+        var confirm = await client.PostAsync("/QuestionImports/Confirm", new FormUrlEncodedContent(new Dictionary<string,string>
+        { ["token"] = previewToken, ["__RequestVerificationToken"] = Token(html) }));
+        Assert.Equal(HttpStatusCode.Redirect, confirm.StatusCode);
+        await using var verify = fixture.CreateContext();
+        Assert.Equal(QuestionStatus.Draft, (await verify.Questions.SingleAsync(q => q.SubjectId == subjectId)).Status);
+    }
+
+    private sealed class CitedGenerator : AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator
+    {
+        public Task<IReadOnlyList<AIpoweredVivaExamSystem.Application.QuestionBank.GeneratedDraft>> GenerateAsync(string instruction,
+            BloomLevel bloom, QuestionDifficulty difficulty, int count, IReadOnlyList<DocumentChunk> sources, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<AIpoweredVivaExamSystem.Application.QuestionBank.GeneratedDraft>>(
+                [new("Explain dependency injection.", "Dependencies are supplied to a class.", sources[0].Id, sources[0].Text)]);
+    }
+
+    [Fact]
+    public async Task Lecturer_can_upload_pptx_generate_draft_and_view_citation()
+    {
+        var email = await SeedAsync(UserStatus.Active, role: UserRole.LECTURER);
+        Guid subjectId;
+        await using (var db = fixture.CreateContext())
+        {
+            var user = await db.Users.SingleAsync(u => u.Email == email);
+            var subject = new Subject("DOC"+Guid.NewGuid().ToString("N"), "Document test");
+            db.AddRange(subject, new LecturerSubject(user.Id, subject.Id));
+            await db.SaveChangesAsync(); subjectId = subject.Id;
+        }
+        var bytes = QuestionBankFileTests.Archive(new Dictionary<string,string>
+        {
+            ["ppt/presentation.xml"] = "<p:presentation xmlns:p='http://schemas.openxmlformats.org/presentationml/2006/main' xmlns:r='http://schemas.openxmlformats.org/officeDocument/2006/relationships'><p:sldIdLst><p:sldId id='256' r:id='first'/></p:sldIdLst></p:presentation>",
+            ["ppt/_rels/presentation.xml.rels"] = "<Relationships><Relationship Id='first' Target='slides/slide1.xml'/></Relationships>",
+            ["ppt/slides/slide1.xml"] = "<slide xmlns:a='http://schemas.openxmlformats.org/drawingml/2006/main'><a:t>Dependency injection supplies dependencies to a class.</a:t></slide>"
+        });
+        await using var factory = CreateFactory(new CitedGenerator());
+        using var client = Client(factory);
+        await LoginAsync(client, email, "Test-password-123!");
+        using var upload = new MultipartFormDataContent();
+        upload.Add(new StringContent(Token(await client.GetStringAsync("/Documents"))), "__RequestVerificationToken");
+        upload.Add(new StringContent(subjectId.ToString()), "SubjectId");
+        upload.Add(new ByteArrayContent(bytes), "File", "lecture.pptx");
+        var uploaded = await client.PostAsync("/Documents/Upload", upload);
+        Assert.Equal(HttpStatusCode.Redirect, uploaded.StatusCode);
+        var form = await client.GetStringAsync(uploaded.Headers.Location);
+        var docId = Regex.Match(form, "name=\"DocumentId\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        Assert.NotEmpty(docId);
+        var generated = await client.PostAsync("/Documents/Generate", new FormUrlEncodedContent(new Dictionary<string,string>
+        {
+            ["DocumentId"] = docId, ["Instruction"] = "dependency injection", ["BloomLevel"] = "Understand",
+            ["Difficulty"] = "Medium", ["Count"] = "1", ["__RequestVerificationToken"] = Token(form)
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, generated.StatusCode);
+        await using var verify = fixture.CreateContext();
+        var question = await verify.Questions.SingleAsync(q => q.SubjectId == subjectId);
+        Assert.Equal(QuestionStatus.Draft, question.Status);
+        var details = await client.GetStringAsync("/Questions/Details/" + question.Id);
+        Assert.Contains("lecture.pptx", details);
+        Assert.Contains("Dependency injection supplies dependencies to a class.", details);
+    }
+
+    private async Task<string> SeedAsync(UserStatus status, bool deleted = false, bool badHash = false, string password = "Test-password-123!", UserRole role = UserRole.STUDENT)
     {
         await using var context = fixture.CreateContext();
         var email = "mvc-" + Guid.NewGuid().ToString("N") + "@example.com";
         var user = new User(email, "", "Long MVC Test", status);
+        user.AssignRole(role);
         user.ChangePassword(badHash ? "not-a-valid-hash" : new PasswordHasher<User>().HashPassword(user, password));
         if (deleted) user.DeletedAt = DateTimeOffset.UtcNow;
         context.Users.Add(user);
@@ -194,7 +310,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
     }
 
     // Dùng SQL Server thật trong DB test riêng; không thay repository bằng mock.
-    private WebApplicationFactory<HomeController> CreateFactory() => new WebApplicationFactory<HomeController>()
+    private WebApplicationFactory<HomeController> CreateFactory(AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<HomeController>()
         .WithWebHostBuilder(web =>
         {
             web.UseEnvironment("Testing");
@@ -214,6 +330,11 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
                 services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
                 services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(fixture.ConnectionString));
+                if (generator is not null)
+                {
+                    services.RemoveAll<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator>();
+                    services.AddSingleton(generator);
+                }
             });
         });
 }

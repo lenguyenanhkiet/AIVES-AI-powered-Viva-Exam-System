@@ -1,4 +1,4 @@
-namespace AIpoweredVivaExamSystem.Web.Models;
+namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 // Current filters are kept in RouteValues so page links preserve them.
 public sealed record PagerModel(int Page, int PageSize, int TotalCount, IDictionary<string, string?> RouteValues)

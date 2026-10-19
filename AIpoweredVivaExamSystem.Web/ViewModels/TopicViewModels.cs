@@ -5,7 +5,7 @@ using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Enums;
 
-namespace AIpoweredVivaExamSystem.Web.Models;
+namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 public sealed class TopicFormViewModel
 {

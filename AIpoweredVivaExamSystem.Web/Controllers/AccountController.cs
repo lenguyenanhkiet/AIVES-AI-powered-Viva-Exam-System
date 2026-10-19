@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Web.Models;
+using AIpoweredVivaExamSystem.Web.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -28,6 +28,7 @@ public sealed class AccountController(LoginService login) : Controller
         }
         var identity = new ClaimsIdentity([
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Role, user.Role),
             new Claim(ClaimTypes.Email, user.Email), new Claim(ClaimTypes.Name, user.FullName)
         ], CookieAuthenticationDefaults.AuthenticationScheme);
         // Cookie là ticket được ASP.NET Core bảo vệ; không lưu mật khẩu hoặc JWT trong HTML/localStorage.
