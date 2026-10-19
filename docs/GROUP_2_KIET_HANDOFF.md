@@ -1,8 +1,24 @@
 # Kiet — group two integration foundation
 
-Branch: `codex/g2-integration`. Base: `main` at `25a77aa` (MVC/group one and the one-day plan). This branch implements Kiet's shared foundation, not the other members' modules.
+Branch: `g2-integration`. Base: `main` at `25a77aa` (MVC/group one and the one-day plan). This branch implements Kiet's shared foundation, not the other members' modules.
 
 ## Task status and practical limits
+
+## Checklist đối chiếu ngày 19/10/2026
+
+Kết luận: **phần foundation K1–K3 đã có implementation và test; toàn bộ K1–K5 chưa hoàn thành 100%**. K4/K5 còn phụ thuộc code của các module khác. Merge foundation vào main không đồng nghĩa hoàn thành toàn bộ nhóm chức năng 2.
+
+- [x] K1: scaffold Exam, ExamStudent, ExamQuestionPool, VivaSession, SessionQuestion và các Application contracts.
+- [x] K2: guard ownership/subject assignment, own enrollment, DI, phân quyền trang MVC và test truy cập trái quyền.
+- [x] K3: migration/snapshot, FK/unique indexes/RowVersion/check constraints và fixture database test riêng.
+- [x] K4 (foundation): DI, menu, trang đọc trạng thái, transaction boundary và abstraction notifier.
+- [ ] K4 (tích hợp cuối): ghép Exam CRUD/lifecycle của Tuệ Minh, pool của Sơn, roster của Long, lịch của Dương và session/SignalR của Dũng; demo tạo exam → publish.
+- [x] K5 (foundation): regression nhóm 1 + foundation, kiểm tra migration/model, tài liệu và commit bàn giao.
+- [ ] K5 (nghiệm thu cuối): chạy checklist demo toàn luồng sau khi tích hợp đủ module và sửa lỗi liên module.
+
+Bằng chứng: `ExamFoundationTests.cs` kiểm tra quyền, query filters, unique constraints, rollback, concurrency và notification sau commit; `LoginMvcTests.cs` kiểm tra trang quản lý. `PendingExamNotifier` hiện chỉ ghi log. Các interface trong `ModuleContracts.cs` chưa có implementation nghiệp vụ; không thể đánh dấu demo/real-time hoàn thành.
+
+### Chi tiết bàn giao
 
 | Task | Delivered | Remaining dependency |
 |---|---|---|

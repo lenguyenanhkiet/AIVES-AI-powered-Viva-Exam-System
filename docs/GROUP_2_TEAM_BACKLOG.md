@@ -10,7 +10,7 @@
 
 Để khả thi trong một ngày, kế hoạch chốt **MVP** với một giảng viên, một kênh thi tuần tự, một môn mỗi kỳ thi, tài khoản sinh viên đã có và dữ liệu demo nhỏ. Không cam kết hoàn thành toàn bộ backlog mở rộng trong một ngày. Ước lượng giả định cả 6 người có thể làm việc tập trung, máy đã chạy được .NET/SQL Server và nhóm 1 đã được cấu hình; nếu không đạt mốc 10:00 hoặc 14:00 phải giảm phạm vi theo mục dự phòng.
 
-Đây là kế hoạch phân công. Nhánh `codex/g2-integration` đã có foundation của Kiệt; xem [trạng thái bàn giao K1–K5](GROUP_2_KIET_HANDOFF.md). Các module nghiệp vụ của 5 thành viên còn lại và demo toàn luồng vẫn chưa triển khai. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
+Đây là kế hoạch phân công. Nhánh `g2-integration` đã có foundation của Kiệt; xem [trạng thái bàn giao K1–K5](GROUP_2_KIET_HANDOFF.md). Các module nghiệp vụ của 5 thành viên còn lại và demo toàn luồng vẫn chưa triển khai. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
 
 ## Phạm vi bắt buộc và phần hoãn
 
@@ -34,12 +34,12 @@ Phân công dưới đây là đề xuất theo module, không giả định nă
 
 | Người | Trách nhiệm chính | Kết quả phải bàn giao trước 15:30 | Branch gợi ý |
 |---|---|---|---|
-| Kiệt | Contracts, schema/migration, RBAC, tích hợp | Model thống nhất, DI, migration, kiểm tra ownership, build tích hợp | `codex/g2-integration` |
-| Tuệ Minh | Exam CRUD và lifecycle | Tạo/sửa/xem kỳ thi; publish/start/complete/cancel có validation | `codex/g2-exams` |
-| Sơn | Question pool | Chọn/bỏ câu hợp lệ, đếm pool đủ điều kiện | `codex/g2-question-pool` |
-| Long | Roster sinh viên | Thêm/bỏ/xem danh sách sinh viên; chặn trùng và sai role | `codex/g2-roster` |
-| Dương | Lịch thi | Sinh ca tuần tự, preview/lưu, lịch cá nhân | `codex/g2-scheduling` |
-| Dũng | Session, chọn câu và SignalR | Bộ câu lưu idempotent, trang mở lại session, dashboard cập nhật | `codex/g2-session-realtime` |
+| Kiệt | Contracts, schema/migration, RBAC, tích hợp | Model thống nhất, DI, migration, kiểm tra ownership, build tích hợp | `g2-integration` |
+| Tuệ Minh | Exam CRUD và lifecycle | Tạo/sửa/xem kỳ thi; publish/start/complete/cancel có validation | `g2-exams` |
+| Sơn | Question pool | Chọn/bỏ câu hợp lệ, đếm pool đủ điều kiện | `g2-question-pool` |
+| Long | Roster sinh viên | Thêm/bỏ/xem danh sách sinh viên; chặn trùng và sai role | `g2-roster` |
+| Dương | Lịch thi | Sinh ca tuần tự, preview/lưu, lịch cá nhân | `g2-scheduling` |
+| Dũng | Session, chọn câu và SignalR | Bộ câu lưu idempotent, trang mở lại session, dashboard cập nhật | `g2-session-realtime` |
 
 Tên branch chỉ là gợi ý, chưa được tạo tự động. Không thêm lại import/RAG nhóm 1 vào công việc của ngày này.
 
