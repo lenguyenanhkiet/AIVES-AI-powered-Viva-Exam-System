@@ -14,6 +14,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(20).HasDefaultValue(AIpoweredVivaExamSystem.Domain.Enums.UserRole.STUDENT);
 
         builder.Property(x => x.Email)
             .IsRequired()

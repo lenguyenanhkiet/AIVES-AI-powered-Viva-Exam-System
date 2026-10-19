@@ -12,6 +12,13 @@ public class User : AuditableEntity, IAggregateRoot
     public string PasswordHash { get; private set; } = string.Empty;
     public string FullName { get; private set; } = string.Empty;
     public UserStatus Status { get; private set; }
+    public UserRole Role { get; private set; } = UserRole.STUDENT;
+
+    public void AssignRole(UserRole role)
+    {
+        DomainRules.DefinedEnum(role, nameof(Role));
+        Role = role;
+    }
     private User() { } // Private constructor for EF Core
 
     public User(string email, string passwordHash, string fullName, UserStatus status)

@@ -5,13 +5,14 @@ using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
-using AIpoweredVivaExamSystem.Web.Models;
+using AIpoweredVivaExamSystem.Web.ViewModels;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
 // A rubric belongs to exactly one question, so every page here starts from and returns to that question.
+[Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
 public sealed class RubricsController(IRubricService rubrics, IQuestionService questions) : Controller
 {
     // GET: /Rubrics/Details/{questionId} or /Rubrics/Details?questionId=

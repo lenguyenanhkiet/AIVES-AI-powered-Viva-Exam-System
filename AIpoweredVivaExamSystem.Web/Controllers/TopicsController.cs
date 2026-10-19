@@ -7,12 +7,13 @@ using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
-using AIpoweredVivaExamSystem.Web.Models;
+using AIpoweredVivaExamSystem.Web.ViewModels;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
+[Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
 public sealed class TopicsController(ITopicService topics, ISubjectService subjects, IQuestionService questions) : Controller
 {
     // GET: Topics?subjectId=&keyword=&status=&page=

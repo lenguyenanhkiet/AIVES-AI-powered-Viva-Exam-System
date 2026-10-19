@@ -1,0 +1,12 @@
+@model AIpoweredVivaExamSystem.Application.Exams.ExamSummary
+@{ ViewData["Title"] = Model.Name; }
+<div class="container stack" data-exam-realtime data-exam-id="@Model.Id" data-status-url="@Url.Action("Status", new { id = Model.Id })" data-hub-url="@Url.Content("~/hubs/exams")">
+    <h1>@Model.Name</h1>
+    <p data-connection-state>Connecting…</p>
+    <div data-exam-status aria-live="polite"></div>
+    <table class="table"><thead><tr><th>Student</th><th>Slot (Vietnam)</th><th>Session</th></tr></thead><tbody data-exam-roster></tbody></table>
+</div>
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/exam-realtime.js" asp-append-version="true"></script>
+}

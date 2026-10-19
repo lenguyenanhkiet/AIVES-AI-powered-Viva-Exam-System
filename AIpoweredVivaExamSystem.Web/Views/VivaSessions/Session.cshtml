@@ -1,0 +1,19 @@
+@model AIpoweredVivaExamSystem.Application.Exams.StudentSession
+@{ ViewData["Title"] = "Viva session"; }
+<div class="container stack">
+    <h1>Viva session</h1>
+    <p>Started: @Model.StartedAt.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") (Vietnam)</p>
+    <p>Status: @(Model.CompletedAt.HasValue ? "Completed" : "In progress")</p>
+    <ol>
+    @foreach (var question in Model.Questions)
+    { <li value="@question.Position"><p style="white-space: pre-wrap">@question.Content</p></li> }
+    </ol>
+    @if (!Model.CompletedAt.HasValue)
+    {
+        <form asp-action="Complete" method="post">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-primary">Complete session</button>
+        </form>
+    }
+    <a asp-action="Index">Back</a>
+</div>
