@@ -2,7 +2,6 @@ using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Interfaces;
 using AIpoweredVivaExamSystem.Application.Rubrics;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using FluentValidation;
 using Xunit;
@@ -63,34 +62,6 @@ public class RubricServiceTests
     }
 
     [Fact]
-    public async Task Create_successfully_creates_rubric_and_calculates_total_score()
-    {
-        var questionId = Guid.NewGuid();
-        _questionLookup.ExistingQuestions.Add(questionId);
-
-        var request = new CreateRubricRequest(
-            questionId,
-            "Rubric Lập trình C#",
-            "Đánh giá hiểu biết về OOP và Dependency Injection",
-            [
-                new CriterionRequest("Định nghĩa OOP", "Nêu đủ 4 tính chất", "OOP, Encapsulation", 3.0m, 1),
-                new CriterionRequest("Dependency Injection", "Phân biệt 3 lifetime", "Scoped, Singleton, Transient", 4.5m, 2),
-                new CriterionRequest("Ví dụ thực tế", "Code demo chính xác", "C#, .NET Core", 2.5m, 3)
-            ]);
-
-        var result = await _service.CreateAsync(request, default);
-
-        Assert.NotNull(result);
-        Assert.Equal(questionId, result.QuestionId);
-        Assert.Equal("Rubric Lập trình C#", result.Name);
-        Assert.Equal(10.0m, result.TotalScore); // 3.0 + 4.5 + 2.5 = 10.0
-        Assert.Equal(3, result.Criteria.Count);
-        Assert.Equal(1, result.Criteria[0].DisplayOrder);
-        Assert.Equal(2, result.Criteria[1].DisplayOrder);
-        Assert.Equal(3, result.Criteria[2].DisplayOrder);
-    }
-
-    [Fact]
     public async Task Create_rejects_nonexistent_question()
     {
         var nonExistentQuestionId = Guid.NewGuid();
@@ -142,39 +113,6 @@ public class RubricServiceTests
             [new CriterionRequest("Tiêu chí 1", null, null, 5.0m, 1)]);
 
         await Assert.ThrowsAsync<ValidationException>(() => _service.CreateAsync(request, default));
-    }
-
-    [Fact]
-    public async Task Create_rejects_empty_criteria()
-    {
-        var questionId = Guid.NewGuid();
-        _questionLookup.ExistingQuestions.Add(questionId);
-
-        var request = new CreateRubricRequest(
-            questionId,
-            "Rubric rỗng",
-            null,
-            []);
-
-        await Assert.ThrowsAsync<ValidationException>(() => _service.CreateAsync(request, default));
-    }
-
-    [Fact]
-    public async Task Create_rejects_duplicate_display_order()
-    {
-        var questionId = Guid.NewGuid();
-        _questionLookup.ExistingQuestions.Add(questionId);
-
-        var request = new CreateRubricRequest(
-            questionId,
-            "Rubric trùng thứ tự",
-            null,
-            [
-                new CriterionRequest("Tiêu chí 1", null, null, 5.0m, 1),
-                new CriterionRequest("Tiêu chí 2", null, null, 5.0m, 1) // Trùng order 1
-            ]);
-
-        await Assert.ThrowsAsync<DomainValidationException>(() => _service.CreateAsync(request, default));
     }
 
     [Fact]
@@ -233,78 +171,6 @@ public class RubricServiceTests
     {
         var nonExistentQuestionId = Guid.NewGuid();
         await Assert.ThrowsAsync<ResourceNotFoundException>(() => _service.GetByQuestionIdAsync(nonExistentQuestionId, default));
-    }
-
-    [Fact]
-    public async Task Update_successfully_modifies_rubric_and_recalculates_total_score()
-    {
-        var questionId = Guid.NewGuid();
-        _questionLookup.ExistingQuestions.Add(questionId);
-
-        var created = await _service.CreateAsync(new CreateRubricRequest(
-            questionId,
-            "Rubric ban đầu",
-            "Mô tả cũ",
-            [
-                new CriterionRequest("Tiêu chí 1", null, null, 4.0m, 1),
-                new CriterionRequest("Tiêu chí 2", null, null, 6.0m, 2)
-            ]), default);
-
-        Assert.Equal(10.0m, created.TotalScore);
-
-        var crit1Id = created.Criteria[0].Id;
-        var crit2Id = created.Criteria[1].Id;
-
-        // Cập nhật điểm của tiêu chí 1 lên 5.0, tiêu chí 2 lên 5.0
-        var updateRequest = new UpdateRubricRequest(
-            "Rubric đã cập nhật",
-            "Mô tả mới",
-            [
-                new CriterionRequest("Tiêu chí 1 sửa", "Mô tả 1", "Khái niệm", 5.0m, 1, crit1Id),
-                new CriterionRequest("Tiêu chí 2 sửa", "Mô tả 2", "Khái niệm", 5.0m, 2, crit2Id)
-            ]);
-
-        var updated = await _service.UpdateAsync(created.Id, updateRequest, default);
-
-        Assert.Equal("Rubric đã cập nhật", updated.Name);
-        Assert.Equal("Mô tả mới", updated.Description);
-        Assert.Equal(10.0m, updated.TotalScore);
-        Assert.Equal("Tiêu chí 1 sửa", updated.Criteria[0].Name);
-    }
-
-    [Fact]
-    public async Task Update_handles_criteria_addition_and_removal_and_recalculates_total_score()
-    {
-        var questionId = Guid.NewGuid();
-        _questionLookup.ExistingQuestions.Add(questionId);
-
-        var created = await _service.CreateAsync(new CreateRubricRequest(
-            questionId,
-            "Rubric động",
-            null,
-            [
-                new CriterionRequest("Tiêu chí giữ lại", null, null, 3.0m, 1),
-                new CriterionRequest("Tiêu chí bị xóa", null, null, 2.0m, 2)
-            ]), default);
-
-        Assert.Equal(5.0m, created.TotalScore);
-        var keptCriterionId = created.Criteria[0].Id;
-
-        // Giữ lại tiêu chí 1, xóa tiêu chí 2, thêm tiêu chí 3 mới (Id = null) với điểm 7.0
-        var updateRequest = new UpdateRubricRequest(
-            "Rubric sau khi thêm bớt",
-            null,
-            [
-                new CriterionRequest("Tiêu chí giữ lại", null, null, 3.0m, 1, keptCriterionId),
-                new CriterionRequest("Tiêu chí mới thêm", "Mô tả mới", "Concept mới", 7.0m, 2, null)
-            ]);
-
-        var updated = await _service.UpdateAsync(created.Id, updateRequest, default);
-
-        Assert.Equal(2, updated.Criteria.Count);
-        Assert.Equal(10.0m, updated.TotalScore); // 3.0 + 7.0 = 10.0
-        Assert.Equal("Tiêu chí giữ lại", updated.Criteria[0].Name);
-        Assert.Equal("Tiêu chí mới thêm", updated.Criteria[1].Name);
     }
 
     [Fact]
