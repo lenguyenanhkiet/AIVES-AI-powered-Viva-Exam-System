@@ -17,3 +17,15 @@ Commits: service/persistence with tests; MVC with HTTP tests; integration eviden
 and handoff. Comments explain authorization, locking and commit boundaries.
 Keep the shared DI changes minimal and document them for Kiet. Extend RosterEntry
 with an optional Email parameter so existing positional constructors still work.
+
+## Completion evidence
+
+- [x] Guarded service/persistence: `17b49c2`.
+- [x] MVC, validation and six initial HTTP cases: `67aea8d`.
+- [x] Review correction: paginated exam discovery and HTTP regression: `7185348`.
+- [x] Transaction/notifier/readiness coverage: `0c54fdc`.
+- [x] Independent read-only review; pagination finding fixed and re-reviewed.
+- [x] Full test suite: 121 passed on isolated SQL LocalDB, 0 failed/skipped.
+- [x] Handoff in `docs/GROUP_2_LONG_HANDOFF.md` records scope and integration limits.
+
+Full-group browser/SignalR demo remains an integration acceptance step.

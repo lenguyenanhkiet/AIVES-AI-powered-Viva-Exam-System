@@ -176,7 +176,7 @@ Mỗi bước ghi người test, kết quả Pass/Fail và lỗi/commit liên qu
 | Kiệt | K1–K5 | K1–K3 đã có; K4–K5 chờ tích hợp các module | Tích hợp liên tục; chốt 17:00 | Xem GROUP_2_KIET_HANDOFF.md |
 | Tuệ Minh | TM1–TM4 | TODO | 15:30 | Chưa có |
 | Sơn | S1–S4 | TODO | 15:30 | Chưa có |
-| Long | L1–L4 | TODO | 15:30 | Chưa có |
+| Long | L1–L4 | Đã có module + test; chờ demo tích hợp toàn nhóm | 15:30 | Xem [GROUP_2_LONG_HANDOFF.md](GROUP_2_LONG_HANDOFF.md), branch `feature/exam-roster` |
 | Dương | D1–D4 | TODO | 15:30 | Chưa có |
 | Dũng | DG1–DG5 | TODO | 15:30 | Chưa có |
 
