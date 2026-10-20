@@ -75,10 +75,9 @@ public sealed class ExamPoolService(IExamPoolStore store, ExamAccessGuard guard,
     {
         if (questionIds is null || questionIds.Count == 0)
             throw new DomainValidationException("Hãy chọn ít nhất một câu hỏi.");
-        var ids = questionIds.Where(id => id != Guid.Empty).Distinct().ToArray();
-        if (ids.Length == 0)
-            throw new DomainValidationException("Hãy chọn ít nhất một câu hỏi hợp lệ.");
-        return ids;
+        if (questionIds.Any(id => id == Guid.Empty))
+            throw new DomainValidationException("Danh sách có mã câu hỏi không hợp lệ.");
+        return questionIds.Distinct().ToArray();
     }
 
     private static void RequireDraft(Exam exam)

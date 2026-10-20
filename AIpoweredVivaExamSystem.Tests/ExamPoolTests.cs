@@ -113,6 +113,24 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task InvalidEmptyIdRejectsTheWholeAddBatch()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        var actor = new Actor(demo.Lecturer.Id, IsLecturer: true);
+        var notifier = new Notifier();
+        await using (var db = Context(actor))
+        {
+            var service = Service(db, actor, notifier);
+            await Assert.ThrowsAsync<DomainValidationException>(() =>
+                service.AddAsync(demo.Exam.Id, [eligible.Id, Guid.Empty], default));
+        }
+
+        await using var verify = fixture.CreateContext();
+        Assert.Empty(await verify.ExamQuestionPools.Where(p => p.ExamId == demo.Exam.Id).ToArrayAsync());
+        Assert.Empty(notifier.Events);
+    }
+
+    [Fact]
     public async Task DuplicateSelectionIsIdempotentAndNotifiesOnceAfterCommit()
     {
         var (demo, eligible) = await SeedWithEligibleQuestionAsync();
