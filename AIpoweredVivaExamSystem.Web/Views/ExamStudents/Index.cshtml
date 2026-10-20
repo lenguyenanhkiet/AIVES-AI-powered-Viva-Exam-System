@@ -1,0 +1,27 @@
+@model IReadOnlyList<AIpoweredVivaExamSystem.Application.Exams.ExamSummary>
+@{ ViewData["Title"] = "Danh sách sinh viên kỳ thi"; }
+<div class="container stack">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Sinh viên kỳ thi</h1>
+            <p class="page-sub">Chọn kỳ thi để xem hoặc quản lý danh sách sinh viên. Thời gian hiển thị theo giờ Việt Nam (UTC+7).</p>
+        </div>
+    </div>
+    <div class="card table-wrap">
+        <table class="table">
+            <thead><tr><th>Kỳ thi</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var exam in Model)
+            {
+                <tr>
+                    <td>@exam.Name</td><td>@exam.Status</td>
+                    <td>@exam.StartAt.ToLocalText()</td><td>@exam.EndAt.ToLocalText()</td>
+                    <td><a class="btn btn-secondary" asp-action="Roster" asp-route-id="@exam.Id">Danh sách sinh viên</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (Model.Count == 0)
+        { <p>Chưa có kỳ thi thuộc quyền quản lý của bạn. Tạo kỳ thi trước khi thêm sinh viên.</p> }
+    </div>
+</div>

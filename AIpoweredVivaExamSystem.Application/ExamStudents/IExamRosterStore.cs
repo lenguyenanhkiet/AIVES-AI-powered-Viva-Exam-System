@@ -7,6 +7,7 @@ namespace AIpoweredVivaExamSystem.Application.ExamStudents;
 public interface IExamRosterStore
 {
     Task<IReadOnlyList<RosterEntry>> ListAsync(Guid examId, CancellationToken ct);
+    Task<ExamSummary?> FindExamSummaryAsync(Guid examId, CancellationToken ct);
     // Called inside IExamUnitOfWork. SQL implementations lock exam first, matching session lock order.
     Task<Exam> LockExamAsync(Guid examId, CancellationToken ct);
     Task<User?> FindStudentAsync(string normalizedEmail, CancellationToken ct);

@@ -9,6 +9,11 @@ namespace AIpoweredVivaExamSystem.Persistence.Repositories;
 
 public sealed class ExamRosterStore(ApplicationDbContext db) : IExamRosterStore
 {
+    public Task<ExamSummary?> FindExamSummaryAsync(Guid examId, CancellationToken ct) =>
+        db.Exams.AsNoTracking().Where(x => x.Id == examId && x.DeletedAt == null)
+            .Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt))
+            .SingleOrDefaultAsync(ct);
+
     public async Task<IReadOnlyList<RosterEntry>> ListAsync(Guid examId, CancellationToken ct) =>
         await (from enrollment in db.ExamStudents.AsNoTracking()
                join student in db.Users.AsNoTracking() on enrollment.StudentId equals student.Id

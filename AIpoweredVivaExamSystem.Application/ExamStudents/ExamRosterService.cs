@@ -8,8 +8,14 @@ using AIpoweredVivaExamSystem.Domain.Enums;
 namespace AIpoweredVivaExamSystem.Application.ExamStudents;
 
 /// <summary>Manages existing student enrollments; scheduling remains the scheduling module's responsibility.</summary>
-public sealed class ExamRosterService(IExamRosterStore store, ExamAccessGuard guard, IExamUnitOfWork unitOfWork) : IExamRosterService
+public sealed class ExamRosterService(IExamRosterStore store, ExamAccessGuard guard, IExamUnitOfWork unitOfWork) : IExamRosterService, IExamRosterReader
 {
+    public async Task<ExamSummary> GetExamAsync(Guid examId, CancellationToken ct)
+    {
+        await guard.CanManageExamAsync(examId, ct);
+        return await store.FindExamSummaryAsync(examId, ct) ?? throw new ResourceNotFoundException("Exam not found.");
+    }
+
     public async Task<IReadOnlyList<RosterEntry>> ListAsync(Guid examId, CancellationToken ct)
     {
         await guard.CanManageExamAsync(examId, ct);
