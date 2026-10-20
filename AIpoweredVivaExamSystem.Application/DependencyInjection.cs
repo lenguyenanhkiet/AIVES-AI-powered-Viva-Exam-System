@@ -24,6 +24,7 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<Authentication.AccessService>();
             services.AddScoped<Exams.ExamAccessGuard>();
             services.AddScoped<Exams.ExamFoundationService>();
+            services.AddScoped<Exams.IExamRosterService, ExamStudents.ExamRosterService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }

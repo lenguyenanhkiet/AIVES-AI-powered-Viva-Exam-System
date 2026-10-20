@@ -21,7 +21,8 @@ public interface IExamPoolService
     Task AddAsync(Guid examId, IReadOnlyCollection<Guid> questionIds, CancellationToken ct);
     Task RemoveAsync(Guid examId, Guid questionId, CancellationToken ct);
 }
-public sealed record RosterEntry(Guid EnrollmentId, Guid StudentId, string Name, DateTimeOffset? ScheduledAt, byte[] RowVersion);
+// Optional trailing Email preserves existing callers while allowing the roster UI to identify students.
+public sealed record RosterEntry(Guid EnrollmentId, Guid StudentId, string Name, DateTimeOffset? ScheduledAt, byte[] RowVersion, string Email = "");
 public interface IExamRosterService
 {
     Task<IReadOnlyList<RosterEntry>> ListAsync(Guid examId, CancellationToken ct);
