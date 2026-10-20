@@ -10,7 +10,7 @@
 
 Để khả thi trong một ngày, kế hoạch chốt **MVP** với một giảng viên, một kênh thi tuần tự, một môn mỗi kỳ thi, tài khoản sinh viên đã có và dữ liệu demo nhỏ. Không cam kết hoàn thành toàn bộ backlog mở rộng trong một ngày. Ước lượng giả định cả 6 người có thể làm việc tập trung, máy đã chạy được .NET/SQL Server và nhóm 1 đã được cấu hình; nếu không đạt mốc 10:00 hoặc 14:00 phải giảm phạm vi theo mục dự phòng.
 
-Đây là kế hoạch phân công. Nhánh `g2-integration` đã có foundation của Kiệt; xem [trạng thái bàn giao K1–K5](GROUP_2_KIET_HANDOFF.md). Các module nghiệp vụ của 5 thành viên còn lại và demo toàn luồng vẫn chưa triển khai. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
+Đây là kế hoạch phân công. Trên `main` đã có foundation (Kiệt), roster (Long), xếp lịch (Dương) và session/SignalR (Dũng); trạng thái từng người ở bảng cuối tài liệu. Exam CRUD/lifecycle (Tuệ Minh), question pool (Sơn) và demo toàn luồng chưa có. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
 
 ## Phạm vi bắt buộc và phần hoãn
 
@@ -176,8 +176,8 @@ Mỗi bước ghi người test, kết quả Pass/Fail và lỗi/commit liên qu
 | Kiệt | K1–K5 | K1–K3 đã có; K4–K5 chờ tích hợp các module | Tích hợp liên tục; chốt 17:00 | Xem GROUP_2_KIET_HANDOFF.md |
 | Tuệ Minh | TM1–TM4 | TODO | 15:30 | Chưa có |
 | Sơn | S1–S4 | TODO | 15:30 | Chưa có |
-| Long | L1–L4 | Đã có module + test; chờ demo tích hợp toàn nhóm | 15:30 | Xem [GROUP_2_LONG_HANDOFF.md](GROUP_2_LONG_HANDOFF.md), branch `feature/exam-roster` |
-| Dương | D1–D4 | Đã có module + test; chờ demo tích hợp toàn nhóm | 15:30 | `/Schedules`, `/Schedules/My`; readiness `IScheduleReadiness` cho publish |
-| Dũng | DG1–DG5 | Module đã triển khai, 119 tests pass; chờ demo tích hợp | 19/10/2026 | [Bàn giao Dũng](GROUP_2_DUNG_HANDOFF.md) |
+| Long | L1–L4 | Đã có module + test trên main; chờ demo tích hợp toàn nhóm | 15:30 | [Bàn giao Long](GROUP_2_LONG_HANDOFF.md) |
+| Dương | D1–D4 | Đã có module + test trên main; chờ demo tích hợp toàn nhóm | 15:30 | [Bàn giao Dương](GROUP_2_DUONG_HANDOFF.md) |
+| Dũng | DG1–DG5 | Đã có module + test trên main; chờ demo tích hợp toàn nhóm | 19/10/2026 | [Bàn giao Dũng](GROUP_2_DUNG_HANDOFF.md) |
 
 **Definition of Done:** module có code + persistence + MVC theo phạm vi, quyền đúng, test rủi ro chính qua, tích hợp chạy được trong luồng demo, tài liệu cập nhật. Không đánh dấu xong chỉ vì đã có entity hoặc giao diện. Tổng thời gian là 48 giờ công của 6 người làm song song, không phải 48 giờ lịch.

@@ -1,19 +1,19 @@
 # Long — quản lý roster kỳ thi
 
-Branch: `feature/exam-roster`, base `main` tại `01e4d7d`.
+Đã merge vào `main` (branch gốc `feature/exam-roster`).
 
 ## Trạng thái bàn giao
 
 Đã triển khai module L1–L4: Application service, SQL repository, MVC, phân quyền,
 transaction và kiểm thử tự động. Chưa đánh dấu hoàn thành demo tích hợp toàn nhóm:
-Exam CRUD/lifecycle, scheduling và SignalR thật cần ghép với các branch tương ứng.
+còn chờ Exam CRUD/lifecycle của Tuệ Minh.
 
 | Task | Đã kiểm chứng | Phần cần phối hợp |
 |---|---|---|
 | L1 | Thêm bằng email chuẩn hóa; list/remove; chỉ nhận STUDENT active, chưa xóa; chặn trùng và sai ownership | Dùng tài khoản đã có, không tạo tài khoản/import |
 | L2 | `/ExamStudents`, `/ExamStudents/Roster/{examId}`; tên/email/giờ ca UTC+7; thêm 3 sinh viên qua HTTP MVC, bỏ sinh viên, giữ email khi lỗi | Demo trình duyệt với dữ liệu dev sau khi có Exam CRUD |
 | L3 | Chỉ sửa Draft; không bỏ enrollment đã có session; counts SQL phản ánh roster; không ghi đè giờ ca của người khác | Tuệ Minh dùng counts cho publish; Dương dùng roster và RowVersion cho preview |
-| L4 | Test duplicate/role/ownership/concurrency/rollback; notifier sau commit; delivery lỗi không rollback SQL | Main đang dùng PendingExamNotifier; SignalR thật chờ tích hợp Dũng |
+| L4 | Test duplicate/role/ownership/concurrency/rollback; notifier sau commit; delivery lỗi không rollback SQL | Thông báo đi qua `SignalRExamNotifier` của Dũng |
 
 ## Contracts và đường đi dữ liệu
 
@@ -53,7 +53,7 @@ counts/preview cũ làm căn cứ commit.
 
 Thông báo dùng contract chung `ExamChanged` thông qua notifier, không tạo event
 `RosterChanged` riêng. Không gửi email, câu hỏi hoặc dữ liệu sinh viên qua payload.
-Main hiện chỉ ghi log; tích hợp adapter SignalR của Dũng sẽ dùng cùng điểm gọi.
+Trên `main` notifier là `SignalRExamNotifier` của Dũng.
 
 ## Các file chung cần Kiệt biết
 
@@ -62,7 +62,6 @@ Main hiện chỉ ghi log; tích hợp adapter SignalR của Dũng sẽ dùng c�
 - Layout có thêm menu **Sinh viên kỳ thi**, chỉ hiện cho ADMIN/LECTURER.
 - `RosterEntry` thêm Email tương thích constructor cũ.
 - Không đổi entity/schema/DbContext/migration/snapshot/Program.cs hoặc phiên bản .NET.
-  Branch giữ .NET 10 theo main; cần thống nhất khi tích hợp branch Dũng dùng .NET 9.
 
 Các comment trong service/store/controller giải thích lý do kiểm tra quyền,
 khóa SQL, cập nhật version và ranh giới commit để thành viên khác đọc được.
