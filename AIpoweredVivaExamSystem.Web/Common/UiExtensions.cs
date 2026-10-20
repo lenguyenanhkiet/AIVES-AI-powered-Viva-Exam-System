@@ -1,4 +1,5 @@
 using System.Globalization;
+using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -62,6 +63,16 @@ public static class UiExtensions
         QuestionSourceType.DocumentGenerated => "Sinh từ tài liệu",
         QuestionSourceType.Imported => "Import CSV/Excel",
         _ => source.ToString()
+    };
+
+    public static string ToLabel(this ExamStatus status) => status switch
+    {
+        ExamStatus.Draft => "Bản nháp",
+        ExamStatus.Published => "Đã công bố",
+        ExamStatus.Ongoing => "Đang diễn ra",
+        ExamStatus.Completed => "Hoàn thành",
+        ExamStatus.Cancelled => "Đã hủy",
+        _ => status.ToString()
     };
 
     public static string ToScore(this decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);

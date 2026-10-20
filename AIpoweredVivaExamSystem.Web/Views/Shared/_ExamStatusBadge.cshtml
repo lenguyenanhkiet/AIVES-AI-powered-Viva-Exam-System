@@ -1,0 +1,14 @@
+@model ExamStatus
+
+@{
+    var cssClass = Model switch
+    {
+        ExamStatus.Draft => "badge-draft",
+        ExamStatus.Published => "badge-published",
+        ExamStatus.Ongoing => "badge-ongoing",
+        ExamStatus.Completed => "badge-completed",
+        ExamStatus.Cancelled => "badge-cancelled",
+        _ => "badge-draft"
+    };
+}
+<span class="badge @cssClass">@Model.ToLabel()</span>

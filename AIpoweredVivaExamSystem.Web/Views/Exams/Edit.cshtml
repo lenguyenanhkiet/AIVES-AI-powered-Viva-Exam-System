@@ -1,0 +1,20 @@
+@model ExamFormViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa kỳ thi";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Kỳ thi</a> @Icons.Get("chevron-right", 14)
+        <a asp-action="Details" asp-route-id="@Model.Id">@Model.Name</a> @Icons.Get("chevron-right", 14)
+        <span>Chỉnh sửa</span>
+    </nav>
+    <div class="page-head">
+        <h1 class="page-title">Chỉnh sửa kỳ thi (Bản nháp)</h1>
+    </div>
+
+    <form method="post" asp-action="Edit" asp-route-id="@Model.Id">
+        @Html.AntiForgeryToken()
+        <partial name="_Form" model="Model" />
+    </form>
+</div>

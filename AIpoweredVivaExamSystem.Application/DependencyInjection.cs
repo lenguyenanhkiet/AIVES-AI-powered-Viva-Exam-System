@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using AIpoweredVivaExamSystem.Application.Questions;
@@ -24,6 +24,8 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<Authentication.AccessService>();
             services.AddScoped<Exams.ExamAccessGuard>();
             services.AddScoped<Exams.ExamFoundationService>();
+            services.AddScoped<Exams.IExamService, Exams.ExamService>();
+            services.AddScoped<Exams.ExamService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }
