@@ -1,5 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Common;
+using AIpoweredVivaExamSystem.Application.Scheduling;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 
@@ -10,7 +11,8 @@ public sealed class ExamService(
     IExamFoundationReader reader,
     ExamAccessGuard guard,
     ICurrentUser actor,
-    IExamUnitOfWork uow) : IExamService
+    IExamUnitOfWork uow,
+    IScheduleReadiness scheduleReadiness) : IExamService
 {
     public async Task<ExamDetails> CreateAsync(ExamConfiguration request, CancellationToken ct)
     {
@@ -55,77 +57,73 @@ public sealed class ExamService(
         await guard.CanManageExamAsync(examId, ct);
         await guard.RequireSubjectAsync(request.SubjectId, ct);
 
-        var exam = await repository.FindByIdAsync(examId, ct)
-            ?? throw new ResourceNotFoundException("Exam not found.");
-
-        if (request.SubjectId != exam.SubjectId)
+        await uow.ExecuteAsync(async token =>
         {
-            throw new DomainValidationException("Subject cannot be changed after exam creation.");
-        }
+            var exam = await repository.LockAsync(examId, token);
+            await guard.CanManageExamAsync(examId, token);
 
-        ValidateVersion(exam, expectedVersion);
+            if (request.SubjectId != exam.SubjectId)
+                throw new DomainValidationException("Subject cannot be changed after exam creation.");
 
-        exam.Update(
-            request.Name,
-            request.StartAt,
-            request.EndAt,
-            request.DurationMinutes,
-            request.NumberOfMainQuestions,
-            request.MaxFollowUpPerQuestion);
+            ValidateVersion(exam, expectedVersion);
 
-        await uow.ExecuteAsync(async _ => { await Task.CompletedTask; }, [exam.Id], ct);
+            exam.Update(
+                request.Name,
+                request.StartAt,
+                request.EndAt,
+                request.DurationMinutes,
+                request.NumberOfMainQuestions,
+                request.MaxFollowUpPerQuestion);
+        }, [examId], ct);
     }
 
     public async Task TransitionAsync(Guid examId, ExamStatus target, byte[] expectedVersion, CancellationToken ct)
     {
         await guard.CanManageExamAsync(examId, ct);
-        var exam = await repository.FindByIdAsync(examId, ct)
-            ?? throw new ResourceNotFoundException("Exam not found.");
-
-        ValidateVersion(exam, expectedVersion);
-
-        switch (target)
+        await uow.ExecuteAsync(async token =>
         {
-            case ExamStatus.Published:
-                await ValidatePublishReadinessAsync(examId, exam, ct);
-                exam.Publish();
-                break;
+            var exam = await repository.LockAsync(examId, token);
+            await guard.CanManageExamAsync(examId, token);
+            ValidateVersion(exam, expectedVersion);
 
-            case ExamStatus.Ongoing:
-                exam.Start(DateTimeOffset.UtcNow);
-                break;
+            switch (target)
+            {
+                case ExamStatus.Published:
+                    await ValidatePublishReadinessAsync(examId, exam, token);
+                    exam.Publish();
+                    break;
 
-            case ExamStatus.Completed:
-                exam.Complete();
-                break;
+                case ExamStatus.Ongoing:
+                    exam.Start(DateTimeOffset.UtcNow);
+                    break;
 
-            case ExamStatus.Cancelled:
-                exam.Cancel();
-                break;
+                case ExamStatus.Completed:
+                    exam.Complete();
+                    break;
 
-            default:
-                throw new DomainValidationException($"Invalid target status transition: {target}");
-        }
+                case ExamStatus.Cancelled:
+                    exam.Cancel();
+                    break;
 
-        await uow.ExecuteAsync(async _ => { await Task.CompletedTask; }, [exam.Id], ct);
+                default:
+                    throw new DomainValidationException($"Invalid target status transition: {target}");
+            }
+        }, [examId], ct);
     }
 
     public async Task DeleteDraftAsync(Guid examId, byte[] expectedVersion, CancellationToken ct)
     {
         await guard.CanManageExamAsync(examId, ct);
-        var exam = await repository.FindByIdAsync(examId, ct)
-            ?? throw new ResourceNotFoundException("Exam not found.");
-
-        if (exam.Status != ExamStatus.Draft)
-            throw new DomainValidationException("Only draft exams can be deleted.");
-
-        ValidateVersion(exam, expectedVersion);
-
-        await uow.ExecuteAsync(async _ =>
+        await uow.ExecuteAsync(async token =>
         {
+            var exam = await repository.LockAsync(examId, token);
+            await guard.CanManageExamAsync(examId, token);
+            if (exam.Status != ExamStatus.Draft)
+                throw new DomainValidationException("Only draft exams can be deleted.");
+
+            ValidateVersion(exam, expectedVersion);
             repository.Remove(exam);
-            await Task.CompletedTask;
-        }, [exam.Id], ct);
+        }, [examId], ct);
     }
 
     private async Task ValidatePublishReadinessAsync(Guid examId, Exam exam, CancellationToken ct)
@@ -138,15 +136,9 @@ public sealed class ExamService(
                 $"Cannot publish exam: Question pool must contain at least {exam.NumberOfMainQuestions} questions (currently {counts.PoolQuestions}).");
         }
 
-        if (counts.Students <= 0)
+        if (!await scheduleReadiness.IsFullyScheduledAsync(examId, ct))
         {
-            throw new DomainValidationException("Cannot publish exam: At least one student must be enrolled.");
-        }
-
-        if (counts.ScheduledStudents < counts.Students)
-        {
-            throw new DomainValidationException(
-                $"Cannot publish exam: All students must be scheduled ({counts.ScheduledStudents}/{counts.Students} scheduled).");
+            throw new DomainValidationException("Cannot publish exam: A nonempty roster with nonoverlapping slots inside the exam window is required.");
         }
     }
 

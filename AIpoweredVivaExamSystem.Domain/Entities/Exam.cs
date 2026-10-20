@@ -62,7 +62,7 @@ public sealed class Exam : AuditableEntity, IAggregateRoot
     {
         if (Status != ExamStatus.Published)
             throw new DomainValidationException("Only published exams can be started.");
-        if (now < StartAt || now > EndAt)
+        if (now < StartAt || now >= EndAt)
             throw new DomainValidationException("Exam can only be started within its scheduled window.");
         Status = ExamStatus.Ongoing;
     }

@@ -1,8 +1,15 @@
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
+using AIpoweredVivaExamSystem.Application.Scheduling;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.Persistence.Repositories;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace AIpoweredVivaExamSystem.Tests;
@@ -143,6 +150,7 @@ public class ExamLifecycleTests
 
         // Too early
         Assert.Throws<DomainValidationException>(() => exam.Start(DateTimeOffset.UtcNow));
+        Assert.Throws<DomainValidationException>(() => exam.Start(exam.EndAt));
 
         // Too late
         var pastStart = DateTimeOffset.UtcNow.AddHours(-3);
@@ -215,165 +223,210 @@ public class ExamLifecycleTests
         Assert.Throws<DomainValidationException>(cancelled.Cancel);
     }
 
-    // Fakes for ExamService testing
-    private sealed class FakeExamRepository : IExamRepository
+}
+
+[Collection("SQL Server")]
+public sealed class ExamLifecycleSqlTests(SqlServerFixture fixture)
+{
+    private sealed record Actor(Guid Id, bool IsAdministrator = false, bool IsLecturer = true) : ICurrentUser;
+    private sealed class Notifier(Func<Guid, Task>? afterCommit = null) : IExamNotifier
     {
-        public readonly Dictionary<Guid, Exam> Store = new();
-
-        public Task<Exam?> FindByIdAsync(Guid examId, CancellationToken ct) =>
-            Task.FromResult(Store.TryGetValue(examId, out var exam) ? exam : null);
-
-
-        public void Add(Exam exam) => Store[exam.Id] = exam;
-        public void Remove(Exam exam) => Store.Remove(exam.Id);
-    }
-
-    private sealed class FakeExamFoundationReader : IExamFoundationReader
-    {
-        public int PoolQuestions { get; set; } = 10;
-        public int Students { get; set; } = 5;
-        public int ScheduledStudents { get; set; } = 5;
-
-        public Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<ExamSummary>>([]);
-
-        public Task<ExamFoundationCounts> CountsAsync(Guid examId, CancellationToken ct) =>
-            Task.FromResult(new ExamFoundationCounts(PoolQuestions, Students, ScheduledStudents, 0));
-    }
-
-    private sealed class FakeExamAccessStore : IExamAccessStore
-    {
-        public Task<ExamAccess?> FindExamAsync(Guid examId, CancellationToken ct) =>
-            Task.FromResult<ExamAccess?>(new ExamAccess(examId, SubjectId, LecturerId));
-
-        public Task<ExamStudentAccess?> FindEnrollmentAsync(Guid enrollmentId, CancellationToken ct) =>
-            Task.FromResult<ExamStudentAccess?>(null);
-
-        public Task<bool> IsAssignedAsync(Guid lecturerId, Guid subjectId, CancellationToken ct) =>
-            Task.FromResult(true);
-
-        public Task<bool> IsEnrolledAsync(Guid examId, Guid studentId, CancellationToken ct) =>
-            Task.FromResult(true);
-    }
-
-    private sealed class FakeUnitOfWork : IExamUnitOfWork
-    {
-        public bool Executed { get; private set; }
-        public IReadOnlyCollection<Guid> ChangedIds { get; private set; } = [];
-
-        public async Task ExecuteAsync(Func<CancellationToken, Task> work, IReadOnlyCollection<Guid> changedExamIds, CancellationToken ct)
+        public List<Guid> Events { get; } = [];
+        public async Task NotifyChangedAsync(Guid examId, CancellationToken ct)
         {
-            Executed = true;
-            ChangedIds = changedExamIds;
-            await work(ct);
+            Events.Add(examId);
+            if (afterCommit is not null) await afterCommit(examId);
         }
     }
 
-    private sealed record TestActor(Guid Id, bool IsAdministrator = false, bool IsLecturer = true) : ICurrentUser;
+    private ApplicationDbContext Context(ExamDemo demo, Actor? actor = null) => new(
+        new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(fixture.ConnectionString).Options,
+        actor ?? new Actor(demo.Lecturer.Id));
+
+    private static ExamService Service(ApplicationDbContext db, ExamDemo demo, Notifier notifier,
+        IExamFoundationReader? reader = null)
+    {
+        var actor = new Actor(demo.Lecturer.Id);
+        var guard = new ExamAccessGuard(new ExamFoundationStore(db), actor);
+        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        return new(new ExamRepository(db), reader ?? new ExamFoundationStore(db),
+            guard, actor, uow, new ExamScheduleService(new ExamScheduleStore(db), guard, uow, actor,
+                new ExamFoundationStore(db)));
+    }
+
+    private async Task<ExamDemo> SeedAsync(bool ready = false)
+    {
+        await using var db = fixture.CreateContext();
+        var demo = await ExamDemo.SeedAsync(db);
+        if (ready)
+        {
+            await AddEligiblePoolAsync(db, demo);
+            demo.Enrollment.Schedule(demo.Exam.StartAt);
+            await db.SaveChangesAsync();
+        }
+        return demo;
+    }
+
+    private static async Task AddEligiblePoolAsync(ApplicationDbContext db, ExamDemo demo)
+    {
+        for (var i = 0; i < demo.Exam.NumberOfMainQuestions; i++)
+        {
+            var question = new Question(demo.Subject.Id, "Eligible " + i, BloomLevel.Understand,
+                QuestionDifficulty.Medium) { CreatedBy = demo.Lecturer.Id };
+            question.Approve();
+            db.AddRange(question, new ExamQuestionPool(demo.Exam.Id, question.Id),
+                new Rubric(question.Id, "Rubric", null, [new CriterionDefinition(null, "Reasoning", null, null, 10, 1)]));
+        }
+        await db.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task Service_Publish_rejects_when_readiness_conditions_fail()
     {
-        var repo = new FakeExamRepository();
-        var reader = new FakeExamFoundationReader();
-        var accessStore = new FakeExamAccessStore();
-        var actor = new TestActor(LecturerId);
-        var guard = new ExamAccessGuard(accessStore, actor);
-        var uow = new FakeUnitOfWork();
+        var demo = await SeedAsync();
+        await using var db = Context(demo);
+        var observedCommit = false;
+        var notifier = new Notifier(async id =>
+        {
+            await using var verify = fixture.CreateContext();
+            observedCommit = db.Database.CurrentTransaction is null &&
+                await verify.Exams.AnyAsync(e => e.Id == id && e.Status == ExamStatus.Published);
+        });
+        var service = Service(db, demo, notifier);
+        var version = demo.Exam.RowVersion;
+        Task Publish() => service.TransitionAsync(demo.Exam.Id, ExamStatus.Published, version, default);
 
-        var exam = CreateValidDraftExam();
-        repo.Store[exam.Id] = exam;
-        var service = new ExamService(repo, reader, guard, actor, uow);
+        // An insufficient eligible pool must prevent publication.
+        await Assert.ThrowsAsync<DomainValidationException>(Publish);
+        await using (var setup = fixture.CreateContext())
+        {
+            await AddEligiblePoolAsync(setup, demo);
+            await setup.ExamStudents.Where(e => e.Id == demo.Enrollment.Id).ExecuteDeleteAsync();
+        }
+        // An empty roster must prevent publication, even with a valid pool.
+        await Assert.ThrowsAsync<DomainValidationException>(Publish);
+        var entry = new ExamStudent(demo.Exam.Id, demo.Student.Id);
+        await using (var setup = fixture.CreateContext()) { setup.Add(entry); await setup.SaveChangesAsync(); }
+        await Assert.ThrowsAsync<DomainValidationException>(Publish);
 
-        // 1. Question pool < NumberOfMainQuestions (3 required, 2 present)
-        reader.PoolQuestions = 2;
-        var ex1 = await Assert.ThrowsAsync<DomainValidationException>(() =>
-            service.TransitionAsync(exam.Id, ExamStatus.Published, exam.RowVersion, default));
-        Assert.Contains("Question pool must contain at least 3 questions", ex1.Message);
+        // A non-null start is insufficient: the whole slot must fit in the exam window.
+        await using (var setup = fixture.CreateContext())
+        {
+            (await setup.ExamStudents.SingleAsync(e => e.Id == entry.Id)).Schedule(demo.Exam.EndAt.AddMinutes(-14));
+            await setup.SaveChangesAsync();
+        }
+        await Assert.ThrowsAsync<DomainValidationException>(Publish);
+        Assert.Empty(notifier.Events);
+        await using (var setup = fixture.CreateContext())
+        {
+            Assert.Equal(ExamStatus.Draft, (await setup.Exams.SingleAsync(e => e.Id == demo.Exam.Id)).Status);
+            (await setup.ExamStudents.SingleAsync(e => e.Id == entry.Id)).Schedule(demo.Exam.StartAt);
+            await setup.SaveChangesAsync();
+        }
 
-        // 2. Students count == 0
-        reader.PoolQuestions = 10;
-        reader.Students = 0;
-        var ex2 = await Assert.ThrowsAsync<DomainValidationException>(() =>
-            service.TransitionAsync(exam.Id, ExamStatus.Published, exam.RowVersion, default));
-        Assert.Contains("At least one student must be enrolled", ex2.Message);
+        // An edit can invalidate an already saved schedule without moving its starts.
+        var nextStudent = new User(Guid.NewGuid() + "@example.test", "unused", "Next", UserStatus.Active);
+        var nextEntry = new ExamStudent(demo.Exam.Id, nextStudent.Id);
+        nextEntry.Schedule(demo.Exam.StartAt.AddMinutes(15));
+        await using (var setup = fixture.CreateContext())
+        {
+            setup.AddRange(nextStudent, nextEntry);
+            await setup.SaveChangesAsync();
+        }
+        await service.UpdateAsync(demo.Exam.Id, new ExamConfiguration(demo.Subject.Id, demo.Exam.Name,
+            demo.Exam.StartAt, demo.Exam.EndAt, 30, demo.Exam.NumberOfMainQuestions,
+            demo.Exam.MaxFollowUpPerQuestion), version, default);
+        version = (await service.GetAsync(demo.Exam.Id, default)).RowVersion;
+        await Assert.ThrowsAsync<DomainValidationException>(Publish);
+        Assert.Equal(new[] { demo.Exam.Id }, notifier.Events); // Only the successful draft edit notified.
+        notifier.Events.Clear();
+        await using (var setup = fixture.CreateContext())
+        {
+            (await setup.ExamStudents.SingleAsync(e => e.Id == nextEntry.Id)).Schedule(demo.Exam.StartAt.AddMinutes(30));
+            await setup.SaveChangesAsync();
+        }
+        await Publish();
+        Assert.True(observedCommit);
+        Assert.Equal(new[] { demo.Exam.Id }, notifier.Events);
+    }
 
-        // 3. Scheduled students < Students count (3 scheduled / 5 enrolled)
-        reader.Students = 5;
-        reader.ScheduledStudents = 3;
-        var ex3 = await Assert.ThrowsAsync<DomainValidationException>(() =>
-            service.TransitionAsync(exam.Id, ExamStatus.Published, exam.RowVersion, default));
-        Assert.Contains("All students must be scheduled", ex3.Message);
+    private sealed class LockedFoundationReader(ApplicationDbContext db, Func<Task> probe) : IExamFoundationReader
+    {
+        private readonly ExamFoundationStore inner = new(db);
+        public Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct) => inner.ListManagedAsync(ct);
+        public async Task<ExamFoundationCounts> CountsAsync(Guid examId, CancellationToken ct)
+        {
+            Assert.NotNull(db.Database.CurrentTransaction);
+            await probe();
+            return await inner.CountsAsync(examId, ct);
+        }
+    }
 
-        // 4. All ready -> successfully publishes
-        reader.ScheduledStudents = 5;
-        await service.TransitionAsync(exam.Id, ExamStatus.Published, exam.RowVersion, default);
-        Assert.Equal(ExamStatus.Published, exam.Status);
-        Assert.True(uow.Executed);
-        Assert.Contains(exam.Id, uow.ChangedIds);
+    [Fact]
+    public async Task Service_Publish_holds_exam_lock_during_readiness_validation()
+    {
+        var demo = await SeedAsync(ready: true);
+        await using var db = Context(demo);
+        var probed = false;
+        var reader = new LockedFoundationReader(db, async () =>
+        {
+            await using var other = fixture.CreateContext();
+            var error = await Assert.ThrowsAsync<SqlException>(() => other.Database.ExecuteSqlInterpolatedAsync(
+                $"SET LOCK_TIMEOUT 0; UPDATE [Exams] SET [Name] = [Name] WHERE [Id] = {demo.Exam.Id}"));
+            Assert.Equal(1222, error.Number);
+            probed = true;
+        });
+        await Service(db, demo, new Notifier(), reader).TransitionAsync(
+            demo.Exam.Id, ExamStatus.Published, demo.Exam.RowVersion, default);
+        Assert.True(probed);
     }
 
     [Fact]
     public async Task Service_Delete_rejects_non_draft_exam()
     {
-        var repo = new FakeExamRepository();
-        var reader = new FakeExamFoundationReader();
-        var accessStore = new FakeExamAccessStore();
-        var actor = new TestActor(LecturerId);
-        var guard = new ExamAccessGuard(accessStore, actor);
-        var uow = new FakeUnitOfWork();
-
-        var exam = CreateValidDraftExam();
-        exam.Publish();
-        repo.Store[exam.Id] = exam;
-
-        var service = new ExamService(repo, reader, guard, actor, uow);
-
-        await Assert.ThrowsAsync<DomainValidationException>(() =>
-            service.DeleteDraftAsync(exam.Id, exam.RowVersion, default));
-        Assert.True(repo.Store.ContainsKey(exam.Id));
+        var demo = await SeedAsync();
+        await using (var setup = fixture.CreateContext())
+        {
+            (await setup.Exams.SingleAsync(e => e.Id == demo.Exam.Id)).Publish();
+            await setup.SaveChangesAsync();
+        }
+        await using var db = Context(demo);
+        var notifier = new Notifier();
+        await Assert.ThrowsAsync<DomainValidationException>(() => Service(db, demo, notifier)
+            .DeleteDraftAsync(demo.Exam.Id, [], default));
+        Assert.Null((await db.Exams.SingleAsync(e => e.Id == demo.Exam.Id)).DeletedAt);
+        Assert.Empty(notifier.Events);
     }
 
     [Fact]
     public async Task Service_Delete_removes_draft_exam()
     {
-        var repo = new FakeExamRepository();
-        var reader = new FakeExamFoundationReader();
-        var accessStore = new FakeExamAccessStore();
-        var actor = new TestActor(LecturerId);
-        var guard = new ExamAccessGuard(accessStore, actor);
-        var uow = new FakeUnitOfWork();
-
-        var exam = CreateValidDraftExam();
-        repo.Store[exam.Id] = exam;
-
-        var service = new ExamService(repo, reader, guard, actor, uow);
-
-        await service.DeleteDraftAsync(exam.Id, exam.RowVersion, default);
-        Assert.False(repo.Store.ContainsKey(exam.Id));
-        Assert.True(uow.Executed);
+        var demo = await SeedAsync();
+        await using var db = Context(demo);
+        var notifier = new Notifier();
+        await Service(db, demo, notifier).DeleteDraftAsync(demo.Exam.Id, demo.Exam.RowVersion, default);
+        await using var verify = fixture.CreateContext();
+        Assert.NotNull((await verify.Exams.SingleAsync(e => e.Id == demo.Exam.Id)).DeletedAt);
+        Assert.Equal(new[] { demo.Exam.Id }, notifier.Events);
     }
 
     [Fact]
     public async Task Service_Update_rejects_subject_change()
     {
-        var repo = new FakeExamRepository();
-        var reader = new FakeExamFoundationReader();
-        var accessStore = new FakeExamAccessStore();
-        var actor = new TestActor(LecturerId);
-        var guard = new ExamAccessGuard(accessStore, actor);
-        var uow = new FakeUnitOfWork();
-
-        var exam = CreateValidDraftExam();
-        repo.Store[exam.Id] = exam;
-
-        var service = new ExamService(repo, reader, guard, actor, uow);
-        var diffSubjectId = Guid.NewGuid();
-        var req = new ExamConfiguration(diffSubjectId, exam.Name, exam.StartAt, exam.EndAt,
-            exam.DurationMinutes, exam.NumberOfMainQuestions, exam.MaxFollowUpPerQuestion);
-
-        var ex = await Assert.ThrowsAsync<DomainValidationException>(() =>
-            service.UpdateAsync(exam.Id, req, exam.RowVersion, default));
-        Assert.Contains("Subject cannot be changed", ex.Message);
+        var demo = await SeedAsync();
+        var actor = new Actor(Guid.NewGuid(), IsAdministrator: true, IsLecturer: false);
+        await using var db = Context(demo, actor);
+        var notifier = new Notifier();
+        var guard = new ExamAccessGuard(new ExamFoundationStore(db), actor);
+        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        var service = new ExamService(new ExamRepository(db), new ExamFoundationStore(db),
+            guard, actor, uow, new ExamScheduleService(new ExamScheduleStore(db), guard, uow, actor,
+                new ExamFoundationStore(db)));
+        var request = new ExamConfiguration(Guid.NewGuid(), demo.Exam.Name, demo.Exam.StartAt, demo.Exam.EndAt,
+            demo.Exam.DurationMinutes, demo.Exam.NumberOfMainQuestions, demo.Exam.MaxFollowUpPerQuestion);
+        await Assert.ThrowsAsync<DomainValidationException>(() => service.UpdateAsync(
+            demo.Exam.Id, request, demo.Exam.RowVersion, default));
+        Assert.Equal(demo.Subject.Id, (await db.Exams.SingleAsync(e => e.Id == demo.Exam.Id)).SubjectId);
+        Assert.Empty(notifier.Events);
     }
 }

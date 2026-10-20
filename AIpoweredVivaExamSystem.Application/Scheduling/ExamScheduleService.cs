@@ -66,8 +66,15 @@ public sealed class ExamScheduleService(IExamScheduleStore store, ExamAccessGuar
         await guard.CanManageExamAsync(examId, ct);
         var exam = await FindAsync(examId, ct);
         var roster = await store.ListRosterAsync(examId, ct);
-        return roster.Count > 0 && roster.All(x => x.ScheduledAt is { } start &&
-            start >= exam.StartAt && exam.SlotEnd(start) <= exam.EndAt);
+        DateTimeOffset? previousEnd = null;
+        foreach (var entry in roster.OrderBy(x => x.ScheduledAt))
+        {
+            if (entry.ScheduledAt is not { } start) return false;
+            var end = exam.SlotEnd(start);
+            if (start < exam.StartAt || end > exam.EndAt || start < previousEnd) return false;
+            previousEnd = end;
+        }
+        return roster.Count > 0;
     }
 
     private async Task<Exam> FindAsync(Guid examId, CancellationToken ct) =>
