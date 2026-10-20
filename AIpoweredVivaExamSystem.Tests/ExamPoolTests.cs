@@ -188,6 +188,30 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task RemovingPoolEntriesNotifiesOnlyWhenThePoolChanges()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        await using (var setup = fixture.CreateContext())
+        {
+            setup.Add(new ExamQuestionPool(demo.Exam.Id, eligible.Id));
+            await setup.SaveChangesAsync();
+        }
+
+        var actor = new Actor(demo.Lecturer.Id, IsLecturer: true);
+        var notifier = new Notifier();
+        await using (var db = Context(actor))
+        {
+            var service = Service(db, actor, notifier);
+            await service.RemoveAsync(demo.Exam.Id, [eligible.Id], default);
+            await service.RemoveAsync(demo.Exam.Id, [eligible.Id], default);
+        }
+
+        await using var verify = fixture.CreateContext();
+        Assert.Empty(await verify.ExamQuestionPools.Where(pool => pool.ExamId == demo.Exam.Id).ToArrayAsync());
+        Assert.Equal(new[] { demo.Exam.Id }, notifier.Events);
+    }
+
+    [Fact]
     public async Task PoolCanOnlyChangeWhileExamIsDraft()
     {
         var (demo, eligible) = await SeedWithEligibleQuestionAsync();
