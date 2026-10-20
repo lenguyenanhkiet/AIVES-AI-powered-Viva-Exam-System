@@ -19,7 +19,10 @@ public sealed class ExamPoolStore(ApplicationDbContext db) : IExamPoolStore
             .Where(q => !db.ExamQuestionPools.IgnoreQueryFilters().Any(p => p.ExamId == examId && p.QuestionId == q.Id))
             .OrderBy(q => q.Content)
             .Select(q => new ExamPoolQuestion(q.Id, q.Content, q.BloomLevel, q.Difficulty, q.Status,
-                true, q.DeletedAt != null)).ToArrayAsync(ct);
+                true, q.DeletedAt != null, true)).ToArrayAsync(ct);
+
+        var eligiblePoolIds = (await ExamPoolQueries.EligiblePooledQuestions(db, exam)
+            .Select(q => q.Id).ToArrayAsync(ct)).ToHashSet();
 
         var pooled = await (from pool in db.ExamQuestionPools.IgnoreQueryFilters().AsNoTracking()
                             join question in db.Questions.IgnoreQueryFilters().AsNoTracking() on pool.QuestionId equals question.Id
@@ -28,11 +31,10 @@ public sealed class ExamPoolStore(ApplicationDbContext db) : IExamPoolStore
                             select new ExamPoolQuestion(question.Id, question.Content, question.BloomLevel,
                                 question.Difficulty, question.Status,
                                 db.Rubrics.IgnoreQueryFilters().Any(r => r.QuestionId == question.Id && r.DeletedAt == null),
-                                question.DeletedAt != null)).ToArrayAsync(ct);
-        var eligiblePoolCount = await ExamPoolQueries.EligiblePooledQuestions(db, exam).CountAsync(ct);
+                                question.DeletedAt != null, eligiblePoolIds.Contains(question.Id))).ToArrayAsync(ct);
 
         var summary = new ExamSummary(exam.Id, exam.SubjectId, exam.Name, exam.Status, exam.StartAt, exam.EndAt);
-        return new ExamPoolPage(summary, exam.NumberOfMainQuestions, pooled.Length, eligiblePoolCount,
+        return new ExamPoolPage(summary, exam.NumberOfMainQuestions, pooled.Length, eligiblePoolIds.Count,
             available, pooled);
     }
 

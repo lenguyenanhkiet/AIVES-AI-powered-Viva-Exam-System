@@ -4,10 +4,7 @@ using AIpoweredVivaExamSystem.Domain.Enums;
 namespace AIpoweredVivaExamSystem.Application.Exams;
 
 public sealed record ExamPoolQuestion(Guid Id, string Content, BloomLevel BloomLevel,
-    QuestionDifficulty Difficulty, QuestionStatus Status, bool HasRubric, bool IsDeleted)
-{
-    public bool IsEligible => !IsDeleted && Status == QuestionStatus.Approved && HasRubric;
-}
+    QuestionDifficulty Difficulty, QuestionStatus Status, bool HasRubric, bool IsDeleted, bool IsEligible);
 
 public sealed record ExamPoolPage(ExamSummary Exam, int RequiredQuestions, int CurrentPoolCount,
     int EligiblePoolCount, IReadOnlyList<ExamPoolQuestion> AvailableQuestions,

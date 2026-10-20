@@ -90,6 +90,29 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task PooledQuestionEligibilityMatchesTheRulesUsedByThePoolCount()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        await using (var setup = fixture.CreateContext())
+        {
+            setup.Add(new ExamQuestionPool(demo.Exam.Id, eligible.Id));
+            await setup.SaveChangesAsync();
+            await setup.Questions.Where(q => q.Id == eligible.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(q => q.CreatedBy, demo.Student.Id));
+        }
+
+        var actor = new Actor(demo.Lecturer.Id, IsLecturer: true);
+        await using var db = Context(actor);
+        var page = await Service(db, actor, new Notifier()).GetPageAsync(demo.Exam.Id, default);
+
+        var pooled = Assert.Single(page.PooledQuestions);
+        Assert.True(pooled.HasRubric);
+        Assert.Equal(QuestionStatus.Approved, pooled.Status);
+        Assert.False(pooled.IsEligible);
+        Assert.Equal(0, page.EligiblePoolCount);
+    }
+
+    [Fact]
     public async Task DuplicateSelectionIsIdempotentAndNotifiesOnceAfterCommit()
     {
         var (demo, eligible) = await SeedWithEligibleQuestionAsync();
