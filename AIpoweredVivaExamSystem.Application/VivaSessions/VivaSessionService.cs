@@ -1,9 +1,11 @@
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Exams;
+using AIpoweredVivaExamSystem.Domain.Entities;
 
 namespace AIpoweredVivaExamSystem.Application.VivaSessions;
 
-public sealed record MyVivaExam(Guid EnrollmentId, string Name, string Status, DateTimeOffset? ScheduledAt);
+public sealed record MyVivaExam(Guid EnrollmentId, string Name, ExamStatus Status,
+    DateTimeOffset? ScheduledAt, DateTimeOffset? EndAt);
 public interface IMyVivaSessionsReader
 {
     Task<IReadOnlyList<MyVivaExam>> ListAsync(CancellationToken ct);

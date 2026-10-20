@@ -26,7 +26,7 @@ public sealed class VivaSessionsController(IVivaSessionService sessions,
     public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
     {
         await sessions.CompleteMySessionAsync(id, ct);
-        TempData["SessionMessage"] = "Session completed. You can reopen it to review the same questions.";
+        TempData["SessionMessage"] = "Đã hoàn thành phiên thi. Bạn có thể mở lại để xem lại các câu hỏi.";
         return RedirectToAction(nameof(Index));
     }
 }

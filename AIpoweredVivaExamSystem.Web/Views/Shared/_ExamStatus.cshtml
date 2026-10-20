@@ -1,0 +1,14 @@
+@model AIpoweredVivaExamSystem.Domain.Entities.ExamStatus
+@using AIpoweredVivaExamSystem.Domain.Entities
+@{
+    var css = Model switch
+    {
+        ExamStatus.Draft => "q-status-draft",
+        ExamStatus.Published => "badge-active",
+        ExamStatus.Ongoing => "q-status-approved",
+        ExamStatus.Completed => "q-status-archived",
+        ExamStatus.Cancelled => "q-status-rejected",
+        _ => "badge-inactive"
+    };
+}
+<span class="badge @css">@Model.ToLabel()</span>

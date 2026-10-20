@@ -23,7 +23,6 @@ public interface IScheduleReadiness
 
 public interface IExamScheduleStore
 {
-    Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct);
     Task<Exam?> FindExamAsync(Guid examId, CancellationToken ct);
     Task<IReadOnlyList<ScheduleEnrollment>> ListRosterAsync(Guid examId, CancellationToken ct);
     Task LockSchedulingAsync(CancellationToken ct);

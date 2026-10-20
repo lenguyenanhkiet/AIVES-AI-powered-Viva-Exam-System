@@ -9,10 +9,9 @@ public sealed class MyVivaSessionsReader(ApplicationDbContext db, ICurrentUser a
     public async Task<IReadOnlyList<MyVivaExam>> ListAsync(CancellationToken ct)
     {
         if (actor.Id == Guid.Empty || actor.IsAdministrator || actor.IsLecturer) throw new UnauthorizedAccessException();
-        return await (from r in db.ExamStudents.AsNoTracking()
-                      join e in db.Exams.IgnoreQueryFilters() on r.ExamId equals e.Id
-                      where r.StudentId == actor.Id && e.DeletedAt == null
-                      orderby r.ScheduledAt
-                      select new MyVivaExam(r.Id, e.Name, e.Status.ToString(), r.ScheduledAt)).ToArrayAsync(ct);
+        return await ExamSlotQueries.ForStudent(db, actor.Id)
+            .OrderBy(x => x.Enrollment.ScheduledAt).ThenBy(x => x.Enrollment.Id)
+            .Select(x => new MyVivaExam(x.Enrollment.Id, x.Exam.Name, x.Exam.Status,
+                x.Enrollment.ScheduledAt, x.EndAt)).ToArrayAsync(ct);
     }
 }

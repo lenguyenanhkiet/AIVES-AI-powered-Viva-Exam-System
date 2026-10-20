@@ -35,19 +35,7 @@ public sealed class ExamRosterStore(ApplicationDbContext db) : IExamRosterStore
                select new RosterEntry(enrollment.Id, student.Id, student.FullName,
                    enrollment.ScheduledAt, enrollment.RowVersion, student.Email)).ToArrayAsync(ct);
 
-    public async Task<Exam> LockExamAsync(Guid examId, CancellationToken ct)
-    {
-        if (db.Database.CurrentTransaction is null)
-            throw new InvalidOperationException("Roster mutations require the shared exam transaction.");
-        // UPDLOCK serializes duplicate adds/removes and HOLDLOCK keeps lifecycle changes out until commit.
-        // Use the same exam-first lock order as VivaSessionStore to avoid lock-order deadlocks.
-        var exam = await db.Exams.FromSqlInterpolated(
-                $"SELECT * FROM [Exams] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {examId}")
-            .SingleOrDefaultAsync(ct) ?? throw new ResourceNotFoundException("Exam not found.");
-        // A scoped service may be reused; do not validate against an older tracked lifecycle/version.
-        await db.Entry(exam).ReloadAsync(ct);
-        return exam;
-    }
+    public Task<Exam> LockExamAsync(Guid examId, CancellationToken ct) => ExamLock.LockAsync(db, examId, ct);
 
     public Task<User?> FindStudentAsync(string normalizedEmail, CancellationToken ct) =>
         db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Email.ToLower() == normalizedEmail, ct);

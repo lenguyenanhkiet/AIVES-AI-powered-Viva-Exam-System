@@ -7,6 +7,7 @@ using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.Schedules;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ExamEntity = AIpoweredVivaExamSystem.Domain.Entities.Exam;
 
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
@@ -44,13 +45,6 @@ public sealed class SchedulesController(IExamScheduleService schedules, ISchedul
         return RedirectToAction(nameof(Exam), new { id });
     }
 
-    [Authorize(Roles = "STUDENT"), HttpGet("My")]
-    public async Task<IActionResult> My(CancellationToken ct) => View("My", new MyScheduleViewModel
-    {
-        Items = (await reader.MyScheduleDetailsAsync(ct)).Select(x => new MyScheduleRow
-        { ExamName = x.ExamName, Status = x.Status, StartAt = x.StartAt, EndAt = x.EndAt }).ToArray()
-    });
-
     private async Task<ExamScheduleViewModel> ModelAsync(Guid id, SchedulePreview? preview, CancellationToken ct)
     {
         var current = await reader.GetAsync(id, ct);
@@ -61,7 +55,7 @@ public sealed class SchedulesController(IExamScheduleService schedules, ISchedul
             DurationMinutes = current.DurationMinutes,
             CanEdit = current.Exam.Status == ExamStatus.Draft,
             Current = current.Roster.Select((x, i) => Row(x, i, x.ScheduledAt,
-                x.ScheduledAt?.AddMinutes(current.DurationMinutes))).ToArray(),
+                x.ScheduledAt is { } start ? ExamEntity.SlotEnd(start, current.DurationMinutes) : null)).ToArray(),
             Preview = preview?.Slots.Where(x => roster.ContainsKey(x.EnrollmentId))
                 .Select((x, i) => Row(roster[x.EnrollmentId], i, x.StartAt, x.EndAt)).ToArray(),
             PreviewToken = preview?.PreviewToken

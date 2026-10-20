@@ -127,9 +127,14 @@ public sealed class VivaSessionTests(SqlServerFixture fixture)
     [InlineData(4, -1, ExamStatus.Cancelled)]
     public async Task InvalidPoolSlotOrLifecycleDoesNotPersistOrNotify(int pool, int offset, ExamStatus status)
     {
-        var d = await SeedAsync(pool, offset, status);
+        var d = await SeedAsync(pool, offset);
         var actor = new Actor(d.Student.Id);
         await using var db = Context(actor);
+        // Reused contexts must observe lifecycle changes made after the exam was tracked.
+        await db.Exams.IgnoreQueryFilters().SingleAsync(e => e.Id == d.Exam.Id);
+        await using (var update = fixture.CreateContext())
+            await update.Exams.Where(e => e.Id == d.Exam.Id)
+                .ExecuteUpdateAsync(set => set.SetProperty(e => e.Status, status));
         var notifier = new Notifier();
         await Assert.ThrowsAsync<DomainValidationException>(() => Service(db, actor, notifier).GetOrCreateMySessionAsync(d.Enrollment.Id, default));
         Assert.False(await db.VivaSessions.AnyAsync(s => s.ExamStudentId == d.Enrollment.Id));
@@ -188,6 +193,18 @@ public sealed class VivaSessionTests(SqlServerFixture fixture)
     public async Task StudentListIsScopedAndManagerDashboardReadsPersistedRoster()
     {
         var d = await SeedAsync();
+        await using (var setup = fixture.CreateContext())
+        {
+            var draft = new Exam(d.Subject.Id, d.Lecturer.Id, "Draft", d.Exam.StartAt, d.Exam.EndAt, 15, 2, 1);
+            var cancelled = new Exam(d.Subject.Id, d.Lecturer.Id, "Cancelled", d.Exam.StartAt, d.Exam.EndAt, 15, 2, 1);
+            var deleted = new Exam(d.Subject.Id, d.Lecturer.Id, "Deleted", d.Exam.StartAt, d.Exam.EndAt, 15, 2, 1)
+                { DeletedAt = DateTimeOffset.UtcNow };
+            setup.AddRange(draft, cancelled, deleted, new ExamStudent(draft.Id, d.Student.Id),
+                new ExamStudent(cancelled.Id, d.Student.Id), new ExamStudent(deleted.Id, d.Student.Id));
+            setup.Entry(cancelled).Property(e => e.Status).CurrentValue = ExamStatus.Cancelled;
+            setup.Entry(deleted).Property(e => e.Status).CurrentValue = ExamStatus.Published;
+            await setup.SaveChangesAsync();
+        }
         var actor = new Actor(d.Student.Id);
         await using (var db = Context(actor))
         {
@@ -201,8 +218,8 @@ public sealed class VivaSessionTests(SqlServerFixture fixture)
         var reader = new ExamLiveReader(manager, new ExamFoundationStore(manager));
         Assert.Equal(d.Exam.Name, (await reader.SummaryAsync(d.Exam.Id, default)).Name);
         var live = await reader.ReadAsync(d.Exam.Id, default);
-        Assert.Equal("Ongoing", live.Status);
+        Assert.Equal(ExamStatus.Ongoing, live.Status);
         Assert.Equal(1, live.Counts.Sessions);
-        Assert.Equal("In progress", Assert.Single(live.Roster).SessionStatus);
+        Assert.Equal(SessionState.InProgress, Assert.Single(live.Roster).SessionStatus);
     }
 }

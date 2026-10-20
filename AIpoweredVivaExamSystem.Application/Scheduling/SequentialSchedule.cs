@@ -20,7 +20,7 @@ public static class SequentialSchedule
         return ordered.Select((x, i) =>
         {
             var start = startAt.ToUniversalTime().AddMinutes((long)i * durationMinutes);
-            return new ScheduleSlot(x.EnrollmentId, start, start.AddMinutes(durationMinutes));
+            return new ScheduleSlot(x.EnrollmentId, start, Exam.SlotEnd(start, durationMinutes));
         }).ToArray();
     }
 

@@ -8,7 +8,7 @@ Module D1–D4 đã có trên `main`. Chưa demo toàn luồng: chưa có Exam C
 |---|---|---|
 | `/Schedules` | ADMIN, LECTURER | Danh sách kỳ thi mình quản lý |
 | `/Schedules/Exam/{id}` | ADMIN, LECTURER | Lịch hiện tại; **Xem trước** (POST `Preview`) rồi **Lưu lịch** (POST `Apply`) |
-| `/Schedules/My` | STUDENT | Ca thi của chính mình |
+| `/VivaSessions` | STUDENT | Ca thi của chính mình và mở/xem lại phiên thi |
 
 Giờ lưu UTC, hiển thị giờ Việt Nam (UTC+7) qua `ToLocalText()`.
 
@@ -33,4 +33,4 @@ Giờ lưu UTC, hiển thị giờ Việt Nam (UTC+7) qua `ToLocalText()`.
 
 `Application/Scheduling` (`SequentialSchedule`, `ExamScheduleService`, contracts), `Persistence/Repositories/ExamScheduleStore.cs`, `Web/Controllers/SchedulesController.cs`, `Web/ViewModels/Schedules`, `Web/Views/Schedules`.
 
-`Tests/ExamScheduleTests.cs` (18 test; 14 test SQL cần `AIVES_TEST_CONNECTION`): sinh ca và biên `EndAt`, lưu đủ ca, preview cũ, trùng giờ sinh viên/giảng viên rollback, Apply cạnh tranh, sai quyền, không phải Draft, đã có session, phạm vi `My`, readiness, notifier chỉ chạy sau commit.
+`Tests/ExamScheduleTests.cs` (18 test; 14 test SQL cần `AIVES_TEST_CONNECTION`): sinh ca và biên `EndAt`, lưu đủ ca, preview cũ, trùng giờ sinh viên/giảng viên rollback, Apply cạnh tranh, sai quyền, không phải Draft, đã có session, sinh viên chỉ thấy ca của mình, readiness, notifier chỉ chạy sau commit.
