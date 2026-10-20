@@ -1,0 +1,18 @@
+@model ExamFormViewModel
+@{
+    ViewData["Title"] = "Tạo kỳ thi vấn đáp";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-action="Index">Kỳ thi</a> @Icons.Get("chevron-right", 14) <span>Tạo mới</span>
+    </nav>
+    <div class="page-head">
+        <h1 class="page-title">Tạo kỳ thi vấn đáp mới</h1>
+    </div>
+
+    <form method="post" asp-action="Create">
+        @Html.AntiForgeryToken()
+        <partial name="_Form" model="Model" />
+    </form>
+</div>
