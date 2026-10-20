@@ -5,7 +5,16 @@
 Login MVC, cookie/JWT, cấu hình cá nhân và các lệnh test SQL/smoke test: xem [docs/AUTH_MVC.md](docs/AUTH_MVC.md).
 
 Nhóm chức năng 1 (import CSV/XLSX, PDF/PPTX, AI/RAG có nguồn, RBAC/ownership): xem [hướng dẫn thiết lập](docs/GROUP_1_SETUP.md).
-Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Phân công nhóm 2 cho 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md). Foundation trên nhánh Kiệt (schema/contracts/RBAC/transaction/trang tích hợp): [GROUP_2_KIET_HANDOFF.md](docs/GROUP_2_KIET_HANDOFF.md). Module Dũng đã có session/snapshot/selection và SignalR: [GROUP_2_DUNG_HANDOFF.md](docs/GROUP_2_DUNG_HANDOFF.md). Sinh viên mở `/VivaSessions`; giảng viên chọn kỳ thi ở `/ExamFoundation` để xem dashboard. CRUD/pool/roster/lịch còn cần tích hợp từ các module tương ứng.
+Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Phân công nhóm 2 cho 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md). Nhóm 2 trên `main`:
+
+| Module | Route | Bàn giao |
+|---|---|---|
+| Foundation: schema, contracts, RBAC, transaction | `/ExamFoundation` | [Kiệt](docs/GROUP_2_KIET_HANDOFF.md) |
+| Roster sinh viên | `/ExamStudents` | [Long](docs/GROUP_2_LONG_HANDOFF.md) |
+| Xếp lịch, lịch cá nhân | `/Schedules`, `/Schedules/My` | [Dương](docs/GROUP_2_DUONG_HANDOFF.md) |
+| Session, chọn câu, SignalR dashboard | `/VivaSessions`, `/ExamFoundation/Details/{id}` | [Dũng](docs/GROUP_2_DUNG_HANDOFF.md) |
+
+Còn thiếu Exam CRUD/lifecycle (Tuệ Minh) và question pool (Sơn), nên chưa demo được toàn luồng tạo kỳ thi → publish → thi.
 
 ---
 
@@ -80,6 +89,7 @@ Dừng: `docker compose down`. **Không** dùng `docker compose down -v` nếu m
 
 Migration nằm trong `AIpoweredVivaExamSystem.Persistence`, startup project là `AIpoweredVivaExamSystem.Web`.
 Ứng dụng **không** tự chạy migration khi khởi động, nên sau khi tạo DB mới cần cập nhật schema.
+Cần `dotnet-ef` 10.x vì project dùng EF Core 10; bản 9.x không chạy được: `dotnet tool update -g dotnet-ef --version "10.*"`.
 
 Khi chạy lệnh từ máy local tới SQL Server trong Docker, truyền connection string qua biến môi trường
 (không ghi mật khẩu vào `appsettings.json`):

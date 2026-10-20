@@ -1,6 +1,6 @@
 # Dũng — session, selection và SignalR
 
-Đã triển khai DG1–DG5 ở mức module ngày 19/10/2026. Build và toàn bộ 119 tests qua trên .NET 9 / SQL Server Express local. Chưa nghiệm thu demo toàn nhóm vì Exam CRUD/lifecycle, pool, roster và scheduling còn chờ module tương ứng; không đánh dấu checklist demo toàn luồng đã xong.
+Đã triển khai DG1–DG5 và merge vào `main` (.NET 10). Chưa nghiệm thu demo toàn nhóm vì Exam CRUD/lifecycle và pool còn chờ module tương ứng; không đánh dấu checklist demo toàn luồng đã xong.
 
 ## Phần bàn giao
 
@@ -14,7 +14,7 @@
 
 Các service lifecycle/pool/roster/schedule phải dùng `IExamUnitOfWork.ExecuteAsync` và cung cấp examIds thay đổi; notifier chỉ chạy sau commit. Lỗi gửi event không rollback SQL. Không sửa session đã tạo, không ghi đè schedule khi đã có session. Pool eligibility hiện áp dụng đúng quyền ngân hàng nhóm 1: Approved, cùng môn, chưa xóa, có rubric active, CreatedBy là lecturer của exam còn được phân môn. Sơn cần giữ quy tắc này đồng nhất khi bàn giao pool service.
 
-Không cần migration mới: foundation đã có unique session/enrollment, session/question, session/position và snapshot columns. Ba conflict có sẵn ở project files/RubricViewModels đã được xử lý; Application và package Web/test được đồng bộ .NET 9 theo các project còn lại và SDK hiện có.
+Không cần migration mới: foundation đã có unique session/enrollment, session/question, session/position và snapshot columns. Khi merge vào `main`, các project giữ .NET 10; bản hạ .NET 9 của branch `dung` không được giữ.
 
 ## Kiểm thử
 
