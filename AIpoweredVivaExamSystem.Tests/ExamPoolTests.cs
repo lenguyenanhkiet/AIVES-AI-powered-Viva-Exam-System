@@ -168,6 +168,26 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task AdministratorCanManageTheAssignedLecturersPool()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        var administrator = new Actor(Guid.NewGuid(), IsAdministrator: true);
+        var notifier = new Notifier();
+        await using (var db = Context(administrator))
+        {
+            var service = Service(db, administrator, notifier);
+            var page = await service.GetPageAsync(demo.Exam.Id, default);
+            Assert.Contains(page.AvailableQuestions, question => question.Id == eligible.Id);
+            await service.AddAsync(demo.Exam.Id, [eligible.Id], default);
+        }
+
+        await using var verify = fixture.CreateContext();
+        Assert.True(await verify.ExamQuestionPools.AnyAsync(pool =>
+            pool.ExamId == demo.Exam.Id && pool.QuestionId == eligible.Id));
+        Assert.Single(notifier.Events);
+    }
+
+    [Fact]
     public async Task PoolCanOnlyChangeWhileExamIsDraft()
     {
         var (demo, eligible) = await SeedWithEligibleQuestionAsync();
