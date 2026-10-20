@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.IAccessStore, AccessStore>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ILoginUserRepository, LoginUserRepository>();
         services.AddScoped<IQuestionLookup, QuestionLookup>();
+        services.AddScoped<AIpoweredVivaExamSystem.Application.Scheduling.IExamScheduleStore, ExamScheduleStore>();
         services.AddScoped<ISubjectRepository, SubjectRepository>();
         services.AddScoped<ITopicRepository, TopicRepository>();
         services.AddScoped<IQuestionRepository, QuestionRepository>();

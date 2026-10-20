@@ -21,6 +21,10 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<IQuestionService, QuestionService>();
             services.AddScoped<QuestionBank.QuestionImportService>();
             services.AddScoped<QuestionBank.DocumentService>();
+            services.AddScoped<Scheduling.ExamScheduleService>();
+            services.AddScoped<Exams.IExamScheduleService>(p => p.GetRequiredService<Scheduling.ExamScheduleService>());
+            services.AddScoped<Scheduling.IScheduleReader>(p => p.GetRequiredService<Scheduling.ExamScheduleService>());
+            services.AddScoped<Scheduling.IScheduleReadiness>(p => p.GetRequiredService<Scheduling.ExamScheduleService>());
             services.AddScoped<Authentication.AccessService>();
             services.AddScoped<Exams.ExamAccessGuard>();
             services.AddScoped<Exams.ExamFoundationService>();

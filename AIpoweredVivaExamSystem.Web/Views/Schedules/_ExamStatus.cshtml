@@ -1,0 +1,14 @@
+@model AIpoweredVivaExamSystem.Domain.Entities.ExamStatus
+@using AIpoweredVivaExamSystem.Domain.Entities
+@{
+    var (css, label) = Model switch
+    {
+        ExamStatus.Draft => ("q-status-draft", "Nháp"),
+        ExamStatus.Published => ("badge-active", "Đã công bố"),
+        ExamStatus.Ongoing => ("q-status-approved", "Đang diễn ra"),
+        ExamStatus.Completed => ("q-status-archived", "Đã kết thúc"),
+        ExamStatus.Cancelled => ("q-status-rejected", "Đã hủy"),
+        _ => ("badge-inactive", Model.ToString())
+    };
+}
+<span class="badge @css">@label</span>
