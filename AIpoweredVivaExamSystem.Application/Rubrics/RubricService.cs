@@ -28,6 +28,14 @@ public sealed class RubricService(
     public async Task<RubricResponse> GetAsync(Guid id, CancellationToken cancellationToken) =>
         Map(await FindAsync(id, cancellationToken));
 
+    public async Task<RubricResponse?> GetByQuestionIdAsync(Guid questionId, CancellationToken cancellationToken)
+    {
+        if (!await questions.ExistsAsync(questionId, cancellationToken))
+            throw new ResourceNotFoundException("Question was not found.");
+        var rubric = await repository.GetByQuestionIdAsync(questionId, cancellationToken);
+        return rubric is null ? null : Map(rubric);
+    }
+
     public async Task<PagedResponse<RubricResponse>> ListAsync(RubricListQuery query, CancellationToken cancellationToken)
     {
         await listValidator.ValidateAndThrowAsync(query, cancellationToken);

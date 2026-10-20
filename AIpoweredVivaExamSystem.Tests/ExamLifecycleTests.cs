@@ -223,9 +223,6 @@ public class ExamLifecycleTests
         public Task<Exam?> FindByIdAsync(Guid examId, CancellationToken ct) =>
             Task.FromResult(Store.TryGetValue(examId, out var exam) ? exam : null);
 
-        public Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<ExamSummary>>(
-                Store.Values.Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt)).ToList());
 
         public void Add(Exam exam) => Store[exam.Id] = exam;
         public void Remove(Exam exam) => Store.Remove(exam.Id);

@@ -18,9 +18,13 @@ public sealed class ExamFoundationStore(ApplicationDbContext db) : IExamAccessSt
         db.Exams.IgnoreQueryFilters().Any(x => x.Id == examId && x.DeletedAt == null), ct);
     public async Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct) => await db.Exams.AsNoTracking().Where(e => e.DeletedAt == null)
         .OrderByDescending(e => e.StartAt).Select(e => new ExamSummary(e.Id, e.SubjectId, e.Name, e.Status, e.StartAt, e.EndAt)).Take(100).ToArrayAsync(ct);
-    public async Task<ExamFoundationCounts> CountsAsync(Guid examId, CancellationToken ct) => new(
-        await db.ExamQuestionPools.CountAsync(p => p.ExamId == examId, ct),
-        await db.ExamStudents.CountAsync(s => s.ExamId == examId, ct),
-        await db.ExamStudents.CountAsync(s => s.ExamId == examId && s.ScheduledAt != null, ct),
-        await db.VivaSessions.CountAsync(s => db.ExamStudents.Any(r => r.Id == s.ExamStudentId && r.ExamId == examId), ct));
+    public async Task<ExamFoundationCounts> CountsAsync(Guid examId, CancellationToken ct)
+    {
+        var exam = await db.Exams.SingleAsync(e => e.Id == examId, ct);
+        return new(
+            await ExamPoolQueries.EligiblePooledQuestions(db, exam).CountAsync(ct),
+            await db.ExamStudents.CountAsync(s => s.ExamId == examId, ct),
+            await db.ExamStudents.CountAsync(s => s.ExamId == examId && s.ScheduledAt != null, ct),
+            await db.VivaSessions.CountAsync(s => db.ExamStudents.Any(r => r.Id == s.ExamStudentId && r.ExamId == examId), ct));
+    }
 }

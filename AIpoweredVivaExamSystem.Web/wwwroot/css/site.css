@@ -134,11 +134,6 @@ h1, h2, h3 { margin: 0; letter-spacing: -.01em; }
 .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .badge-active { background: var(--success-soft); color: var(--success); }
 .badge-inactive { background: var(--surface-muted); color: var(--text-muted); }
-.badge-draft { background: var(--surface-muted); color: var(--text-muted); }
-.badge-published { background: #e0f2fe; color: #0369a1; }
-.badge-ongoing { background: var(--success-soft); color: var(--success); }
-.badge-completed { background: #f3e8ff; color: #6b21a8; }
-.badge-cancelled { background: var(--danger-soft); color: var(--danger); }
 
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; }
 .pager-nav { display: flex; align-items: center; gap: 6px; }

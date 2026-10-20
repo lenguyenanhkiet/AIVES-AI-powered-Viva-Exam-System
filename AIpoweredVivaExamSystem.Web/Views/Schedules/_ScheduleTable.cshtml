@@ -1,0 +1,26 @@
+@model IReadOnlyList<AIpoweredVivaExamSystem.Web.ViewModels.Schedules.ScheduleRow>
+<div class="table-wrap">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Sinh viên</th>
+                <th>Email</th>
+                <th>Bắt đầu</th>
+                <th>Kết thúc</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                <tr>
+                    <td class="muted">@row.Order</td>
+                    <td class="cell-title">@row.StudentName</td>
+                    <td class="muted">@row.Email</td>
+                    <td>@(row.StartAt is { } start ? start.ToLocalText() : "Chưa xếp")</td>
+                    <td>@(row.EndAt is { } end ? end.ToLocalText() : "Chưa xếp")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

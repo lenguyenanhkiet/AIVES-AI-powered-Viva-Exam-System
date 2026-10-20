@@ -47,7 +47,7 @@ public sealed class ExamService(
     public async Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct)
     {
         guard.RequireManager();
-        return await repository.ListManagedAsync(ct);
+        return await reader.ListManagedAsync(ct);
     }
 
     public async Task UpdateAsync(Guid examId, ExamConfiguration request, byte[] expectedVersion, CancellationToken ct)

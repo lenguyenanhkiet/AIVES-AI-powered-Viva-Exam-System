@@ -1,0 +1,17 @@
+@model AIpoweredVivaExamSystem.Application.Exams.ExamSummary
+@{ ViewData["Title"] = Model.Name; }
+<div class="container stack" data-exam-realtime data-exam-id="@Model.Id" data-status-url="@Url.Action("Status", new { id = Model.Id })" data-hub-url="@Url.Content("~/hubs/exams")">
+    <div class="page-head">
+        <h1>@Model.Name</h1>
+        <div class="head-actions">
+            <a class="btn btn-primary" asp-controller="ExamPools" asp-action="Index" asp-route-id="@Model.Id">Quản lý pool câu hỏi</a>
+        </div>
+    </div>
+    <p data-connection-state>Đang kết nối…</p>
+    <div data-exam-status aria-live="polite"></div>
+    <table class="table"><thead><tr><th>Sinh viên</th><th>Ca thi (giờ Việt Nam)</th><th>Phiên thi</th></tr></thead><tbody data-exam-roster></tbody></table>
+</div>
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/exam-realtime.js" asp-append-version="true"></script>
+}

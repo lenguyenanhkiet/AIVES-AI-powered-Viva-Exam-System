@@ -21,11 +21,21 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<IQuestionService, QuestionService>();
             services.AddScoped<QuestionBank.QuestionImportService>();
             services.AddScoped<QuestionBank.DocumentService>();
+            services.AddScoped<Scheduling.ExamScheduleService>();
+            services.AddScoped<Exams.IExamScheduleService>(p => p.GetRequiredService<Scheduling.ExamScheduleService>());
+            services.AddScoped<Scheduling.IScheduleReader>(p => p.GetRequiredService<Scheduling.ExamScheduleService>());
+            services.AddScoped<Scheduling.IScheduleReadiness>(p => p.GetRequiredService<Scheduling.ExamScheduleService>());
             services.AddScoped<Authentication.AccessService>();
             services.AddScoped<Exams.ExamAccessGuard>();
             services.AddScoped<Exams.ExamFoundationService>();
             services.AddScoped<Exams.IExamService, Exams.ExamService>();
             services.AddScoped<Exams.ExamService>();
+            services.AddScoped<Exams.ExamPoolService>();
+            services.AddScoped<Exams.IExamPoolReader>(p => p.GetRequiredService<Exams.ExamPoolService>());
+            services.AddScoped<ExamStudents.ExamRosterService>();
+            services.AddScoped<Exams.IExamRosterService>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
+            services.AddScoped<ExamStudents.IExamRosterReader>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
+            services.AddScoped<Exams.IVivaSessionService, VivaSessions.VivaSessionService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }

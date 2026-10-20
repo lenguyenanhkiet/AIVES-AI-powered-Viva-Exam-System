@@ -14,7 +14,7 @@
         <div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
                 <span class="code-chip">@Model.SubjectCode</span>
-                <partial name="_ExamStatusBadge" model="s.Status" />
+                <partial name="_ExamStatus" model="s.Status" />
             </div>
             <h1 class="page-title">@s.Name</h1>
             <p class="page-sub">Môn học: <strong>@Model.SubjectCode — @Model.SubjectName</strong></p>
@@ -169,7 +169,7 @@
                 <dl class="meta">
                     <div>
                         <dt>Trạng thái</dt>
-                        <dd><partial name="_ExamStatusBadge" model="s.Status" /></dd>
+                        <dd><partial name="_ExamStatus" model="s.Status" /></dd>
                     </div>
                     <div>
                         <dt>Môn học</dt>

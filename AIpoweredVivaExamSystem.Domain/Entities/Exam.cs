@@ -82,4 +82,8 @@ public sealed class Exam : AuditableEntity, IAggregateRoot
             throw new DomainValidationException("Exam is already cancelled.");
         Status = ExamStatus.Cancelled;
     }
+
+    // A student's slot is the half-open interval [start, SlotEnd(start)).
+    public DateTimeOffset SlotEnd(DateTimeOffset start) => SlotEnd(start, DurationMinutes);
+    public static DateTimeOffset SlotEnd(DateTimeOffset start, int durationMinutes) => start.AddMinutes(durationMinutes);
 }

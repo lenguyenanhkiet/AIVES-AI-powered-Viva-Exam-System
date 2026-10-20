@@ -16,7 +16,7 @@ Kết luận: **phần foundation K1–K3 đã có implementation và test; toà
 - [x] K5 (foundation): regression nhóm 1 + foundation, kiểm tra migration/model, tài liệu và commit bàn giao.
 - [ ] K5 (nghiệm thu cuối): chạy checklist demo toàn luồng sau khi tích hợp đủ module và sửa lỗi liên module.
 
-Bằng chứng: `ExamFoundationTests.cs` kiểm tra quyền, query filters, unique constraints, rollback, concurrency và notification sau commit; `LoginMvcTests.cs` kiểm tra trang quản lý. `PendingExamNotifier` hiện chỉ ghi log. Các interface trong `ModuleContracts.cs` chưa có implementation nghiệp vụ; không thể đánh dấu demo/real-time hoàn thành.
+Bằng chứng: `ExamFoundationTests.cs` kiểm tra quyền, query filters, unique constraints, rollback, concurrency và notification sau commit; `LoginMvcTests.cs` kiểm tra trang quản lý. Notifier thật là `SignalRExamNotifier` của Dũng. Roster, lịch và session đã implement `ModuleContracts.cs`; `IExamService` và `IExamPoolService` chưa có nên chưa thể đánh dấu demo hoàn thành.
 
 ### Chi tiết bàn giao
 
@@ -42,7 +42,7 @@ SQL constraints enforce structural integrity, not all application business rules
 
 `Application/Exams/ModuleContracts.cs` defines `IExamService`, `IExamPoolService`, `IExamRosterService`, `IExamScheduleService`, `IVivaSessionService` and transport records. These interfaces deliberately have no fake implementation or DI registration: each owner implements them and supplies the registration to Kiet. `ExamConfiguration` includes SubjectId for create; update must reject subject changes. Versioned updates must compare ExpectedVersion with the entity's RowVersion.
 
-Implemented registrations: `ExamAccessGuard`, `ExamFoundationService`, `IExamAccessStore`, `IExamFoundationReader`, `IExamUnitOfWork`, `IExamNotifier` (temporary pending adapter). `ExamFoundationStore` implements read/access facts, not module mutations.
+Implemented registrations: `ExamAccessGuard`, `ExamFoundationService`, `IExamAccessStore`, `IExamFoundationReader`, `IExamUnitOfWork`, `IExamNotifier` (now `SignalRExamNotifier`, registered in `Program.cs`). `ExamFoundationStore` implements read/access facts, not module mutations.
 
 Guard rules:
 
@@ -61,7 +61,7 @@ Student session repositories must first call the own-enrollment guard, then make
 
 The unit of work does not implement selection locking, scheduling isolation or automatic retries. Dung/Duong must choose the required locks/isolation with Kiet and test their concurrent operations. Ordinary default isolation plus unique indexes prevents duplicate structural rows but does not on its own prevent every race.
 
-Notification failure after commit is logged and does not report a failed database write. Delivery is best-effort, not durable; clients must reread SQL. `PendingExamNotifier` only logs the pending integration. Dung replaces that registration with a Web SignalR adapter; no Hub/client or real-time delivery is claimed by this branch.
+Notification failure after commit is logged and does not report a failed database write. Delivery is best-effort, not durable; clients must reread SQL. `Program.cs` registers Dung's `SignalRExamNotifier`; hub `/hubs/exams`, group `exam:{id}`, event `ExamChanged`.
 
 ## Build, migration and isolated demo fixture
 
