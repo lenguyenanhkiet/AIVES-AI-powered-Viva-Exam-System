@@ -56,10 +56,8 @@ public sealed class VivaSessionStore(ApplicationDbContext db, IExamUnitOfWork uo
 
             var assigned = await db.LecturerSubjects.AnyAsync(a => a.LecturerId == exam.LecturerId && a.SubjectId == exam.SubjectId, token);
             if (!assigned) throw new DomainValidationException("The exam lecturer is no longer assigned to this subject.");
-            var pool = db.ExamQuestionPools.IgnoreQueryFilters().Where(p => p.ExamId == exam.Id).Select(p => p.QuestionId);
-            var questions = await db.Questions.FromSqlRaw("SELECT * FROM Questions WITH (HOLDLOCK)").IgnoreQueryFilters()
-                .Where(q => pool.Contains(q.Id) && q.SubjectId == exam.SubjectId && q.DeletedAt == null &&
-                    q.Status == QuestionStatus.Approved && q.CreatedBy == exam.LecturerId).ToArrayAsync(token);
+            var lockedQuestions = db.Questions.FromSqlRaw("SELECT * FROM Questions WITH (HOLDLOCK)").IgnoreQueryFilters();
+            var questions = await ExamPoolQueries.EligiblePooledQuestions(db, exam, lockedQuestions).ToArrayAsync(token);
             var ids = questions.Select(q => q.Id).ToArray();
             var rubrics = await db.Rubrics.FromSqlRaw("SELECT * FROM Rubrics WITH (HOLDLOCK)").IgnoreQueryFilters().Include(r => r.Criteria)
                 .Where(r => ids.Contains(r.QuestionId) && r.DeletedAt == null).ToArrayAsync(token);

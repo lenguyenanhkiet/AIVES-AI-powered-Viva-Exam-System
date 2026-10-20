@@ -12,9 +12,10 @@ Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Phân c
 | Foundation: schema, contracts, RBAC, transaction | `/ExamFoundation` | [Kiệt](docs/GROUP_2_KIET_HANDOFF.md) |
 | Roster sinh viên | `/ExamStudents` | [Long](docs/GROUP_2_LONG_HANDOFF.md) |
 | Xếp lịch, lịch cá nhân (sinh viên xem ca ở `/VivaSessions`) | `/Schedules`, `/VivaSessions` | [Dương](docs/GROUP_2_DUONG_HANDOFF.md) |
+| Pool câu hỏi, kiểm tra eligibility, thêm/bỏ theo lô | `/ExamPools` | Sơn |
 | Session, chọn câu, SignalR dashboard | `/VivaSessions`, `/ExamFoundation/Details/{id}` | [Dũng](docs/GROUP_2_DUNG_HANDOFF.md) |
 
-Còn thiếu Exam CRUD/lifecycle (Tuệ Minh) và question pool (Sơn), nên chưa demo được toàn luồng tạo kỳ thi → publish → thi.
+Còn thiếu Exam CRUD/lifecycle (Tuệ Minh), nên chưa demo được toàn luồng tạo kỳ thi → publish → thi.
 
 ---
 
