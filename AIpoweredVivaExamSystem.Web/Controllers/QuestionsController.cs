@@ -2,7 +2,6 @@ using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
 using AIpoweredVivaExamSystem.Application.Rubrics;
-using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
 using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;

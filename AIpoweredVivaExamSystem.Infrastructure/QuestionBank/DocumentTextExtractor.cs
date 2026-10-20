@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.QuestionBank;

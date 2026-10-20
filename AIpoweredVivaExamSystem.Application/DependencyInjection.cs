@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
 using AIpoweredVivaExamSystem.Application.Subjects;

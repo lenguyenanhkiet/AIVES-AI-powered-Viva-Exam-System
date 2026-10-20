@@ -1,4 +1,3 @@
-using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.ExamStudents;
 using AIpoweredVivaExamSystem.Domain.Entities;
