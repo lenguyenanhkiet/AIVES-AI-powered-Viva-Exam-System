@@ -98,6 +98,7 @@
                                     @(Model.IsPoolReady ? "✓ Đạt: " : "✗ Chưa đạt: ")
                                     Đã chọn @Model.Counts.PoolQuestions câu hỏi (Yêu cầu tối thiểu @Model.Details.MainQuestions câu Approved từ môn học).
                                 </span>
+                                <a class="stat-link" asp-controller="ExamPools" asp-action="Index" asp-route-id="@s.Id">@(Model.IsPoolReady ? "Xem pool câu hỏi" : "Chọn câu hỏi cho pool") →</a>
                             </div>
                         </li>
                         <li class="@(Model.IsRosterReady ? "" : "todo")">
@@ -107,6 +108,7 @@
                                     @(Model.IsRosterReady ? "✓ Đạt: " : "✗ Chưa đạt: ")
                                     Đã thêm @Model.Counts.Students sinh viên vào danh sách dự thi (Yêu cầu ít nhất 1 sinh viên).
                                 </span>
+                                <a class="stat-link" asp-controller="ExamStudents" asp-action="Roster" asp-route-id="@s.Id">@(Model.IsRosterReady ? "Xem danh sách thí sinh" : "Thêm thí sinh") →</a>
                             </div>
                         </li>
                         <li class="@(Model.IsScheduleReady ? "" : "todo")">
@@ -116,6 +118,7 @@
                                     @(Model.IsScheduleReady ? "✓ Đạt: " : "✗ Chưa đạt: ")
                                     Đã xếp lịch cho @Model.Counts.ScheduledStudents / @Model.Counts.Students thí sinh (Yêu cầu toàn bộ thí sinh có ca thi).
                                 </span>
+                                <a class="stat-link" asp-controller="Schedules" asp-action="Exam" asp-route-id="@s.Id">@(Model.IsScheduleReady ? "Xem lịch thi" : "Xếp lịch ca thi") →</a>
                             </div>
                         </li>
                     </ul>
@@ -138,25 +141,37 @@
                     <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
                         <div style="font-weight:600">Ngân hàng đề thi (Pool)</div>
                         <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Counts.PoolQuestions câu hỏi đã chọn</div>
-                        <span class="hint">Phụ trách: Sơn</span>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Sơn</span>
+                            <a class="btn btn-secondary btn-sm" asp-controller="ExamPools" asp-action="Index" asp-route-id="@s.Id">Quản lý pool →</a>
+                        </div>
                     </div>
 
                     <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
                         <div style="font-weight:600">Danh sách thí sinh (Roster)</div>
                         <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Counts.Students sinh viên đăng ký</div>
-                        <span class="hint">Phụ trách: Long</span>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Long</span>
+                            <a class="btn btn-secondary btn-sm" asp-controller="ExamStudents" asp-action="Roster" asp-route-id="@s.Id">Quản lý roster →</a>
+                        </div>
                     </div>
 
                     <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
                         <div style="font-weight:600">Lịch thi cá nhân (Schedule)</div>
                         <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Counts.ScheduledStudents ca thi đã gán</div>
-                        <span class="hint">Phụ trách: Dương</span>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Dương</span>
+                            <a class="btn btn-secondary btn-sm" asp-controller="Schedules" asp-action="Exam" asp-route-id="@s.Id">Xếp lịch →</a>
+                        </div>
                     </div>
 
                     <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
                         <div style="font-weight:600">Phiên vấn đáp &amp; Real-time</div>
                         <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Counts.Sessions ca thi đã mở</div>
-                        <span class="hint">Phụ trách: Dũng (SignalR)</span>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Dũng (SignalR)</span>
+                            <a class="btn btn-secondary btn-sm" asp-controller="ExamFoundation" asp-action="Details" asp-route-id="@s.Id">Theo dõi real-time →</a>
+                        </div>
                     </div>
                 </div>
             </div>
