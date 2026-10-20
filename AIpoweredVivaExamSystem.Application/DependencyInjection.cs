@@ -28,6 +28,8 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<Authentication.AccessService>();
             services.AddScoped<Exams.ExamAccessGuard>();
             services.AddScoped<Exams.ExamFoundationService>();
+            services.AddScoped<Exams.ExamPoolService>();
+            services.AddScoped<Exams.IExamPoolReader>(p => p.GetRequiredService<Exams.ExamPoolService>());
             services.AddScoped<ExamStudents.ExamRosterService>();
             services.AddScoped<Exams.IExamRosterService>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
             services.AddScoped<ExamStudents.IExamRosterReader>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
