@@ -14,4 +14,10 @@ public sealed class VivaSession : BaseEntity
         DomainRules.RequiredId(examStudentId, nameof(ExamStudentId));
         ExamStudentId = examStudentId; StartedAt = startedAt;
     }
+    public void Complete(DateTimeOffset completedAt)
+    {
+        if (CompletedAt.HasValue) return;
+        if (completedAt < StartedAt) throw new DomainValidationException("Completion cannot precede the start.");
+        CompletedAt = completedAt;
+    }
 }

@@ -177,7 +177,7 @@ Mỗi bước ghi người test, kết quả Pass/Fail và lỗi/commit liên qu
 | Tuệ Minh | TM1–TM4 | TODO | 15:30 | Chưa có |
 | Sơn | S1–S4 | TODO | 15:30 | Chưa có |
 | Long | L1–L4 | Đã có module + test; chờ demo tích hợp toàn nhóm | 15:30 | Xem [GROUP_2_LONG_HANDOFF.md](GROUP_2_LONG_HANDOFF.md), branch `feature/exam-roster` |
-| Dương | D1–D4 | TODO | 15:30 | Chưa có |
-| Dũng | DG1–DG5 | TODO | 15:30 | Chưa có |
+| Dương | D1–D4 | Đã có module + test; chờ demo tích hợp toàn nhóm | 15:30 | `/Schedules`, `/Schedules/My`; readiness `IScheduleReadiness` cho publish |
+| Dũng | DG1–DG5 | Module đã triển khai, 119 tests pass; chờ demo tích hợp | 19/10/2026 | [Bàn giao Dũng](GROUP_2_DUNG_HANDOFF.md) |
 
 **Definition of Done:** module có code + persistence + MVC theo phạm vi, quyền đúng, test rủi ro chính qua, tích hợp chạy được trong luồng demo, tài liệu cập nhật. Không đánh dấu xong chỉ vì đã có entity hoặc giao diện. Tổng thời gian là 48 giờ công của 6 người làm song song, không phải 48 giờ lịch.

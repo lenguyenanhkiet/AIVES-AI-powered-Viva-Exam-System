@@ -15,7 +15,10 @@ builder.Services.AddControllersWithViews(options => options.Filters.Add<NotFound
 builder.Services.AddAivesAuthentication();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamNotifier, AIpoweredVivaExamSystem.Web.Realtime.PendingExamNotifier>();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<AIpoweredVivaExamSystem.Web.Realtime.ExamConnections>();
+builder.Services.AddScoped<AIpoweredVivaExamSystem.Web.Realtime.ExamRealtimeAccess>();
+builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamNotifier, AIpoweredVivaExamSystem.Web.Realtime.SignalRExamNotifier>();
 builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
@@ -40,6 +43,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets().AllowAnonymous();
+app.MapHub<AIpoweredVivaExamSystem.Web.Realtime.ExamHub>("/hubs/exams", options => options.CloseOnAuthenticationExpiration = true);
 
 app.MapControllerRoute(
     name: "default",
