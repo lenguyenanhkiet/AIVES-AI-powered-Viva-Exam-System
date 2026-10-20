@@ -25,9 +25,7 @@ public sealed class VivaSessionStore(ApplicationDbContext db, IExamUnitOfWork uo
 
     // The exam row is locked first for every mutation. This serializes selection across students,
     // protects the previous-session preference and cooperates with lifecycle/schedule updates.
-    private Task<Exam> LockExamAsync(Guid id, CancellationToken ct) => db.Exams
-        .FromSqlInterpolated($"SELECT * FROM Exams WITH (UPDLOCK, HOLDLOCK) WHERE Id = {id}")
-        .IgnoreQueryFilters().SingleAsync(e => e.DeletedAt == null, ct);
+    private Task<Exam> LockExamAsync(Guid id, CancellationToken ct) => ExamLock.LockAsync(db, id, ct);
 
     private async Task<ExamStudent> LockEnrollmentAsync(Guid id, CancellationToken ct)
     {
@@ -52,8 +50,8 @@ public sealed class VivaSessionStore(ApplicationDbContext db, IExamUnitOfWork uo
             if (existing is not null) { sessionId = existing.Id; return; }
             var now = DateTimeOffset.UtcNow;
             if (exam.Status != ExamStatus.Ongoing || entry.ScheduledAt is not { } start ||
-                start < exam.StartAt || start.AddMinutes(exam.DurationMinutes) > exam.EndAt ||
-                now < start || now >= start.AddMinutes(exam.DurationMinutes) || now >= exam.EndAt)
+                start < exam.StartAt || exam.SlotEnd(start) > exam.EndAt ||
+                now < start || now >= exam.SlotEnd(start) || now >= exam.EndAt)
                 throw new DomainValidationException("The exam must be ongoing and your scheduled slot must be open.");
 
             var assigned = await db.LecturerSubjects.AnyAsync(a => a.LecturerId == exam.LecturerId && a.SubjectId == exam.SubjectId, token);

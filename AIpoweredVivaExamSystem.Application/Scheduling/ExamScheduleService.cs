@@ -7,12 +7,12 @@ using AIpoweredVivaExamSystem.Domain.Entities;
 namespace AIpoweredVivaExamSystem.Application.Scheduling;
 
 public sealed class ExamScheduleService(IExamScheduleStore store, ExamAccessGuard guard,
-    IExamUnitOfWork unitOfWork, ICurrentUser actor) : IExamScheduleService, IScheduleReader, IScheduleReadiness
+    IExamUnitOfWork unitOfWork, ICurrentUser actor, IExamFoundationReader foundation) : IExamScheduleService, IScheduleReader, IScheduleReadiness
 {
     public Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct)
     {
         guard.RequireManager();
-        return store.ListManagedAsync(ct);
+        return foundation.ListManagedAsync(ct);
     }
 
     public async Task<ExamSchedule> GetAsync(Guid examId, CancellationToken ct)
@@ -67,7 +67,7 @@ public sealed class ExamScheduleService(IExamScheduleStore store, ExamAccessGuar
         var exam = await FindAsync(examId, ct);
         var roster = await store.ListRosterAsync(examId, ct);
         return roster.Count > 0 && roster.All(x => x.ScheduledAt is { } start &&
-            start >= exam.StartAt && start <= exam.EndAt.AddMinutes(-exam.DurationMinutes));
+            start >= exam.StartAt && exam.SlotEnd(start) <= exam.EndAt);
     }
 
     private async Task<Exam> FindAsync(Guid examId, CancellationToken ct) =>

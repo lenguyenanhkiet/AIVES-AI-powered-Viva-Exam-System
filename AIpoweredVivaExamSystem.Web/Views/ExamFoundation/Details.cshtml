@@ -2,9 +2,9 @@
 @{ ViewData["Title"] = Model.Name; }
 <div class="container stack" data-exam-realtime data-exam-id="@Model.Id" data-status-url="@Url.Action("Status", new { id = Model.Id })" data-hub-url="@Url.Content("~/hubs/exams")">
     <h1>@Model.Name</h1>
-    <p data-connection-state>Connecting…</p>
+    <p data-connection-state>Đang kết nối…</p>
     <div data-exam-status aria-live="polite"></div>
-    <table class="table"><thead><tr><th>Student</th><th>Slot (Vietnam)</th><th>Session</th></tr></thead><tbody data-exam-roster></tbody></table>
+    <table class="table"><thead><tr><th>Sinh viên</th><th>Ca thi (giờ Việt Nam)</th><th>Phiên thi</th></tr></thead><tbody data-exam-roster></tbody></table>
 </div>
 @section Scripts {
     <script src="~/lib/signalr/signalr.min.js"></script>

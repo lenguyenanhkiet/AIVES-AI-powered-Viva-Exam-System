@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Exams;
+using AIpoweredVivaExamSystem.Web.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,15 @@ public sealed class ExamFoundationController(ExamFoundationService foundation, E
     public async Task<IActionResult> Status(Guid id, CancellationToken ct)
     {
         await guard.CanManageExamAsync(id, ct);
-        return Json(await live.ReadAsync(id, ct));
+        var status = await live.ReadAsync(id, ct);
+        return Json(new
+        {
+            Status = status.Status.ToLabel(), status.Counts, status.CompletedSessions,
+            Roster = status.Roster.Select(row => new
+            {
+                row.EnrollmentId, row.Name, row.ScheduledAt,
+                SessionStatus = row.SessionStatus.ToLabel()
+            })
+        });
     }
 }

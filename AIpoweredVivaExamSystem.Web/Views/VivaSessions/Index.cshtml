@@ -1,19 +1,61 @@
 @model IReadOnlyList<AIpoweredVivaExamSystem.Application.VivaSessions.MyVivaExam>
-@{ ViewData["Title"] = "My viva session"; }
-<div class="container stack">
-    <h1>My viva session</h1>
-    <p>@TempData["SessionMessage"]</p>
-    <div asp-validation-summary="All"></div>
-    @foreach (var exam in Model)
-    {
-        <div class="card">
-            <h2>@exam.Name</h2><p>@exam.Status</p>
-            <p>Slot: @(exam.ScheduledAt?.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm") ?? "Not scheduled") (Vietnam)</p>
-            <form asp-action="Open" method="post">
-                <input name="enrollmentId" type="hidden" value="@exam.EnrollmentId" />
-                <button type="submit" class="btn btn-primary">Open / reopen session</button>
-            </form>
+@{ ViewData["Title"] = "Lịch thi của tôi"; }
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Lịch thi của tôi</h1>
+            <p class="page-sub">Các kỳ thi vấn đáp bạn tham gia. Giờ Việt Nam (UTC+7).</p>
         </div>
+    </div>
+
+    @if (TempData["SessionMessage"] is string message)
+    {
+        <div class="alert alert-info" role="status">@Icons.Get("check") <span>@message</span></div>
     }
-    @if (Model.Count == 0) { <p>You are not enrolled in an exam.</p> }
+    <div asp-validation-summary="All" class="alert" role="alert"></div>
+
+    <div class="card">
+        @if (Model.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("calendar", 20)</div>
+                <div class="empty-title">Bạn chưa có lịch thi</div>
+                <p class="empty-text">Kỳ thi sẽ hiện ở đây khi giảng viên công bố kỳ thi có bạn.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Kỳ thi</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu ca</th>
+                            <th>Kết thúc ca</th>
+                            <th class="actions"><span class="sr-only">Thao tác</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model)
+                        {
+                            <tr>
+                                <td class="cell-title">@exam.Name</td>
+                                <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                <td>@(exam.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td>@(exam.EndAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td class="actions">
+                                    <form asp-action="Open" method="post">
+                                        <input name="enrollmentId" type="hidden" value="@exam.EnrollmentId" />
+                                        <button type="submit" class="btn btn-primary btn-sm">Mở phiên thi</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
 </div>

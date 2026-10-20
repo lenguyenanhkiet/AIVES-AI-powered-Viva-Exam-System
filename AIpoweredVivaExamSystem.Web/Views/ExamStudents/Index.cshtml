@@ -14,7 +14,7 @@
             @foreach (var exam in Model.Items)
             {
                 <tr>
-                    <td>@exam.Name</td><td>@exam.Status</td>
+                    <td>@exam.Name</td><td><partial name="_ExamStatus" model="exam.Status" /></td>
                     <td>@exam.StartAt.ToLocalText()</td><td>@exam.EndAt.ToLocalText()</td>
                     <td><a class="btn btn-secondary" asp-action="Roster" asp-route-id="@exam.Id">Danh sách sinh viên</a></td>
                 </tr>

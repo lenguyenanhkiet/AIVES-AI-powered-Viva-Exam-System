@@ -5,7 +5,7 @@
     <div class="page-head">
         <div>
             <h1 class="page-title">@Model.Exam.Name</h1>
-            <p class="page-sub">Trạng thái: @Model.Exam.Status · @Model.Students.Count sinh viên · Giờ Việt Nam (UTC+7)</p>
+            <p class="page-sub">Trạng thái: @Model.Exam.Status.ToLabel() · @Model.Students.Count sinh viên · Giờ Việt Nam (UTC+7)</p>
         </div>
     </div>
     <div asp-validation-summary="All" class="alert" role="alert"></div>

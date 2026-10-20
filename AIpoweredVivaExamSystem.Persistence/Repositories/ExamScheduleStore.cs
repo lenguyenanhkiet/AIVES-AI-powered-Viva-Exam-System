@@ -10,11 +10,6 @@ namespace AIpoweredVivaExamSystem.Persistence.Repositories;
 
 public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleStore
 {
-    public async Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct) =>
-        await db.Exams.AsNoTracking().Where(x => x.DeletedAt == null)
-            .OrderByDescending(x => x.StartAt).ThenBy(x => x.Id)
-            .Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt)).ToArrayAsync(ct);
-
     public Task<Exam?> FindExamAsync(Guid examId, CancellationToken ct) =>
         db.Exams.AsNoTracking().SingleOrDefaultAsync(x => x.Id == examId && x.DeletedAt == null, ct);
 
@@ -47,16 +42,7 @@ public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleSt
         { throw new ResourceConflictException("Hệ thống đang xếp lịch. Vui lòng thử lại."); }
     }
 
-    public async Task<Exam> LockExamAsync(Guid examId, CancellationToken ct)
-    {
-        RequireTransaction();
-        var exam = await db.Exams.FromSqlInterpolated(
-                $"SELECT * FROM [Exams] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {examId}")
-            .SingleOrDefaultAsync(x => x.DeletedAt == null, ct)
-            ?? throw new ResourceNotFoundException("Exam not found.");
-        await db.Entry(exam).ReloadAsync(ct);
-        return exam;
-    }
+    public Task<Exam> LockExamAsync(Guid examId, CancellationToken ct) => ExamLock.LockAsync(db, examId, ct);
 
     public async Task ValidateAndStageAsync(Exam exam, IReadOnlyList<ScheduleSlot> slots, CancellationToken ct)
     {
@@ -66,15 +52,12 @@ public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleSt
 
         // Guard has authorized this mutation. Conflict detection must include exams hidden by request filters.
         // Only existence is read across owners; no other exam/student data is returned to the caller.
-        var otherSlots = from entry in db.ExamStudents.IgnoreQueryFilters().AsNoTracking()
-                         join other in db.Exams.IgnoreQueryFilters().AsNoTracking() on entry.ExamId equals other.Id
-                         where other.Id != exam.Id && other.DeletedAt == null &&
-                               other.Status != ExamStatus.Cancelled && entry.ScheduledAt != null
-                         select new { entry.StudentId, other.LecturerId, Start = entry.ScheduledAt!.Value, other.DurationMinutes };
+        var otherSlots = ExamSlotQueries.All(db).Where(x => x.Exam.Id != exam.Id &&
+            x.Exam.Status != ExamStatus.Cancelled && x.Enrollment.ScheduledAt != null);
         var firstStart = slots[0].StartAt;
         var lastEnd = slots[^1].EndAt;
-        if (await otherSlots.AnyAsync(x => x.LecturerId == exam.LecturerId &&
-                x.Start < lastEnd && x.Start.AddMinutes(x.DurationMinutes) > firstStart, ct))
+        if (await otherSlots.AnyAsync(x => x.Exam.LecturerId == exam.LecturerId &&
+                x.Enrollment.ScheduledAt < lastEnd && x.EndAt > firstStart, ct))
             throw new ResourceConflictException("Giảng viên có ca thi trùng giờ ở kỳ thi khác.");
 
         var roster = await db.ExamStudents.Where(x => x.ExamId == exam.Id).ToDictionaryAsync(x => x.Id, ct);
@@ -82,8 +65,8 @@ public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleSt
         {
             var entry = roster[slot.EnrollmentId];
             var studentId = entry.StudentId;
-            if (await otherSlots.AnyAsync(x => x.StudentId == studentId &&
-                    x.Start < slot.EndAt && x.Start.AddMinutes(x.DurationMinutes) > slot.StartAt, ct))
+            if (await otherSlots.AnyAsync(x => x.Enrollment.StudentId == studentId &&
+                    x.Enrollment.ScheduledAt < slot.EndAt && x.EndAt > slot.StartAt, ct))
                 throw new ResourceConflictException("Sinh viên có ca thi trùng giờ ở kỳ thi khác.");
         }
         // Validate the whole batch before staging any change. Reload handles a reused scoped DbContext.
@@ -96,16 +79,10 @@ public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleSt
     }
 
     public async Task<IReadOnlyList<PersonalSchedule>> MyScheduleAsync(Guid studentId, CancellationToken ct) =>
-        // The service requires the authenticated actor. Explicit own-enrollment scope is mandatory here:
-        // students intentionally cannot read Exams through its manager-only query filter.
-        await (from entry in db.ExamStudents.IgnoreQueryFilters().AsNoTracking()
-               join exam in db.Exams.IgnoreQueryFilters().AsNoTracking() on entry.ExamId equals exam.Id
-               where entry.StudentId == studentId && entry.ScheduledAt != null &&
-                     exam.DeletedAt == null && (exam.Status == ExamStatus.Published ||
-                         exam.Status == ExamStatus.Ongoing || exam.Status == ExamStatus.Completed)
-               orderby entry.ScheduledAt, entry.Id
-               select new PersonalSchedule(entry.Id, exam.Name, exam.Status, entry.ScheduledAt!.Value,
-                   entry.ScheduledAt!.Value.AddMinutes(exam.DurationMinutes))).ToArrayAsync(ct);
+        await ExamSlotQueries.ForStudent(db, studentId).Where(x => x.Enrollment.ScheduledAt != null)
+            .OrderBy(x => x.Enrollment.ScheduledAt).ThenBy(x => x.Enrollment.Id)
+            .Select(x => new PersonalSchedule(x.Enrollment.Id, x.Exam.Name, x.Exam.Status,
+                x.Enrollment.ScheduledAt!.Value, x.EndAt!.Value)).ToArrayAsync(ct);
 
     private void RequireTransaction()
     {

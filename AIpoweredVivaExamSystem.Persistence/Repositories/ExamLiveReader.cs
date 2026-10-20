@@ -16,10 +16,10 @@ public sealed class ExamLiveReader(ApplicationDbContext db, IExamFoundationReade
                             join u in db.Users on r.StudentId equals u.Id
                             where r.ExamId == examId
                             select new LiveStudent(r.Id, u.FullName, r.ScheduledAt,
-                                db.VivaSessions.Any(s => s.ExamStudentId == r.Id && s.CompletedAt != null) ? "Completed" :
-                                db.VivaSessions.Any(s => s.ExamStudentId == r.Id) ? "In progress" : "Not started"))
+                                db.VivaSessions.Any(s => s.ExamStudentId == r.Id && s.CompletedAt != null) ? SessionState.Completed :
+                                db.VivaSessions.Any(s => s.ExamStudentId == r.Id) ? SessionState.InProgress : SessionState.NotStarted))
                             .ToArrayAsync(ct);
-        return new(exam.Status.ToString(), await foundation.CountsAsync(examId, ct),
-            roster.Count(r => r.SessionStatus == "Completed"), roster);
+        return new(exam.Status, await foundation.CountsAsync(examId, ct),
+            roster.Count(r => r.SessionStatus == SessionState.Completed), roster);
     }
 }

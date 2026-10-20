@@ -70,7 +70,8 @@ public class ExamScheduleTests(SqlServerFixture fixture)
     private static Actor Owner(ExamDemo demo) => new(demo.Lecturer.Id, IsLecturer: true);
     private static ExamScheduleService Service(ApplicationDbContext db, ICurrentUser actor, Recorder? notifier = null) =>
         new(new ExamScheduleStore(db), new ExamAccessGuard(new ExamFoundationStore(db), actor),
-            new ExamUnitOfWork(db, notifier ?? new Recorder(), NullLogger<ExamUnitOfWork>.Instance), actor);
+            new ExamUnitOfWork(db, notifier ?? new Recorder(), NullLogger<ExamUnitOfWork>.Instance), actor,
+            new ExamFoundationStore(db));
     private async Task<ExamDemo> SeedAsync(int students = 1)
     {
         await using var db = fixture.CreateContext();
@@ -363,6 +364,12 @@ public class ExamScheduleTests(SqlServerFixture fixture)
         Assert.Equal(mine.Exam.StartAt, slot.StartAt);
         Assert.Equal(mine.Exam.StartAt.AddMinutes(mine.Exam.DurationMinutes), slot.EndAt);
         Assert.Equal(mine.Exam.Name, Assert.Single(await service.MyScheduleDetailsAsync(default)).ExamName);
+        var vivaExams = await new MyVivaSessionsReader(db, actor).ListAsync(default);
+        Assert.Equal(2, vivaExams.Count);
+        Assert.Equal(slot.EndAt, vivaExams.Single(x => x.EnrollmentId == mine.Enrollment.Id).EndAt);
+        var unscheduledExam = Assert.Single(vivaExams, x => x.EnrollmentId != mine.Enrollment.Id);
+        Assert.Null(unscheduledExam.ScheduledAt);
+        Assert.Null(unscheduledExam.EndAt);
     }
 
     [Fact]
