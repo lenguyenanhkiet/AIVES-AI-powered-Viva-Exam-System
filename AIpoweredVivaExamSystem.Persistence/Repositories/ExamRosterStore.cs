@@ -9,6 +9,19 @@ namespace AIpoweredVivaExamSystem.Persistence.Repositories;
 
 public sealed class ExamRosterStore(ApplicationDbContext db) : IExamRosterStore
 {
+    public async Task<RosterExamPage> ListManagedAsync(int page, int pageSize, CancellationToken ct)
+    {
+        // Keep request-aware filters: pagination must never reveal another lecturer's exams.
+        var query = db.Exams.AsNoTracking().Where(x => x.DeletedAt == null);
+        var total = await query.CountAsync(ct);
+        var lastPage = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+        page = Math.Clamp(page, 1, lastPage);
+        var items = await query.OrderByDescending(x => x.StartAt).ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt)).ToArrayAsync(ct);
+        return new(items, page, pageSize, total);
+    }
+
     public Task<ExamSummary?> FindExamSummaryAsync(Guid examId, CancellationToken ct) =>
         db.Exams.AsNoTracking().Where(x => x.Id == examId && x.DeletedAt == null)
             .Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt))

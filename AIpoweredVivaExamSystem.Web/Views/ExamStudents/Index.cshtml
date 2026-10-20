@@ -1,4 +1,4 @@
-@model IReadOnlyList<AIpoweredVivaExamSystem.Application.Exams.ExamSummary>
+@model AIpoweredVivaExamSystem.Application.ExamStudents.RosterExamPage
 @{ ViewData["Title"] = "Danh sách sinh viên kỳ thi"; }
 <div class="container stack">
     <div class="page-head">
@@ -11,7 +11,7 @@
         <table class="table">
             <thead><tr><th>Kỳ thi</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th><th></th></tr></thead>
             <tbody>
-            @foreach (var exam in Model)
+            @foreach (var exam in Model.Items)
             {
                 <tr>
                     <td>@exam.Name</td><td>@exam.Status</td>
@@ -21,7 +21,19 @@
             }
             </tbody>
         </table>
-        @if (Model.Count == 0)
+        @if (Model.TotalCount == 0)
         { <p>Chưa có kỳ thi thuộc quyền quản lý của bạn. Tạo kỳ thi trước khi thêm sinh viên.</p> }
     </div>
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="pager" aria-label="Phân trang kỳ thi">
+            <span>Trang @Model.Page / @Model.TotalPages · @Model.TotalCount kỳ thi</span>
+            <div class="pager-nav">
+                @if (Model.Page > 1)
+                { <a class="btn btn-secondary" rel="prev" asp-action="Index" asp-route-page="@(Model.Page - 1)">Trước</a> }
+                @if (Model.Page < Model.TotalPages)
+                { <a class="btn btn-secondary" rel="next" asp-action="Index" asp-route-page="@(Model.Page + 1)">Sau</a> }
+            </div>
+        </nav>
+    }
 </div>

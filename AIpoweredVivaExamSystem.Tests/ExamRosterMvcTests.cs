@@ -122,6 +122,31 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task ManagerCanNavigateToOlderExamsThroughRosterPagination()
+    {
+        var d = await SeedAsync();
+        await using (var db = fixture.CreateContext())
+        {
+            db.AddRange(Enumerable.Range(1, 100).Select(i => new Exam(d.Subject.Id, d.Lecturer.Id,
+                "Later exam " + i, d.Exam.StartAt.AddDays(i), d.Exam.EndAt.AddDays(i), 15, 2, 1)));
+            await db.SaveChangesAsync();
+        }
+        await using var factory = Factory();
+        using var client = Client(factory);
+        await LoginAsync(client, d.Lecturer.Email);
+        var html = await client.GetStringAsync("/ExamStudents");
+        for (var page = 1; page <= 6 && !html.Contains(d.Exam.Id.ToString()); page++)
+        {
+            var next = Regex.Match(html, "<a\\b[^>]*rel=\"next\"[^>]*>").Value;
+            Assert.NotEmpty(next);
+            var href = WebUtility.HtmlDecode(Regex.Match(next, "href=\"([^\"]+)\"").Groups[1].Value);
+            Assert.NotEmpty(href);
+            html = await client.GetStringAsync(href);
+        }
+        Assert.Contains(d.Exam.Id.ToString(), html);
+    }
+
+    [Fact]
     public async Task DirectRosterLinkWorksForAnExamOutsideTheFirstHundredRows()
     {
         var d = await SeedAsync();

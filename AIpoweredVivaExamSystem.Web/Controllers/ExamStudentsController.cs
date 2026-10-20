@@ -10,10 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Controllers;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class ExamStudentsController(IExamRosterService roster, IExamRosterReader details, ExamFoundationService foundation) : Controller
+public sealed class ExamStudentsController(IExamRosterService roster, IExamRosterReader details) : Controller
 {
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken ct) => View(await foundation.ListAsync(ct));
+    public async Task<IActionResult> Index(int page, CancellationToken ct) =>
+        View(await details.ListManagedAsync(ModelState.IsValid ? page : 1, ct));
 
     [HttpGet]
     public async Task<IActionResult> Roster(Guid id, CancellationToken ct) => View(await PageAsync(id, new(), ct));

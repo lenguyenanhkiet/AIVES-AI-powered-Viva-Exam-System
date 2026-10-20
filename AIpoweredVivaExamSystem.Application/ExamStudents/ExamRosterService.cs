@@ -10,6 +10,12 @@ namespace AIpoweredVivaExamSystem.Application.ExamStudents;
 /// <summary>Manages existing student enrollments; scheduling remains the scheduling module's responsibility.</summary>
 public sealed class ExamRosterService(IExamRosterStore store, ExamAccessGuard guard, IExamUnitOfWork unitOfWork) : IExamRosterService, IExamRosterReader
 {
+    public Task<RosterExamPage> ListManagedAsync(int page, CancellationToken ct)
+    {
+        guard.RequireManager();
+        return store.ListManagedAsync(page, 20, ct);
+    }
+
     public async Task<ExamSummary> GetExamAsync(Guid examId, CancellationToken ct)
     {
         await guard.CanManageExamAsync(examId, ct);
