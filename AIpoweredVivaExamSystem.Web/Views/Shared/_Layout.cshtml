@@ -45,6 +45,8 @@
                 { <a class="nav-item @Active("Schedules")" asp-controller="Schedules" asp-action="My">@Icons.Get("calendar") Lịch thi của tôi</a> }
                 @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
                 { <a class="nav-item @Active("ExamFoundation")" asp-controller="ExamFoundation" asp-action="Index">@Icons.Get("calendar") Nền tảng kỳ thi</a> }
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                { <a class="nav-item @Active("ExamStudents")" asp-controller="ExamStudents" asp-action="Index">Sinh viên kỳ thi</a> }
             </nav>
 
             <div class="sidebar-foot">

@@ -127,3 +127,11 @@ Nếu port 1433 hoặc 8081 bị trùng, đổi port host trong một file `dock
 1. Không commit `.env` và không ghi mật khẩu thật vào source code.
 2. Không sửa migration đã merge và dùng chung.
 3. Trong container dùng `Server=sqlserver,1433`; từ máy local (SSMS, `dotnet ef`) dùng `localhost,1433`.
+
+## 8. Roster sinh viên kỳ thi — nhóm 2
+
+Menu **Sinh viên kỳ thi** (`/ExamStudents`) dành cho lecturer/admin: chọn kỳ thi,
+thêm STUDENT active bằng email có sẵn, xem tên/email/giờ ca Việt Nam và bỏ sinh viên.
+Chỉ thay đổi roster khi Draft; không bỏ người đã có session. Module không tạo
+tài khoản hoặc import CSV/XLSX. Xem [bàn giao roster của Long](docs/GROUP_2_LONG_HANDOFF.md)
+để biết contracts, kiểm thử và các bước tích hợp lịch/publish/SignalR.
