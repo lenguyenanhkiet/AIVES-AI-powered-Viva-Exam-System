@@ -17,13 +17,16 @@
             </div>
             <h1 class="page-title">@s.Name</h1>
         </div>
-        <div class="head-actions">
-            <a class="btn btn-secondary" asp-route-id="@s.Id" asp-page="/Subjects/Edit">@Icons.Get("edit") Sửa</a>
-            <a class="btn btn-secondary" asp-route-id="@s.Id"
-               data-confirm-action="@Url.Page("/Subjects/Delete", new { id = s.Id })"
-               data-confirm-title="Xóa môn @s.Code?"
-               data-confirm-text="Môn học sẽ bị ẩn khỏi hệ thống. Không thể xóa nếu môn vẫn còn chủ đề hoặc câu hỏi." asp-page="/Subjects/Delete">@Icons.Get("trash") Xóa</a>
-        </div>
+        @if (User.IsInRole("ADMIN"))
+        {
+            <div class="head-actions">
+                <a class="btn btn-secondary" asp-route-id="@s.Id" asp-page="/Subjects/Edit">@Icons.Get("edit") Sửa</a>
+                <a class="btn btn-secondary" asp-route-id="@s.Id"
+                   data-confirm-action="@Url.Page("/Subjects/Delete", new { id = s.Id })"
+                   data-confirm-title="Xóa môn @s.Code?"
+                   data-confirm-text="Môn học sẽ bị ẩn khỏi hệ thống. Không thể xóa nếu môn vẫn còn chủ đề hoặc câu hỏi." asp-page="/Subjects/Delete">@Icons.Get("trash") Xóa</a>
+            </div>
+        }
     </div>
 
     <div class="detail-grid">

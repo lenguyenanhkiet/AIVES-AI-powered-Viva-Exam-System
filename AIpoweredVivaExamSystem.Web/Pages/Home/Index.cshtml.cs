@@ -18,12 +18,22 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Home;
 
 
-public sealed class IndexModel(ISubjectService subjects, ITopicService topics, IQuestionService questions, IRubricService rubrics) : PageModel
+public sealed class IndexModel(ISubjectService subjects, ITopicService topics, IQuestionService questions, IRubricService rubrics,
+    AIpoweredVivaExamSystem.Application.VivaSessions.IMyVivaSessionsReader myExams) : PageModel
 {
     public DashboardViewModel Vm { get; private set; } = default!;
 
+    // Students get their own overview: the question bank is staff-only.
+    public IReadOnlyList<AIpoweredVivaExamSystem.Application.VivaSessions.MyVivaExam>? MyExams { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        if (User.IsInRole("STUDENT"))
+        {
+            MyExams = await myExams.ListAsync(cancellationToken);
+            return Page();
+        }
+
         var recent = await subjects.ListAsync(new SubjectListQuery { PageSize = 5 }, cancellationToken);
         var topicPage = await topics.ListAsync(new TopicListQuery { PageSize = 1 }, cancellationToken);
         var questionPage = await questions.ListAsync(new QuestionListQuery { PageSize = 1 }, cancellationToken);

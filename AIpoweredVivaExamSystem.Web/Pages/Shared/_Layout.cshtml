@@ -3,6 +3,8 @@
 @{
     var module = ViewContext.RouteData.Values["page"]?.ToString()?.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
     string Active(string name) => string.Equals(module, name, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    string? Current(string name) => Active(name) == "" ? null : "page";
+    var isStaff = User.IsInRole("ADMIN") || User.IsInRole("LECTURER");
 }
 <head>
     <meta charset="utf-8" />
@@ -23,32 +25,34 @@
                 </span>
             </a>
 
-            <nav class="nav">
-                <a class="nav-item @Active("Home")" asp-page="/Home/Index">@Icons.Get("home") Tổng quan</a>
+            <nav class="nav" aria-label="Điều hướng chính">
+                <a class="nav-item @Active("Home")" aria-current="@Current("Home")" asp-page="/Home/Index">@Icons.Get("home") Tổng quan</a>
 
-                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                @if (isStaff)
                 {
-                <div class="nav-label">Ngân hàng câu hỏi</div>
-                <a class="nav-item @Active("Subjects")" asp-page="/Subjects/Index">@Icons.Get("book") Môn học</a>
-                <a class="nav-item @Active("Topics")" asp-page="/Topics/Index">@Icons.Get("layers") Chủ đề</a>
-                <a class="nav-item @(Active("Questions") + Active("Rubrics"))" asp-page="/Questions/Index">@Icons.Get("help") Câu hỏi &amp; rubric</a>
-                <a class="nav-item @Active("QuestionImports")" asp-page="/QuestionImports/Index">Import câu hỏi</a>
-                <a class="nav-item @Active("Documents")" asp-page="/Documents/Index">Tài liệu &amp; sinh câu hỏi AI</a>
+                    <div class="nav-label">Ngân hàng câu hỏi</div>
+                    <a class="nav-item @Active("Subjects")" aria-current="@Current("Subjects")" asp-page="/Subjects/Index">@Icons.Get("book") Môn học</a>
+                    <a class="nav-item @Active("Topics")" aria-current="@Current("Topics")" asp-page="/Topics/Index">@Icons.Get("layers") Chủ đề</a>
+                    <a class="nav-item @(Active("Questions") + Active("Rubrics"))" aria-current="@(Current("Questions") ?? Current("Rubrics"))" asp-page="/Questions/Index">@Icons.Get("help") Câu hỏi &amp; rubric</a>
+                    <a class="nav-item @Active("QuestionImports")" aria-current="@Current("QuestionImports")" asp-page="/QuestionImports/Index">@Icons.Get("upload") Import câu hỏi</a>
+                    <a class="nav-item @Active("Documents")" aria-current="@Current("Documents")" asp-page="/Documents/Index">@Icons.Get("file-text") Tài liệu &amp; sinh câu hỏi AI</a>
+
+                    <div class="nav-label">Thi vấn đáp</div>
+                    <a class="nav-item @Active("Exams")" aria-current="@Current("Exams")" asp-page="/Exams/Index">@Icons.Get("calendar") Quản lý kỳ thi</a>
+                    <a class="nav-item @Active("Schedules")" aria-current="@Current("Schedules")" asp-page="/Schedules/Index">@Icons.Get("clock") Lịch thi</a>
+                    <a class="nav-item @Active("ExamFoundation")" aria-current="@Current("ExamFoundation")" asp-page="/ExamFoundation/Index">@Icons.Get("activity") Nền tảng kỳ thi</a>
+                    <a class="nav-item @Active("ExamStudents")" aria-current="@Current("ExamStudents")" asp-page="/ExamStudents/Index">@Icons.Get("users") Sinh viên kỳ thi</a>
                 }
                 @if (User.IsInRole("ADMIN"))
-                { <a class="nav-item @Active("Access")" asp-page="/Access/Index">Phân quyền &amp; phân môn</a> }
-
-                <div class="nav-label">Thi vấn đáp</div>
-                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
-                { <a class="nav-item @Active("Exams")" asp-page="/Exams/Index">@Icons.Get("calendar") Quản lý kỳ thi</a> }
-                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
-                { <a class="nav-item @Active("Schedules")" asp-page="/Schedules/Index">@Icons.Get("calendar") Lịch thi</a> }
-                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
-                { <a class="nav-item @Active("ExamFoundation")" asp-page="/ExamFoundation/Index">@Icons.Get("calendar") Nền tảng kỳ thi</a> }
-                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
-                { <a class="nav-item @Active("ExamStudents")" asp-page="/ExamStudents/Index">Sinh viên kỳ thi</a> }
+                {
+                    <div class="nav-label">Quản trị</div>
+                    <a class="nav-item @Active("Access")" aria-current="@Current("Access")" asp-page="/Access/Index">@Icons.Get("shield") Phân quyền &amp; phân môn</a>
+                }
                 @if (User.IsInRole("STUDENT"))
-                { <a class="nav-item @Active("VivaSessions")" asp-page="/VivaSessions/Index">@Icons.Get("calendar") Lịch thi của tôi</a> }
+                {
+                    <div class="nav-label">Thi vấn đáp</div>
+                    <a class="nav-item @Active("VivaSessions")" aria-current="@Current("VivaSessions")" asp-page="/VivaSessions/Index">@Icons.Get("calendar") Lịch thi của tôi</a>
+                }
             </nav>
 
             <div class="sidebar-foot">

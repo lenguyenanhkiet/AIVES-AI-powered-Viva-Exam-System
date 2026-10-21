@@ -46,7 +46,7 @@ public sealed class EditModel(IExamService examService, ISubjectService subjectS
                     : Convert.FromBase64String(Input.RowVersionBase64);
 
                 await examService.UpdateAsync(id, new ExamConfiguration(
-                    Input.SubjectId,
+                    Input.SubjectId!.Value,
                     Input.Name,
                     new DateTimeOffset(Input.StartAt, TimeSpan.FromHours(7)),
                     new DateTimeOffset(Input.EndAt, TimeSpan.FromHours(7)),
