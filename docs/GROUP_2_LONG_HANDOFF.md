@@ -25,7 +25,7 @@ còn chờ Exam CRUD/lifecycle của Tuệ Minh.
 - `IExamRosterReader` thuộc `Application/ExamStudents`: metadata có guard và danh
   sách kỳ thi phân trang 20 dòng. Trang chi tiết truy vấn theo ID trực tiếp.
 - `ExamRosterService` kiểm tra `ExamAccessGuard` ở mọi entry point; repository giữ
-  query filters của request. Controller không truy vấn DbContext.
+  query filters của request. PageModel không truy vấn DbContext.
 - `IExamRosterStore` chỉ stage add/remove. `IExamUnitOfWork.ExecuteAsync` sở hữu
   SaveChanges/transaction và gọi `NotifyChangedAsync(examId)` sau commit.
 - Duplicate trả `ResourceConflictException`, không tạo thêm dòng. Email sai,
@@ -63,7 +63,7 @@ Trên `main` notifier là `SignalRExamNotifier` của Dũng.
 - `RosterEntry` thêm Email tương thích constructor cũ.
 - Không đổi entity/schema/DbContext/migration/snapshot/Program.cs hoặc phiên bản .NET.
 
-Các comment trong service/store/controller giải thích lý do kiểm tra quyền,
+Các comment trong service/store/PageModel giải thích lý do kiểm tra quyền,
 khóa SQL, cập nhật version và ranh giới commit để thành viên khác đọc được.
 
 ## Kiểm thử và cách chạy

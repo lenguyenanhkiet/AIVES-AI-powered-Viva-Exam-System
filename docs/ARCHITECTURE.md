@@ -1,13 +1,14 @@
-# MVC and three logical layers
+# Razor Pages and three logical layers
 
-The application uses ASP.NET Core MVC with Razor Views. It does not use Razor Pages routing or `PageModel`.
+The presentation layer is ASP.NET Core Razor Pages. There are no MVC controllers: each URL is a page `Pages/<Module>/<Name>.cshtml` with its `PageModel` in `<Name>.cshtml.cs`.
 
 ```text
 Presentation
   AIpoweredVivaExamSystem.Web/
-    Controllers/          HTTP, validation, redirects and view selection
-    ViewModels/           Form binding and view-specific data
-    Views/                Razor .cshtml templates, grouped by controller
+    Pages/                Razor pages (.cshtml) and their PageModels (.cshtml.cs), grouped by module;
+                          Pages/Shared holds the layout and shared partials
+    ViewModels/           Form input ([BindProperty] Input) and page-specific data
+    Realtime/             SignalR ExamHub (/hubs/exams) and the IExamNotifier adapter
     Authentication/       Cookie validation and current request identity
     Common/               Presentation helpers and HTTP exception mapping
     wwwroot/              CSS, JavaScript and static assets
@@ -36,8 +37,8 @@ Data access and external integrations
 
 References: `Web → Application → Domain`; `Persistence → Application + Domain`; `Infrastructure → Application + Domain`. Web references the adapters to compose dependency injection. Application and Domain do not reference Web, EF Core, SignalR or an AI SDK.
 
-Controllers never query DbContext or call the AI provider directly. Application services orchestrate operations; adapters parse files and persist data. A single `SaveChangesAsync` transaction saves each import batch or generated batch together with its receipt/citations. No partial import is committed when validation fails.
+PageModels take Application services through constructor injection and never query DbContext or call the AI provider directly. Application services orchestrate operations; adapters parse files and persist data. A single `SaveChangesAsync` transaction saves each import batch or generated batch together with its receipt/citations. No partial import is committed when validation fails.
 
-Authorization is enforced by controller roles and by request-aware EF query filters. Lecturers see assigned subjects, and only their own questions/documents in those subjects. Rubrics, chunks and citations inherit the parent scope. The current user is supplied by Web; direct design-time/test contexts explicitly omit request scoping. Administrators can manage all data. Authentication reloads the current role from SQL for every cookie request, so role revocation does not wait for cookie expiry.
+Authorization is enforced by `[Authorize]` roles on each PageModel and by request-aware EF query filters. Lecturers see assigned subjects, and only their own questions/documents in those subjects. Rubrics, chunks and citations inherit the parent scope. The current user is supplied by Web; direct design-time/test contexts explicitly omit request scoping. Administrators can manage all data. Authentication reloads the current role from SQL for every cookie request, so role revocation does not wait for cookie expiry.
 
 Group 2 has the shared foundation (schema/contracts, RBAC guards, transaction boundary), student roster (`ExamStudents`), sequential scheduling (`Schedules`), the question pool (`ExamPools`) and sessions with the SignalR dashboard (`VivaSessions`, `ExamFoundation/Details`). Exam CRUD/lifecycle remains a separate module. Module status and links are in the README and [GROUP_2_TEAM_BACKLOG.md](GROUP_2_TEAM_BACKLOG.md).
