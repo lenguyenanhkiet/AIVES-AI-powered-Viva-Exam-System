@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -28,6 +25,8 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<Authentication.AccessService>();
             services.AddScoped<Exams.ExamAccessGuard>();
             services.AddScoped<Exams.ExamFoundationService>();
+            services.AddScoped<Exams.IExamService, Exams.ExamService>();
+            services.AddScoped<Exams.ExamService>();
             services.AddScoped<Exams.ExamPoolService>();
             services.AddScoped<Exams.IExamPoolReader>(p => p.GetRequiredService<Exams.ExamPoolService>());
             services.AddScoped<ExamStudents.ExamRosterService>();

@@ -1,0 +1,207 @@
+@page "/"
+@model AIpoweredVivaExamSystem.Web.Pages.Home.IndexModel
+@{
+    ViewData["Title"] = "Tổng quan";
+}
+
+@if (Model.MyExams is { } myExams)
+{
+    var next = myExams.FirstOrDefault(e => VivaSlotState.For(e, DateTimeOffset.UtcNow).IsPrimary)
+               ?? myExams.FirstOrDefault(e => e.ScheduledAt > DateTimeOffset.UtcNow);
+    <div class="container">
+        <div class="hero">
+            <div>
+                <h1>Xin chào, @User.Identity?.Name</h1>
+                <p>Xem lịch thi vấn đáp và mở phiên thi khi đến ca của bạn. Giờ Việt Nam (UTC+7).</p>
+            </div>
+            <a class="btn" asp-page="/VivaSessions/Index">@Icons.Get("calendar") Lịch thi của tôi</a>
+        </div>
+
+        <div class="dash-grid">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title">Kỳ thi của bạn</div>
+                    <a class="btn btn-ghost btn-sm" asp-page="/VivaSessions/Index">Xem tất cả</a>
+                </div>
+                @if (myExams.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty-icon">@Icons.Get("calendar", 20)</div>
+                        <div class="empty-title">Bạn chưa có lịch thi</div>
+                        <p class="empty-text">Kỳ thi sẽ hiện ở đây khi giảng viên công bố kỳ thi có bạn.</p>
+                    </div>
+                }
+                else
+                {
+                    @if (next is not null)
+                    {
+                        <div class="next-exam">
+                            <div>
+                                <div class="next-exam-label">Ca thi tiếp theo</div>
+                                <div class="next-exam-name">@next.Name</div>
+                                <div class="muted">@next.ScheduledAt?.ToLocalText() – @next.EndAt?.ToLocalText()</div>
+                            </div>
+                            <partial name="_VivaOpenAction" model="next" />
+                        </div>
+                    }
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>Kỳ thi</th><th>Trạng thái</th><th>Ca thi</th><th class="actions"><span class="sr-only">Thao tác</span></th></tr></thead>
+                            <tbody>
+                                @foreach (var exam in myExams)
+                                {
+                                    <tr>
+                                        <td class="cell-title">@exam.Name</td>
+                                        <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                        <td class="muted">@(exam.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                        <td class="actions"><partial name="_VivaOpenAction" model="exam" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="card">
+                <div class="card-head"><div class="card-title">Cách thi vấn đáp</div></div>
+                <div class="card-body">
+                    <ol class="steps">
+                        <li><div><strong>Xem ca thi</strong><span>Mỗi kỳ thi có một ca riêng cho bạn.</span></div></li>
+                        <li><div><strong>Mở phiên đúng giờ</strong><span>Nút mở phiên chỉ dùng được trong ca của bạn.</span></div></li>
+                        <li><div><strong>Trả lời câu hỏi</strong><span>Hệ thống bốc câu hỏi từ pool của kỳ thi.</span></div></li>
+                        <li><div><strong>Hoàn thành phiên</strong><span>Bấm hoàn thành khi đã trả lời xong.</span></div></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container">
+        <div class="hero">
+            <div>
+                <h1>Hệ thống thi vấn đáp thông minh</h1>
+                <p>Xây dựng ngân hàng câu hỏi theo môn học và chủ đề, gắn rubric chấm điểm cho AI.</p>
+            </div>
+            <a class="btn" asp-page="/Questions/Create">@Icons.Get("plus") Soạn câu hỏi</a>
+        </div>
+
+        <div class="stats">
+            <a class="card stat" asp-page="/Subjects/Index">
+                <div class="stat-top">Môn học <span class="stat-icon">@Icons.Get("book")</span></div>
+                <div class="stat-value">@Model.Vm.SubjectCount</div>
+                <span class="stat-link">Xem danh sách →</span>
+            </a>
+            <a class="card stat" asp-page="/Topics/Index">
+                <div class="stat-top">Chủ đề <span class="stat-icon">@Icons.Get("layers")</span></div>
+                <div class="stat-value">@Model.Vm.TopicCount</div>
+                <span class="stat-link">Xem danh sách →</span>
+            </a>
+            <a class="card stat" asp-page="/Questions/Index">
+                <div class="stat-top">Câu hỏi <span class="stat-icon">@Icons.Get("help")</span></div>
+                <div class="stat-value">@Model.Vm.QuestionCount</div>
+                <span class="muted">@Model.Vm.ApprovedCount đã duyệt · @Model.Vm.RubricCount có rubric</span>
+            </a>
+            <a class="card stat" asp-route-status="@QuestionStatus.Draft" asp-page="/Questions/Index">
+                <div class="stat-top">Chờ duyệt <span class="stat-icon">@Icons.Get("checklist")</span></div>
+                <div class="stat-value">@Model.Vm.DraftCount</div>
+                <span class="stat-link">Đi tới duyệt →</span>
+            </a>
+        </div>
+
+        <div class="dash-grid">
+            <div class="stack">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-title">Câu hỏi chờ duyệt</div>
+                        <a class="btn btn-ghost btn-sm" asp-route-status="@QuestionStatus.Draft" asp-page="/Questions/Index">Xem tất cả</a>
+                    </div>
+                    @if (Model.Vm.PendingQuestions.Count == 0)
+                    {
+                        <div class="empty">
+                            <div class="empty-icon">@Icons.Get("check", 20)</div>
+                            <div class="empty-title">Không có câu hỏi nào chờ duyệt</div>
+                            <a class="btn btn-primary" asp-page="/Questions/Create">@Icons.Get("plus") Soạn câu hỏi</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="table">
+                            <tbody>
+                                @foreach (var q in Model.Vm.PendingQuestions)
+                                {
+                                    <tr>
+                                        <td class="q-cell"><a class="cell-title clamp-2" asp-route-id="@q.Id" asp-page="/Questions/Details">@q.Content</a></td>
+                                        <td style="width:1%"><partial name="_Bloom" model="q.BloomLevel" /></td>
+                                        <td class="actions">
+                                            @if (q.HasRubric)
+                                            {
+                                                <span class="rubric-yes">@Icons.Get("check", 14) Có rubric</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="muted">Chưa có rubric</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-title">Môn học gần đây</div>
+                        <a class="btn btn-ghost btn-sm" asp-page="/Subjects/Index">Xem tất cả</a>
+                    </div>
+                    @if (Model.Vm.RecentSubjects.Count == 0)
+                    {
+                        <div class="empty">
+                            <div class="empty-icon">@Icons.Get("inbox", 20)</div>
+                            <div class="empty-title">Chưa có môn học nào</div>
+                            @if (User.IsInRole("ADMIN"))
+                            {
+                                <a class="btn btn-primary" asp-page="/Subjects/Create">@Icons.Get("plus") Thêm môn học</a>
+                            }
+                            else
+                            {
+                                <p class="empty-text">Quản trị viên sẽ phân môn cho bạn.</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <table class="table">
+                            <tbody>
+                                @foreach (var s in Model.Vm.RecentSubjects)
+                                {
+                                    <tr>
+                                        <td style="width:1%"><span class="code-chip">@s.Code</span></td>
+                                        <td><a class="cell-title" asp-route-id="@s.Id" asp-page="/Subjects/Details">@s.Name</a></td>
+                                        <td class="actions"><partial name="_StatusBadge" model="s.Status" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><div class="card-title">Luồng xây dựng ngân hàng câu hỏi</div></div>
+                <div class="card-body">
+                    <ol class="steps">
+                        <li><div><strong>Tạo môn học</strong><span>Mã môn, tên và mô tả.</span></div></li>
+                        <li><div><strong>Chia chủ đề</strong><span>Các mảng kiến thức trong môn.</span></div></li>
+                        <li><div><strong>Soạn câu hỏi</strong><span>Gắn chủ đề, mức Bloom và độ khó.</span></div></li>
+                        <li><div><strong>Gắn rubric</strong><span>Tiêu chí và điểm tối đa để AI chấm.</span></div></li>
+                        <li><div><strong>Duyệt câu hỏi</strong><span>Chỉ câu hỏi đã duyệt mới dùng cho kỳ thi.</span></div></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+}

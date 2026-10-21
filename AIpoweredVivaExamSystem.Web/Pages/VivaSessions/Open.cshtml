@@ -1,0 +1,92 @@
+@page "/VivaSessions/Open/{id?}"
+@model AIpoweredVivaExamSystem.Web.Pages.VivaSessions.OpenModel
+@using AIpoweredVivaExamSystem.Application.VivaSessions
+@if (Model.Session is not null)
+{
+    ViewData["Title"] = "Phiên thi vấn đáp";
+
+<div class="container stack">
+    <nav class="breadcrumb"><a asp-page="/VivaSessions/Index">Lịch thi của tôi</a><span> / Phiên thi</span></nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Phiên thi vấn đáp</h1>
+            <p class="page-sub">Bắt đầu lúc @Model.Session.StartedAt.ToLocalText() · @((Model.Session.CompletedAt.HasValue ? SessionState.Completed : SessionState.InProgress).ToLabel()) · Giờ Việt Nam (UTC+7)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <ol>
+            @foreach (var question in Model.Session.Questions)
+            { <li value="@question.Position"><p style="white-space: pre-wrap">@question.Content</p></li> }
+        </ol>
+        <div class="form-actions">
+            <a class="btn btn-secondary" asp-page="/VivaSessions/Index">@Icons.Get("arrow-left") Quay lại lịch thi</a>
+            @if (!Model.Session.CompletedAt.HasValue)
+            {
+                <form method="post" asp-page="/VivaSessions/Complete">
+                    <input type="hidden" name="id" value="@Model.Session.Id" />
+                    <button type="submit" class="btn btn-primary">Hoàn thành phiên thi</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+}
+else
+{
+    ViewData["Title"] = "Lịch thi của tôi";
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Lịch thi của tôi</h1>
+            <p class="page-sub">Các kỳ thi vấn đáp bạn tham gia. Giờ Việt Nam (UTC+7).</p>
+        </div>
+    </div>
+
+    @if (TempData["SessionMessage"] is string message)
+    {
+        <div class="alert alert-info" role="status">@Icons.Get("check") <span>@message</span></div>
+    }
+    <div asp-validation-summary="All" class="alert" role="alert"></div>
+
+    <div class="card">
+        @if (Model.Vm.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("calendar", 20)</div>
+                <div class="empty-title">Bạn chưa có lịch thi</div>
+                <p class="empty-text">Kỳ thi sẽ hiện ở đây khi giảng viên công bố kỳ thi có bạn.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Kỳ thi</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu ca</th>
+                            <th>Kết thúc ca</th>
+                            <th class="actions"><span class="sr-only">Thao tác</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model.Vm)
+                        {
+                            <tr>
+                                <td class="cell-title">@exam.Name</td>
+                                <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                <td>@(exam.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td>@(exam.EndAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td class="actions"><partial name="_VivaOpenAction" model="exam" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+}

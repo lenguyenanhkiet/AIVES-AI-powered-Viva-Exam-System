@@ -85,7 +85,7 @@ The host does not apply migrations on startup. The MVC integration page is read-
 
 ## Merge order for the rest of the team
 
-1. Tue Minh implements Exam service/controller/ViewModels/Views against ModuleContracts.
+1. Tue Minh implements Exam service/Razor Pages/ViewModels against ModuleContracts.
 2. Son and Long implement pool/roster and provide persistence mappings/registrations.
 3. Duong implements slot preview/apply and student schedule, including stale-preview and overlap handling.
 4. Dung implements session persistence/selection and replaces PendingExamNotifier with authorized SignalR Hub/client.

@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Web.Controllers;
+using AIpoweredVivaExamSystem.Web.Pages.Home;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -47,7 +47,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
         foreach (var student in students)
         {
             var form = await client.GetStringAsync(route);
-            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Email", student.Email)));
+            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Input.Email", student.Email)));
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         }
         var roster = await client.GetStringAsync(route);
@@ -73,7 +73,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
         foreach (var email in new[] { "not-an-email", d.Student.Email, "missing@example.test" })
         {
             var form = await client.GetStringAsync(route);
-            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Email", email)));
+            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Input.Email", email)));
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var html = await response.Content.ReadAsStringAsync();
             Assert.Contains("validation-summary-errors", html);
@@ -93,7 +93,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
         foreach (var action in new[] { "Add", "Remove" })
         {
             var route = "/ExamStudents/" + action + "/" + d.Exam.Id;
-            // Conventional MVC routes exclude POST-only actions from GET route matching.
+            // Mutation pages preserve the existing 404 response for GET requests.
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(route)).StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync(route, new FormUrlEncodedContent(new Dictionary<string, string>()))).StatusCode);
         }
@@ -165,6 +165,17 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task MissingExamFromPageHandlerReturns404()
+    {
+        var d = await SeedAsync();
+        await using var factory = Factory();
+        using var client = Client(factory);
+        await LoginAsync(client, d.Lecturer.Email);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync("/ExamStudents/Roster/" + Guid.NewGuid())).StatusCode);
+    }
+
+    [Fact]
     public async Task PublishedRosterIsReadOnlyAndRejectsStaleFormSubmission()
     {
         var d = await SeedAsync();
@@ -185,7 +196,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
         Assert.True(await verify.ExamStudents.AnyAsync(x => x.Id == d.Enrollment.Id));
     }
 
-    private static HttpClient Client(WebApplicationFactory<HomeController> factory) => factory.CreateClient(new()
+    private static HttpClient Client(WebApplicationFactory<IndexModel> factory) => factory.CreateClient(new()
     { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
 
     private static async Task AssertDeniedAsync(HttpClient client, HttpResponseMessage response)
@@ -210,11 +221,11 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
     private static async Task LoginAsync(HttpClient client, string email)
     {
         var html = await client.GetStringAsync("/Account/Login");
-        var response = await client.PostAsync("/Account/Login", Form(Token(html), ("Email", email), ("Password", Password)));
+        var response = await client.PostAsync("/Account/Login", Form(Token(html), ("Input.Email", email), ("Input.Password", Password)));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
     }
 
-    private WebApplicationFactory<HomeController> Factory() => new WebApplicationFactory<HomeController>().WithWebHostBuilder(web =>
+    private WebApplicationFactory<IndexModel> Factory() => new WebApplicationFactory<IndexModel>().WithWebHostBuilder(web =>
     {
         web.UseEnvironment("Testing");
         web.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>

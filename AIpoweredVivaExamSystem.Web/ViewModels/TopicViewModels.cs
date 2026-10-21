@@ -4,11 +4,17 @@ using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Enums;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 public sealed class TopicFormViewModel
 {
+    [BindNever, ValidateNever]
+    public IEnumerable<SelectListItem> Subjects { get; set; } = [];
+
     public Guid? Id { get; set; }
 
     [Display(Name = "Môn học")]

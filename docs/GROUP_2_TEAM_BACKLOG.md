@@ -10,7 +10,7 @@
 
 Để khả thi trong một ngày, kế hoạch chốt **MVP** với một giảng viên, một kênh thi tuần tự, một môn mỗi kỳ thi, tài khoản sinh viên đã có và dữ liệu demo nhỏ. Không cam kết hoàn thành toàn bộ backlog mở rộng trong một ngày. Ước lượng giả định cả 6 người có thể làm việc tập trung, máy đã chạy được .NET/SQL Server và nhóm 1 đã được cấu hình; nếu không đạt mốc 10:00 hoặc 14:00 phải giảm phạm vi theo mục dự phòng.
 
-Đây là kế hoạch phân công. Trên `main` đã có foundation (Kiệt), roster (Long), xếp lịch (Dương) và session/SignalR (Dũng); trạng thái từng người ở bảng cuối tài liệu. Exam CRUD/lifecycle (Tuệ Minh), question pool (Sơn) và demo toàn luồng chưa có. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [MVC_ARCHITECTURE.md](MVC_ARCHITECTURE.md), dùng Controllers + Razor Views + ViewModels, không thêm PageModel.
+Đây là kế hoạch phân công. Trên `main` đã có foundation (Kiệt), roster (Long), xếp lịch (Dương) và session/SignalR (Dũng); trạng thái từng người ở bảng cuối tài liệu. Exam CRUD/lifecycle (Tuệ Minh), question pool (Sơn) và demo toàn luồng chưa có. Nhóm 1/MVC là nền tảng đã có. Tuân thủ [ARCHITECTURE.md](ARCHITECTURE.md): Razor Pages (`.cshtml` + PageModel) + ViewModels, không thêm Controller.
 
 ## Phạm vi bắt buộc và phần hoãn
 

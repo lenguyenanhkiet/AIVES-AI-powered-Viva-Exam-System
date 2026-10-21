@@ -1,0 +1,86 @@
+@model ExamFormViewModel
+@{
+    ViewData.TemplateInfo.HtmlFieldPrefix = "Input";
+    var isEdit = Model.Id.HasValue;
+}
+
+<div class="form-grid">
+    <div class="form-intro">
+        <h2>@(isEdit ? "Chỉnh sửa kỳ thi" : "Thông tin kỳ thi vấn đáp")</h2>
+        <p>Giảng viên thiết lập môn học, thời gian bắt đầu/kết thúc, thời lượng ca thi và cấu hình số lượng câu hỏi chính &amp; đào sâu.</p>
+        <p class="form-note">Lưu ý: Chỉ có thể sửa thông tin khi kỳ thi ở trạng thái <strong>Bản nháp</strong>. Sau khi Công bố (Published), cấu hình kỳ thi sẽ bị khóa để đảm bảo tính toàn vẹn của ngân hàng đề và lịch thi.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert"></div>
+            @if (isEdit)
+            {
+                <input type="hidden" asp-for="RowVersionBase64" />
+            }
+
+            <div class="field">
+                <label class="label" asp-for="SubjectId">Môn học phụ trách <span class="req">*</span></label>
+                @if (isEdit)
+                {
+                    <input type="hidden" asp-for="SubjectId" />
+                    <select class="select" asp-for="SubjectId" asp-items="Model.SubjectOptions" disabled></select>
+                    <span class="hint">Môn học của kỳ thi không thể thay đổi sau khi tạo.</span>
+                }
+                else
+                {
+                    <select class="select" asp-for="SubjectId" asp-items="Model.SubjectOptions">
+                        <option value="">-- Chọn môn học phụ trách --</option>
+                    </select>
+                    <span class="field-error" asp-validation-for="SubjectId"></span>
+                }
+            </div>
+
+            <div class="field">
+                <label class="label" asp-for="Name">Tên kỳ thi vấn đáp <span class="req">*</span></label>
+                <input class="input" asp-for="Name" placeholder="Ví dụ: Thi vấn đáp PRN222 - Cuối kỳ Fall 2026" maxlength="200" />
+                <span class="field-error" asp-validation-for="Name"></span>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label class="label" asp-for="StartAt">Thời gian bắt đầu <span class="req">*</span></label>
+                    <input class="input" asp-for="StartAt" type="datetime-local" />
+                    <span class="field-error" asp-validation-for="StartAt"></span>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="EndAt">Thời gian kết thúc <span class="req">*</span></label>
+                    <input class="input" asp-for="EndAt" type="datetime-local" />
+                    <span class="field-error" asp-validation-for="EndAt"></span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" asp-for="DurationMinutes">Thời lượng mỗi ca phỏng vấn (phút) <span class="req">*</span></label>
+                <input class="input" asp-for="DurationMinutes" type="number" min="5" max="180" />
+                <span class="hint">Khoảng thời gian tối đa dành cho mỗi thí sinh (phải nhỏ hơn tổng thời gian kỳ thi).</span>
+                <span class="field-error" asp-validation-for="DurationMinutes"></span>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label class="label" asp-for="NumberOfMainQuestions">Số câu hỏi chính mỗi thí sinh <span class="req">*</span></label>
+                    <input class="input" asp-for="NumberOfMainQuestions" type="number" min="1" max="20" />
+                    <span class="hint">Số câu hỏi chính hệ thống sẽ bốc cho mỗi thí sinh.</span>
+                    <span class="field-error" asp-validation-for="NumberOfMainQuestions"></span>
+                </div>
+                <div class="field">
+                    <label class="label" asp-for="MaxFollowUpPerQuestion">Số câu hỏi đào sâu tối đa mỗi câu chính <span class="req">*</span></label>
+                    <input class="input" asp-for="MaxFollowUpPerQuestion" type="number" min="0" max="10" />
+                    <span class="hint">Số câu hỏi phụ / đào sâu tối đa có thể phát sinh.</span>
+                    <span class="field-error" asp-validation-for="MaxFollowUpPerQuestion"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a class="btn btn-secondary" asp-page="/Exams/Index">Hủy</a>
+            <button class="btn btn-primary" type="submit">@(isEdit ? "Lưu thay đổi" : "Tạo kỳ thi")</button>
+        </div>
+    </div>
+</div>

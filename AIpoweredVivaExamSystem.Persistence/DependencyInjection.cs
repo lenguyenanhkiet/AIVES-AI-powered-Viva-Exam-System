@@ -1,12 +1,9 @@
-﻿using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AIpoweredVivaExamSystem.Application.Interfaces;
 using AIpoweredVivaExamSystem.Persistence.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AIpoweredVivaExamSystem.Persistence;
 
@@ -33,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<AIpoweredVivaExamSystem.Application.VivaSessions.IExamLiveReader, ExamLiveReader>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamAccessStore>(p => p.GetRequiredService<ExamFoundationStore>());
         services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamFoundationReader>(p => p.GetRequiredService<ExamFoundationStore>());
+        services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamRepository, ExamRepository>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamUnitOfWork, ExamUnitOfWork>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionBankStore, QuestionBankStore>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.IAccessStore, AccessStore>();

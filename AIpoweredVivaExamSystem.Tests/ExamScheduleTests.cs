@@ -373,7 +373,7 @@ public class ExamScheduleTests(SqlServerFixture fixture)
     }
 
     [Fact]
-    public async Task ReadinessRequiresNonemptyRosterAndEverySlotWithinWindow()
+    public async Task ReadinessRequiresNonemptyRosterAndNonoverlappingSlotsWithinWindow()
     {
         var demo = await SeedAsync(2);
         await using var db = Scoped(Owner(demo));
@@ -388,11 +388,19 @@ public class ExamScheduleTests(SqlServerFixture fixture)
         Assert.False(await service.IsFullyScheduledAsync(demo.Exam.Id, default));
         await using (var setup = fixture.CreateContext())
         {
-            foreach (var entry in await setup.ExamStudents.Where(x => x.ExamId == demo.Exam.Id).ToArrayAsync())
-                entry.Schedule(demo.Exam.EndAt.AddMinutes(-15));
+            var entries = await setup.ExamStudents.Where(x => x.ExamId == demo.Exam.Id).ToArrayAsync();
+            entries[0].Schedule(demo.Exam.StartAt);
+            entries[1].Schedule(demo.Exam.StartAt.AddMinutes(15));
             await setup.SaveChangesAsync();
         }
         Assert.True(await service.IsFullyScheduledAsync(demo.Exam.Id, default));
+        await using (var setup = fixture.CreateContext())
+        {
+            var exam = await setup.Exams.SingleAsync(x => x.Id == demo.Exam.Id);
+            exam.Update(exam.Name, exam.StartAt, exam.EndAt, 30, exam.NumberOfMainQuestions, exam.MaxFollowUpPerQuestion);
+            await setup.SaveChangesAsync();
+        }
+        Assert.False(await service.IsFullyScheduledAsync(demo.Exam.Id, default));
         await using (var setup = fixture.CreateContext())
         {
             setup.ExamStudents.RemoveRange(await setup.ExamStudents.Where(x => x.ExamId == demo.Exam.Id).ToArrayAsync());

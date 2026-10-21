@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Web.Controllers;
+using AIpoweredVivaExamSystem.Web.Pages.Home;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -107,7 +107,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         await using var factory = CreateFactory();
         using var client = Client(factory);
         var response = await client.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string>
-        { ["Email"] = "test@example.com", ["Password"] = "password" }));
+        { ["Input.Email"] = "test@example.com", ["Input.Password"] = "password" }));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
@@ -216,7 +216,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         var form = await client.GetStringAsync("/QuestionImports");
         using var upload = new MultipartFormDataContent();
         upload.Add(new StringContent(Token(form)), "__RequestVerificationToken");
-        upload.Add(new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes($"SubjectCode,Topic,Content,ExpectedAnswer,BloomLevel,Difficulty\n{code},,Explain MVC.,Model View Controller,Understand,Medium")), "File", "questions.csv");
+        upload.Add(new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes($"SubjectCode,Topic,Content,ExpectedAnswer,BloomLevel,Difficulty\n{code},,Explain MVC.,Model View Controller,Understand,Medium")), "Input.File", "questions.csv");
         var preview = await client.PostAsync("/QuestionImports/Preview", upload);
         Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
         var html = await preview.Content.ReadAsStringAsync();
@@ -260,17 +260,17 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         await LoginAsync(client, email, "Test-password-123!");
         using var upload = new MultipartFormDataContent();
         upload.Add(new StringContent(Token(await client.GetStringAsync("/Documents"))), "__RequestVerificationToken");
-        upload.Add(new StringContent(subjectId.ToString()), "SubjectId");
-        upload.Add(new ByteArrayContent(bytes), "File", "lecture.pptx");
+        upload.Add(new StringContent(subjectId.ToString()), "Input.SubjectId");
+        upload.Add(new ByteArrayContent(bytes), "Input.File", "lecture.pptx");
         var uploaded = await client.PostAsync("/Documents/Upload", upload);
         Assert.Equal(HttpStatusCode.Redirect, uploaded.StatusCode);
         var form = await client.GetStringAsync(uploaded.Headers.Location);
-        var docId = Regex.Match(form, "name=\"DocumentId\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        var docId = Regex.Match(form, "name=\"Input\\.DocumentId\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
         Assert.NotEmpty(docId);
         var generated = await client.PostAsync("/Documents/Generate", new FormUrlEncodedContent(new Dictionary<string,string>
         {
-            ["DocumentId"] = docId, ["Instruction"] = "dependency injection", ["BloomLevel"] = "Understand",
-            ["Difficulty"] = "Medium", ["Count"] = "1", ["__RequestVerificationToken"] = Token(form)
+            ["Input.DocumentId"] = docId, ["Input.Instruction"] = "dependency injection", ["Input.BloomLevel"] = "Understand",
+            ["Input.Difficulty"] = "Medium", ["Input.Count"] = "1", ["__RequestVerificationToken"] = Token(form)
         }));
         Assert.Equal(HttpStatusCode.Redirect, generated.StatusCode);
         await using var verify = fixture.CreateContext();
@@ -294,7 +294,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         return email;
     }
 
-    private static HttpClient Client(WebApplicationFactory<HomeController> factory) => factory.CreateClient(new()
+    private static HttpClient Client(WebApplicationFactory<IndexModel> factory) => factory.CreateClient(new()
     { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
 
     // Lấy token từ form thật để test cả cookie antiforgery và POST MVC, không tắt CSRF trong test.
@@ -306,13 +306,13 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         var html = await client.GetStringAsync("/Account/Login");
         return await client.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["Email"] = email, ["Password"] = password, ["ReturnUrl"] = returnUrl,
+            ["Input.Email"] = email, ["Input.Password"] = password, ["Input.ReturnUrl"] = returnUrl,
             ["__RequestVerificationToken"] = Token(html)
         }));
     }
 
     // Dùng SQL Server thật trong DB test riêng; không thay repository bằng mock.
-    private WebApplicationFactory<HomeController> CreateFactory(AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<HomeController>()
+    private WebApplicationFactory<IndexModel> CreateFactory(AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<IndexModel>()
         .WithWebHostBuilder(web =>
         {
             web.UseEnvironment("Testing");
