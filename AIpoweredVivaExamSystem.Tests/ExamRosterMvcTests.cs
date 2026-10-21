@@ -47,7 +47,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
         foreach (var student in students)
         {
             var form = await client.GetStringAsync(route);
-            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Email", student.Email)));
+            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Input.Email", student.Email)));
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         }
         var roster = await client.GetStringAsync(route);
@@ -73,7 +73,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
         foreach (var email in new[] { "not-an-email", d.Student.Email, "missing@example.test" })
         {
             var form = await client.GetStringAsync(route);
-            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Email", email)));
+            var response = await client.PostAsync("/ExamStudents/Add/" + d.Exam.Id, Form(Token(form), ("Input.Email", email)));
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var html = await response.Content.ReadAsStringAsync();
             Assert.Contains("validation-summary-errors", html);
@@ -221,7 +221,7 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
     private static async Task LoginAsync(HttpClient client, string email)
     {
         var html = await client.GetStringAsync("/Account/Login");
-        var response = await client.PostAsync("/Account/Login", Form(Token(html), ("Email", email), ("Password", Password)));
+        var response = await client.PostAsync("/Account/Login", Form(Token(html), ("Input.Email", email), ("Input.Password", Password)));
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
     }
 

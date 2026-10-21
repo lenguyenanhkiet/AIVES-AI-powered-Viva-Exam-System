@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.QuestionBank;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -15,9 +16,16 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Documents;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(DocumentService documents, ISubjectService subjects) : ContentPageModel
+public sealed class IndexModel(DocumentService documents, ISubjectService subjects) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync(CancellationToken ct) => RenderContent("/Pages/Documents/_IndexContent.cshtml", await LoadAsync(new(), ct));
+    [BindProperty]
+    public DocumentsViewModel Input { get; set; } = new();
+
+    public async Task<IActionResult> OnGetAsync(CancellationToken ct)
+    {
+        Input = await LoadAsync(new(), ct);
+        return Page();
+    }
 
     private async Task<DocumentsViewModel> LoadAsync(DocumentsViewModel model, CancellationToken ct)
     {

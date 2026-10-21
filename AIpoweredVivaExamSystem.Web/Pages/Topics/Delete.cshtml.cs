@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -15,14 +16,17 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Topics;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class DeleteModel(ITopicService topics, ISubjectService subjects, IQuestionService questions) : ContentPageModel
+public sealed class DeleteModel(ITopicService topics, ISubjectService subjects, IQuestionService questions) : PageModel
 {
+    public TopicDetailsViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken)
     {
         var topic = await topics.GetAsync(id, cancellationToken);
         (await SubjectMapAsync(cancellationToken)).TryGetValue(topic.SubjectId, out var subject);
         var topicQuestions = await questions.ListAsync(new QuestionListQuery { TopicId = id, PageSize = 10 }, cancellationToken);
-        return RenderContent("/Pages/Topics/_DeleteContent.cshtml", new TopicDetailsViewModel { Topic = topic, Subject = subject, Questions = topicQuestions });
+        Vm = new TopicDetailsViewModel { Topic = topic, Subject = subject, Questions = topicQuestions };
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken cancellationToken)

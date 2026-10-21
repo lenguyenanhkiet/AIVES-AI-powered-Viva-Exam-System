@@ -1,3 +1,90 @@
 @page "/Topics/Details/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.Topics.DetailsModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    var t = Model.Vm.Topic;
+    ViewData["Title"] = t.Name;
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-page="/Topics/Index">Chủ đề</a> @Icons.Get("chevron-right", 14) <span>@t.Name</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                @if (Model.Vm.Subject is not null)
+                {
+                    <a asp-route-id="@Model.Vm.Subject.Id" asp-page="/Subjects/Details"><span class="code-chip">@Model.Vm.Subject.Code</span></a>
+                }
+                <partial name="_StatusBadge" model="t.Status" />
+            </div>
+            <h1 class="page-title">@t.Name</h1>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-primary" asp-route-subjectId="@t.SubjectId" asp-route-topicId="@t.Id" asp-page="/Questions/Create">@Icons.Get("plus") Soạn câu hỏi</a>
+            <a class="btn btn-secondary" asp-route-id="@t.Id" asp-page="/Topics/Edit">@Icons.Get("edit") Sửa</a>
+            <a class="btn btn-secondary" asp-route-id="@t.Id"
+               data-confirm-action="@Url.Page("/Topics/Delete", new { id = t.Id })"
+               data-confirm-title="Xóa chủ đề &quot;@t.Name&quot;?"
+               data-confirm-text="Không thể xóa nếu chủ đề vẫn còn câu hỏi." asp-page="/Topics/Delete">@Icons.Get("trash") Xóa</a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="stack">
+            <div class="card">
+                <div class="card-head"><div class="card-title">Mô tả</div></div>
+                <div class="card-body">
+                    <p class="prose">@(string.IsNullOrWhiteSpace(t.Description) ? "Chưa có mô tả." : t.Description)</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <div class="card-title">Câu hỏi</div>
+                        <span class="muted">@Model.Vm.Questions.TotalCount câu hỏi thuộc chủ đề này</span>
+                    </div>
+                    @if (Model.Vm.Questions.TotalCount > Model.Vm.Questions.Items.Count)
+                    {
+                        <a class="btn btn-ghost btn-sm" asp-route-topicId="@t.Id" asp-route-subjectId="@t.SubjectId" asp-page="/Questions/Index">Xem tất cả</a>
+                    }
+                </div>
+                @if (Model.Vm.Questions.Items.Count == 0)
+                {
+                    <div class="empty">
+                        <div class="empty-icon">@Icons.Get("help", 20)</div>
+                        <div class="empty-title">Chủ đề chưa có câu hỏi</div>
+                        <a class="btn btn-primary" asp-route-subjectId="@t.SubjectId" asp-route-topicId="@t.Id" asp-page="/Questions/Create">@Icons.Get("plus") Soạn câu hỏi</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <tbody>
+                                @foreach (var q in Model.Vm.Questions.Items)
+                                {
+                                    <tr>
+                                        <td class="q-cell"><a class="cell-title clamp-2" asp-route-id="@q.Id" asp-page="/Questions/Details">@q.Content</a></td>
+                                        <td style="width:1%"><partial name="_Bloom" model="q.BloomLevel" /></td>
+                                        <td class="actions"><partial name="_QuestionStatus" model="q.Status" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head"><div class="card-title">Thông tin</div></div>
+            <div class="card-body">
+                <dl class="meta">
+                    <div><dt>Môn học</dt><dd>@(Model.Vm.Subject is null ? "—" : $"{Model.Vm.Subject.Code} — {Model.Vm.Subject.Name}")</dd></div>
+                    <div><dt>Ngày tạo</dt><dd>@t.CreatedAt.ToLocalText()</dd></div>
+                    <div><dt>Cập nhật lần cuối</dt><dd>@(t.UpdatedAt?.ToLocalText() ?? "—")</dd></div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -12,9 +13,9 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Account;
 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [Authorize]
-public sealed class ProfileModel : ContentPageModel
+public sealed class ProfileModel : PageModel
 {
-    public IActionResult OnGet() => RenderContent("/Pages/Account/_ProfileContent.cshtml", null);
+    public IActionResult OnGet() => Page();
 
     public IActionResult OnPost() => NotFound();
 }

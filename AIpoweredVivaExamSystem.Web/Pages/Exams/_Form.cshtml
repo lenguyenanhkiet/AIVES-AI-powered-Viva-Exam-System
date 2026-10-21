@@ -1,5 +1,6 @@
 @model ExamFormViewModel
 @{
+    ViewData.TemplateInfo.HtmlFieldPrefix = "Input";
     var isEdit = Model.Id.HasValue;
 }
 

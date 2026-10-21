@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -14,8 +15,10 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Exams;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(ExamService concreteExamService, ISubjectService subjectService) : ContentPageModel
+public sealed class IndexModel(ExamService concreteExamService, ISubjectService subjectService) : PageModel
 {
+    public ExamIndexViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnGetAsync(ExamStatus? status, CancellationToken ct)
     {
         var all = await concreteExamService.ListManagedAsync(ct);
@@ -31,7 +34,7 @@ public sealed class IndexModel(ExamService concreteExamService, ISubjectService 
 
         var filtered = status.HasValue ? all.Where(x => x.Status == status.Value).ToList() : all;
 
-        return RenderContent("/Pages/Exams/_IndexContent.cshtml", new ExamIndexViewModel
+        Vm = new ExamIndexViewModel
         {
             Exams = filtered,
             SubjectNames = subjectMap,
@@ -39,7 +42,8 @@ public sealed class IndexModel(ExamService concreteExamService, ISubjectService 
             StatusCounts = statusCounts,
             TotalCount = all.Count,
             FilterStatus = status
-        });
+        };
+        return Page();
     }
 
     public IActionResult OnPost() => NotFound();

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -18,7 +19,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Questions;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class TopicOptionsModel(ITopicService topics) : ContentPageModel
+public sealed class TopicOptionsModel(ITopicService topics) : PageModel
 {
     public async Task<IActionResult> OnGetAsync(Guid subjectId, CancellationToken cancellationToken)
     {

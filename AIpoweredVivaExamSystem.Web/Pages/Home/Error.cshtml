@@ -1,3 +1,16 @@
 @page "/Home/Error/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.Home.ErrorModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    ViewData["Title"] = "Lỗi";
+}
+
+<div class="status-page">
+    <div class="status-code">500</div>
+    <h1 class="page-title">Đã có lỗi xảy ra</h1>
+    <p class="page-sub">Hệ thống gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.</p>
+    @if (Model.Vm.ShowRequestId)
+    {
+        <p class="muted">Mã yêu cầu: <code>@Model.Vm.RequestId</code></p>
+    }
+    <a class="btn btn-primary" style="margin-top:12px" asp-page="/Home/Index">@Icons.Get("arrow-left") Về trang tổng quan</a>
+</div>

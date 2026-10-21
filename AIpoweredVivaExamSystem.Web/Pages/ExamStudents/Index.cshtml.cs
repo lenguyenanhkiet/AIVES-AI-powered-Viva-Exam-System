@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.ExamStudents;
@@ -11,10 +12,15 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.ExamStudents;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(IExamRosterReader details) : ContentPageModel
+public sealed class IndexModel(IExamRosterReader details) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync([FromQuery] int page, CancellationToken ct) =>
-        RenderContent("/Pages/ExamStudents/_IndexContent.cshtml", await details.ListManagedAsync(ModelState.IsValid ? page : 1, ct));
+    public AIpoweredVivaExamSystem.Application.ExamStudents.RosterExamPage Vm { get; private set; } = default!;
+
+    public async Task<IActionResult> OnGetAsync([FromQuery] int page, CancellationToken ct)
+    {
+        Vm = await details.ListManagedAsync(ModelState.IsValid ? page : 1, ct);
+        return Page();
+    }
 
     public IActionResult OnPost() => NotFound();
 }

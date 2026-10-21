@@ -1,3 +1,12 @@
 @page "/Home/StatusCode/{code:int}"
 @model AIpoweredVivaExamSystem.Web.Pages.Home.StatusCodeModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    ViewData["Title"] = Model.Vm == 404 ? "Không tìm thấy" : "Lỗi";
+}
+
+<div class="status-page">
+    <div class="status-code">@Model.Vm</div>
+    <h1 class="page-title">@(Model.Vm == 404 ? "Không tìm thấy trang" : "Đã có lỗi xảy ra")</h1>
+    <p class="page-sub">@(Model.Vm == 404 ? "Dữ liệu có thể đã bị xóa hoặc đường dẫn không đúng." : "Vui lòng thử lại sau.")</p>
+    <a class="btn btn-primary" style="margin-top:12px" asp-page="/Home/Index">@Icons.Get("arrow-left") Về trang tổng quan</a>
+</div>

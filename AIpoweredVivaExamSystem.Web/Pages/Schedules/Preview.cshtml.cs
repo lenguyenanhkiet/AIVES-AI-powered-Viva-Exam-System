@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Scheduling;
@@ -14,15 +15,18 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Schedules;
 
 [Authorize]
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class PreviewModel(IExamScheduleService schedules, IScheduleReader reader) : ContentPageModel
+public sealed class PreviewModel(IExamScheduleService schedules, IScheduleReader reader) : PageModel
 {
+    public AIpoweredVivaExamSystem.Web.ViewModels.Schedules.ExamScheduleViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken ct)
     {
         SchedulePreview? preview = null;
         try { preview = await schedules.PreviewAsync(id, ct); }
         catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
         { TempData.Toast(ex.Message, success: false); }
-        return RenderContent("/Pages/Schedules/_ExamContent.cshtml", await ModelAsync(id, preview, ct));
+        Vm = await ModelAsync(id, preview, ct);
+        return Page();
     }
 
     private async Task<ExamScheduleViewModel> ModelAsync(Guid id, SchedulePreview? preview, CancellationToken ct)

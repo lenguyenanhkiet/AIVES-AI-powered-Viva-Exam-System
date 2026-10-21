@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Diagnostics;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -17,12 +18,15 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Home;
 
 [AllowAnonymous]
-public sealed class StatusCodeModel : ContentPageModel
+public sealed class StatusCodeModel : PageModel
 {
+    public int Vm { get; private set; } = default!;
+
     public IActionResult OnGet(int code)
     {
         Response.StatusCode = code;
-        return RenderContent("/Pages/Home/_StatusCodeContent.cshtml", code);
+        Vm = code;
+        return Page();
     }
 
     public IActionResult OnPost(int code) => OnGet(code);

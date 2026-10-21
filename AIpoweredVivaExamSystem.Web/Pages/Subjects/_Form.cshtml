@@ -1,5 +1,6 @@
 @model SubjectFormViewModel
 @{
+    ViewData.TemplateInfo.HtmlFieldPrefix = "Input";
     var isEdit = Model.Id is not null;
 }
 

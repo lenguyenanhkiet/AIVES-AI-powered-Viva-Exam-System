@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -12,18 +13,25 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Account;
 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [AllowAnonymous]
-public sealed class LoginModel(LoginService login) : ContentPageModel
+public sealed class LoginModel(LoginService login) : PageModel
 {
-    public IActionResult OnGet(string? returnUrl = null) => RenderContent("/Pages/Account/_LoginContent.cshtml", new LoginViewModel { ReturnUrl = returnUrl });
+    [BindProperty]
+    public LoginViewModel Input { get; set; } = new();
 
-    public async Task<IActionResult> OnPostAsync(LoginViewModel model, CancellationToken cancellationToken)
+    public IActionResult OnGet(string? returnUrl = null)
     {
-        if (!ModelState.IsValid) return RenderContent("/Pages/Account/_LoginContent.cshtml", model);
-        var user = await login.AuthenticateAsync(model.Email, model.Password, cancellationToken);
+        Input = new LoginViewModel { ReturnUrl = returnUrl };
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return Page();
+        var user = await login.AuthenticateAsync(Input.Email, Input.Password, cancellationToken);
         if (user is null)
         {
             ModelState.AddModelError("", "Email hoặc mật khẩu không đúng.");
-            return RenderContent("/Pages/Account/_LoginContent.cshtml", model);
+            return Page();
         }
         var identity = new ClaimsIdentity([
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -33,6 +41,6 @@ public sealed class LoginModel(LoginService login) : ContentPageModel
         // Cookie là ticket được ASP.NET Core bảo vệ; không lưu mật khẩu hoặc JWT trong HTML/localStorage.
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
         // Chỉ cho redirect nội bộ để URL do người dùng nhập không chuyển phiên sang website khác.
-        return LocalRedirect(Url.IsLocalUrl(model.ReturnUrl) ? model.ReturnUrl! : "/");
+        return LocalRedirect(Url.IsLocalUrl(Input.ReturnUrl) ? Input.ReturnUrl! : "/");
     }
 }

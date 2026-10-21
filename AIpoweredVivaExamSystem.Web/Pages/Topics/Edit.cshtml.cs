@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -15,27 +16,31 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Topics;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class EditModel(ITopicService topics, ISubjectService subjects) : ContentPageModel
+public sealed class EditModel(ITopicService topics, ISubjectService subjects) : PageModel
 {
+    [BindProperty]
+    public TopicFormViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken)
     {
         var topic = await topics.GetAsync(id, cancellationToken);
+        Input = TopicFormViewModel.From(topic);
         await LoadSubjectsAsync(cancellationToken);
-        return RenderContent("/Pages/Topics/_EditContent.cshtml", TopicFormViewModel.From(topic));
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(Guid id, TopicFormViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken cancellationToken)
     {
         var current = await topics.GetAsync(id, cancellationToken);
         // The subject of a topic is fixed; ignore whatever the form posted.
-        model.Id = id;
-        model.SubjectId = current.SubjectId;
-        ModelState.Remove(nameof(model.SubjectId));
+        Input.Id = id;
+        Input.SubjectId = current.SubjectId;
+        ModelState.Remove($"Input.{nameof(Input.SubjectId)}");
         if (ModelState.IsValid)
         {
             try
             {
-                await topics.UpdateAsync(id, new UpdateTopicRequest(model.Name, model.Description, model.Status),
+                await topics.UpdateAsync(id, new UpdateTopicRequest(Input.Name, Input.Description, Input.Status),
                     cancellationToken);
                 TempData.Toast("Đã lưu thay đổi.");
                 return RedirectToPage("/Topics/Details", new { id });
@@ -43,24 +48,24 @@ public sealed class EditModel(ITopicService topics, ISubjectService subjects) : 
             catch (Exception exception) when (TryAddError(exception)) { }
         }
         await LoadSubjectsAsync(cancellationToken);
-        return RenderContent("/Pages/Topics/_EditContent.cshtml", model);
+        return Page();
     }
 
     private async Task LoadSubjectsAsync(CancellationToken cancellationToken) =>
-        ViewData["Subjects"] = SelectLists.Subjects((await SubjectMapAsync(cancellationToken)).Values);
+        Input.Subjects = SelectLists.Subjects((await SubjectMapAsync(cancellationToken)).Values);
 
     private bool TryAddError(Exception exception)
     {
         switch (exception)
         {
             case ValidationException validation:
-                ModelState.AddErrors(validation);
+                ModelState.AddErrors(validation, nameof(Input));
                 return true;
             case ResourceConflictException:
-                ModelState.AddModelError(nameof(TopicFormViewModel.Name), "Môn học này đã có chủ đề cùng tên.");
+                ModelState.AddModelError($"Input.{nameof(TopicFormViewModel.Name)}", "Môn học này đã có chủ đề cùng tên.");
                 return true;
             case DomainValidationException domain:
-                ModelState.AddModelError(string.Empty, domain.Message);
+                ModelState.AddModelError(nameof(Input), domain.Message);
                 return true;
             default:
                 return false;

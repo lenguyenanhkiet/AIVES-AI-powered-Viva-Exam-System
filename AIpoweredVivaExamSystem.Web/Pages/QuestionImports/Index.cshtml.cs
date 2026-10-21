@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Common;
@@ -12,9 +13,16 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.QuestionImports;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel : ContentPageModel
+public sealed class IndexModel : PageModel
 {
-    public IActionResult OnGet() => RenderContent("/Pages/QuestionImports/_IndexContent.cshtml", new ImportQuestionsViewModel());
+    [BindProperty]
+    public ImportQuestionsViewModel Input { get; set; } = new();
+
+    public IActionResult OnGet()
+    {
+        Input = new ImportQuestionsViewModel();
+        return Page();
+    }
 
     public IActionResult OnPost() => NotFound();
 }

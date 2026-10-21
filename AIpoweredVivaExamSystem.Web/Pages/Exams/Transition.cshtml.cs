@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -14,7 +15,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Exams;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class TransitionModel(IExamService examService) : ContentPageModel
+public sealed class TransitionModel(IExamService examService) : PageModel
 {
     public async Task<IActionResult> OnPostAsync(Guid id, ExamStatus target, string rowVersion, CancellationToken ct)
     {

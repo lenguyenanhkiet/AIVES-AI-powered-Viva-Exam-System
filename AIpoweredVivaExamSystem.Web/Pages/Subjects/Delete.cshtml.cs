@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -16,10 +17,15 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Subjects;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN")]
-public sealed class DeleteModel(ISubjectService subjects) : ContentPageModel
+public sealed class DeleteModel(ISubjectService subjects) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken) =>
-        RenderContent("/Pages/Subjects/_DeleteContent.cshtml", await subjects.GetAsync(id, cancellationToken));
+    public SubjectResponse Vm { get; private set; } = default!;
+
+    public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken)
+    {
+        Vm = await subjects.GetAsync(id, cancellationToken);
+        return Page();
+    }
 
     public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken cancellationToken)
     {

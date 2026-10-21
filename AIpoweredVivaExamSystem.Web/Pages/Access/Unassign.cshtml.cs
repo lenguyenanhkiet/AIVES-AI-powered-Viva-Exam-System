@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
@@ -9,7 +10,7 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Access;
 
 [Authorize(Roles = "ADMIN")]
-public sealed class UnassignModel(AccessService access) : ContentPageModel
+public sealed class UnassignModel(AccessService access) : PageModel
 {
     public Task<IActionResult> OnPost(Guid id, CancellationToken ct) => ExecuteAsync(() => access.UnassignAsync(id, ct));
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.QuestionBank;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -15,31 +16,36 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Documents;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class GenerateModel(DocumentService documents, IQuestionBankStore store, ITopicService topics) : ContentPageModel
+public sealed class GenerateModel(DocumentService documents, IQuestionBankStore store, ITopicService topics) : PageModel
 {
+    [BindProperty]
+    public GenerateQuestionsViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {
         var document = await store.FindDocumentAsync(id, ct) ?? throw new ResourceNotFoundException("Document not found.");
-        return RenderContent("/Pages/Documents/_GenerateContent.cshtml", await LoadGenerateAsync(new() { DocumentId = document.Id, FileName = document.FileName }, document.SubjectId, ct));
+        Input = await LoadGenerateAsync(new() { DocumentId = document.Id, FileName = document.FileName }, document.SubjectId, ct);
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(GenerateQuestionsViewModel model, CancellationToken ct)
+    public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
-        var document = await store.FindDocumentAsync(model.DocumentId, ct) ?? throw new ResourceNotFoundException("Document not found.");
+        var document = await store.FindDocumentAsync(Input.DocumentId, ct) ?? throw new ResourceNotFoundException("Document not found.");
         if (ModelState.IsValid)
         {
             try
             {
-                var ids = await documents.GenerateAsync(model.DocumentId, model.TopicId, model.Instruction,
-                    model.BloomLevel, model.Difficulty, model.Count, ct);
+                var ids = await documents.GenerateAsync(Input.DocumentId, Input.TopicId, Input.Instruction,
+                    Input.BloomLevel, Input.Difficulty, Input.Count, ct);
                 TempData["Toast"] = $"Đã sinh {ids.Count} câu hỏi Nháp có nguồn trích dẫn. Thêm rubric trước khi duyệt.";
                 return RedirectToPage("/Questions/Index", new { subjectId = document.SubjectId });
             }
             catch (Exception ex) when (ex is ResourceConflictException or DomainValidationException)
             { ModelState.AddModelError("", ex.Message); }
         }
-        model.FileName = document.FileName;
-        return RenderContent("/Pages/Documents/_GenerateContent.cshtml", await LoadGenerateAsync(model, document.SubjectId, ct));
+        Input.FileName = document.FileName;
+        Input = await LoadGenerateAsync(Input, document.SubjectId, ct);
+        return Page();
     }
 
     private async Task<GenerateQuestionsViewModel> LoadGenerateAsync(GenerateQuestionsViewModel model, Guid subjectId, CancellationToken ct)

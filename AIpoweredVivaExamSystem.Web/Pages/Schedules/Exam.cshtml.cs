@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Scheduling;
@@ -14,9 +15,15 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Schedules;
 
 [Authorize]
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class ExamModel(IScheduleReader reader) : ContentPageModel
+public sealed class ExamModel(IScheduleReader reader) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct) => RenderContent("/Pages/Schedules/_ExamContent.cshtml", await ModelAsync(id, null, ct));
+    public AIpoweredVivaExamSystem.Web.ViewModels.Schedules.ExamScheduleViewModel Vm { get; private set; } = default!;
+
+    public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
+    {
+        Vm = await ModelAsync(id, null, ct);
+        return Page();
+    }
 
     private async Task<ExamScheduleViewModel> ModelAsync(Guid id, SchedulePreview? preview, CancellationToken ct)
     {

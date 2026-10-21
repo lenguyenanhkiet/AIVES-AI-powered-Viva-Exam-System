@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Common;
@@ -12,12 +13,19 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.QuestionImports;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class ConfirmModel(QuestionImportService imports, IMemoryCache cache, ICurrentUser actor) : ContentPageModel
+public sealed class ConfirmModel(QuestionImportService imports, IMemoryCache cache, ICurrentUser actor) : PageModel
 {
+    [BindProperty]
+    public ImportQuestionsViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnPostAsync(string token, CancellationToken ct)
     {
         if (!cache.TryGetValue<PendingImport>("import:" + actor.Id, out var pending) || pending!.UserId != actor.Id || pending.Token != token)
-        { ModelState.AddModelError("", "Bản xem trước đã hết hạn. Hãy tải file lại."); return RenderContent("/Pages/QuestionImports/_IndexContent.cshtml", new ImportQuestionsViewModel()); }
+        {
+            ModelState.AddModelError("", "Bản xem trước đã hết hạn. Hãy tải file lại.");
+            Input = new ImportQuestionsViewModel();
+            return Page();
+        }
         try
         {
             var count = await imports.ImportAsync(pending.Content, pending.FileName, ct);
@@ -26,7 +34,11 @@ public sealed class ConfirmModel(QuestionImportService imports, IMemoryCache cac
             return RedirectToPage("/Questions/Index");
         }
         catch (ResourceConflictException ex)
-        { ModelState.AddModelError("", ex.Message); return RenderContent("/Pages/QuestionImports/_IndexContent.cshtml", new ImportQuestionsViewModel()); }
+        {
+            ModelState.AddModelError("", ex.Message);
+            Input = new ImportQuestionsViewModel();
+            return Page();
+        }
     }
 
     public IActionResult OnGet() => NotFound();

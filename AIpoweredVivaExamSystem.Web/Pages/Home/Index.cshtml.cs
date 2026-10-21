@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Diagnostics;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -17,8 +18,10 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Home;
 
 
-public sealed class IndexModel(ISubjectService subjects, ITopicService topics, IQuestionService questions, IRubricService rubrics) : ContentPageModel
+public sealed class IndexModel(ISubjectService subjects, ITopicService topics, IQuestionService questions, IRubricService rubrics) : PageModel
 {
+    public DashboardViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
         var recent = await subjects.ListAsync(new SubjectListQuery { PageSize = 5 }, cancellationToken);
@@ -27,7 +30,7 @@ public sealed class IndexModel(ISubjectService subjects, ITopicService topics, I
         var draftPage = await questions.ListAsync(new QuestionListQuery { Status = QuestionStatus.Draft, PageSize = 5 }, cancellationToken);
         var approvedPage = await questions.ListAsync(new QuestionListQuery { Status = QuestionStatus.Approved, PageSize = 1 }, cancellationToken);
         var rubricPage = await rubrics.ListAsync(new RubricListQuery { PageSize = 1 }, cancellationToken);
-        return RenderContent("/Pages/Home/_IndexContent.cshtml", new DashboardViewModel
+        Vm = new DashboardViewModel
         {
             SubjectCount = recent.TotalCount,
             TopicCount = topicPage.TotalCount,
@@ -37,7 +40,8 @@ public sealed class IndexModel(ISubjectService subjects, ITopicService topics, I
             RubricCount = rubricPage.TotalCount,
             RecentSubjects = recent.Items,
             PendingQuestions = draftPage.Items
-        });
+        };
+        return Page();
     }
 
     public IActionResult OnPost() => NotFound();

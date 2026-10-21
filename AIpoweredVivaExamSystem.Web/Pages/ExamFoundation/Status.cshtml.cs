@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Web.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +9,7 @@ namespace AIpoweredVivaExamSystem.Web.Pages.ExamFoundation;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class StatusModel(ExamAccessGuard guard, AIpoweredVivaExamSystem.Application.VivaSessions.IExamLiveReader live) : ContentPageModel
+public sealed class StatusModel(ExamAccessGuard guard, AIpoweredVivaExamSystem.Application.VivaSessions.IExamLiveReader live) : PageModel
 {
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {

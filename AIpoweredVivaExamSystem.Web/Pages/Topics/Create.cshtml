@@ -1,3 +1,18 @@
 @page "/Topics/Create/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.Topics.CreateModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    ViewData["Title"] = "Thêm chủ đề";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-page="/Topics/Index">Chủ đề</a> @Icons.Get("chevron-right", 14) <span>Thêm mới</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Thêm chủ đề</h1>
+            <p class="page-sub">Tạo chủ đề mới cho một môn học.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model.Input" />
+</div>

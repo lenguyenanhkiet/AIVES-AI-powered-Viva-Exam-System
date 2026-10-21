@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -18,41 +19,44 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Questions;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class CreateModel(IQuestionService questions, ISubjectService subjects, ITopicService topics) : ContentPageModel
+public sealed class CreateModel(IQuestionService questions, ISubjectService subjects, ITopicService topics) : PageModel
 {
+    [BindProperty]
+    public QuestionFormViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid? subjectId, Guid? topicId, CancellationToken cancellationToken)
     {
-        var model = new QuestionFormViewModel { SubjectId = subjectId, TopicId = topicId };
-        await LoadFormListsAsync(model.SubjectId, cancellationToken);
-        return RenderContent("/Pages/Questions/_CreateContent.cshtml", model);
+        Input = new QuestionFormViewModel { SubjectId = subjectId, TopicId = topicId };
+        await LoadFormListsAsync(Input.SubjectId, cancellationToken);
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(QuestionFormViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         if (ModelState.IsValid)
         {
             try
             {
-                var created = await questions.CreateAsync(new CreateQuestionRequest(model.SubjectId!.Value,
-                    model.TopicId, model.Content, model.ExpectedAnswer, model.BloomLevel!.Value, model.Difficulty!.Value),
+                var created = await questions.CreateAsync(new CreateQuestionRequest(Input.SubjectId!.Value,
+                    Input.TopicId, Input.Content, Input.ExpectedAnswer, Input.BloomLevel!.Value, Input.Difficulty!.Value),
                     cancellationToken);
                 TempData.Toast("Đã tạo câu hỏi. Bước tiếp theo: thêm rubric chấm điểm.");
                 return RedirectToPage("/Questions/Details", new { id = created.Id });
             }
             catch (ResourceNotFoundException)
             {
-                ModelState.AddModelError(string.Empty, "Môn học hoặc chủ đề đã chọn không còn tồn tại. Hãy chọn lại.");
+                ModelState.AddModelError(nameof(Input), "Môn học hoặc chủ đề đã chọn không còn tồn tại. Hãy chọn lại.");
             }
             catch (Exception exception) when (TryAddError(exception)) { }
         }
-        await LoadFormListsAsync(model.SubjectId, cancellationToken);
-        return RenderContent("/Pages/Questions/_CreateContent.cshtml", model);
+        await LoadFormListsAsync(Input.SubjectId, cancellationToken);
+        return Page();
     }
 
     private async Task LoadFormListsAsync(Guid? subjectId, CancellationToken cancellationToken)
     {
-        ViewData["Subjects"] = SelectLists.Subjects((await SubjectMapAsync(cancellationToken)).Values);
-        ViewData["Topics"] = subjectId is null
+        Input.Subjects = SelectLists.Subjects((await SubjectMapAsync(cancellationToken)).Values);
+        Input.Topics = subjectId is null
             ? Array.Empty<SelectListItem>()
             : (await TopicMapAsync(subjectId, cancellationToken)).Values
                 .Select(x => new SelectListItem(x.Name, x.Id.ToString())).ToArray();
@@ -63,13 +67,13 @@ public sealed class CreateModel(IQuestionService questions, ISubjectService subj
         switch (exception)
         {
             case ValidationException validation:
-                ModelState.AddErrors(validation);
+                ModelState.AddErrors(validation, nameof(Input));
                 return true;
             case ResourceConflictException:
-                ModelState.AddModelError(string.Empty, "Môn học hoặc chủ đề vừa bị xóa. Tải lại trang và thử lại.");
+                ModelState.AddModelError(nameof(Input), "Môn học hoặc chủ đề vừa bị xóa. Tải lại trang và thử lại.");
                 return true;
             case DomainValidationException:
-                ModelState.AddModelError(nameof(QuestionFormViewModel.TopicId), "Chủ đề phải thuộc môn học đã chọn.");
+                ModelState.AddModelError($"Input.{nameof(QuestionFormViewModel.TopicId)}", "Chủ đề phải thuộc môn học đã chọn.");
                 return true;
             default:
                 return false;

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -15,18 +16,21 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Topics;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(ITopicService topics, ISubjectService subjects) : ContentPageModel
+public sealed class IndexModel(ITopicService topics, ISubjectService subjects) : PageModel
 {
+    public TopicIndexViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnGetAsync([FromQuery] TopicListQuery query, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid || query.SubjectId == Guid.Empty || query.Page < 1 || query.PageSize is < 1 or > 100
             || (query.Status is { } status && !Enum.IsDefined(status)))
             query = new TopicListQuery();
         var page = await topics.ListAsync(query, cancellationToken);
-        return RenderContent("/Pages/Topics/_IndexContent.cshtml", new TopicIndexViewModel
+        Vm = new TopicIndexViewModel
         {
             Page = page, Query = query, Subjects = await SubjectMapAsync(cancellationToken)
-        });
+        };
+        return Page();
     }
 
     private async Task<IReadOnlyDictionary<Guid, SubjectResponse>> SubjectMapAsync(CancellationToken cancellationToken) =>

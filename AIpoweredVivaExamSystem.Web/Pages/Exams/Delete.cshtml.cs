@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -14,7 +15,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Exams;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class DeleteModel(ExamService concreteExamService) : ContentPageModel
+public sealed class DeleteModel(ExamService concreteExamService) : PageModel
 {
     public async Task<IActionResult> OnPostAsync(Guid id, string rowVersion, CancellationToken ct)
     {

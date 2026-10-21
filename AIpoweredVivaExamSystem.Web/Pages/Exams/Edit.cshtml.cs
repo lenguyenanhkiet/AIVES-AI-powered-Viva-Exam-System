@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -14,8 +15,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Exams;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class EditModel(IExamService examService, ISubjectService subjectService) : ContentPageModel
+public sealed class EditModel(IExamService examService, ISubjectService subjectService) : PageModel
 {
+    [BindProperty]
+    public ExamFormViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {
         var details = await examService.GetAsync(id, ct);
@@ -26,48 +30,49 @@ public sealed class EditModel(IExamService examService, ISubjectService subjectS
         }
 
         var subjects = await GetSubjectOptionsAsync(ct);
-        return RenderContent("/Pages/Exams/_EditContent.cshtml", ExamFormViewModel.From(details, subjects));
+        Input = ExamFormViewModel.From(details, subjects);
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(Guid id, ExamFormViewModel model, CancellationToken ct)
+    public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken ct)
     {
-        model.Id = id;
+        Input.Id = id;
         if (ModelState.IsValid)
         {
             try
             {
-                byte[] expectedVersion = string.IsNullOrEmpty(model.RowVersionBase64)
+                byte[] expectedVersion = string.IsNullOrEmpty(Input.RowVersionBase64)
                     ? []
-                    : Convert.FromBase64String(model.RowVersionBase64);
+                    : Convert.FromBase64String(Input.RowVersionBase64);
 
                 await examService.UpdateAsync(id, new ExamConfiguration(
-                    model.SubjectId,
-                    model.Name,
-                    new DateTimeOffset(model.StartAt, TimeSpan.FromHours(7)),
-                    new DateTimeOffset(model.EndAt, TimeSpan.FromHours(7)),
-                    model.DurationMinutes,
-                    model.NumberOfMainQuestions,
-                    model.MaxFollowUpPerQuestion), expectedVersion, ct);
+                    Input.SubjectId,
+                    Input.Name,
+                    new DateTimeOffset(Input.StartAt, TimeSpan.FromHours(7)),
+                    new DateTimeOffset(Input.EndAt, TimeSpan.FromHours(7)),
+                    Input.DurationMinutes,
+                    Input.NumberOfMainQuestions,
+                    Input.MaxFollowUpPerQuestion), expectedVersion, ct);
 
                 TempData.Toast("Đã lưu thay đổi kỳ thi.");
                 return RedirectToPage("/Exams/Details", new { id });
             }
             catch (DomainValidationException ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                ModelState.AddModelError(nameof(Input), ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                ModelState.AddModelError(nameof(Input), ex.Message);
             }
             catch (ResourceConflictException ex)
             {
-                ModelState.AddModelError(string.Empty, ex.Message);
+                ModelState.AddModelError(nameof(Input), ex.Message);
             }
         }
 
-        model.SubjectOptions = await GetSubjectOptionsAsync(ct);
-        return RenderContent("/Pages/Exams/_EditContent.cshtml", model);
+        Input.SubjectOptions = await GetSubjectOptionsAsync(ct);
+        return Page();
     }
 
     private async Task<IReadOnlyList<SelectListItem>> GetSubjectOptionsAsync(CancellationToken ct)

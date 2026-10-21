@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -18,29 +19,33 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Questions;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class EditModel(IQuestionService questions, ISubjectService subjects, ITopicService topics) : ContentPageModel
+public sealed class EditModel(IQuestionService questions, ISubjectService subjects, ITopicService topics) : PageModel
 {
+    [BindProperty]
+    public QuestionFormViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken)
     {
         var question = await questions.GetAsync(id, cancellationToken);
+        Input = QuestionFormViewModel.From(question);
         await LoadFormListsAsync(question.SubjectId, cancellationToken);
-        return RenderContent("/Pages/Questions/_EditContent.cshtml", QuestionFormViewModel.From(question));
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(Guid id, QuestionFormViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken cancellationToken)
     {
         var current = await questions.GetAsync(id, cancellationToken);
         // The subject of a question is fixed; ignore whatever the form posted.
-        model.Id = id;
-        model.SubjectId = current.SubjectId;
-        model.CurrentStatus = current.Status;
-        ModelState.Remove(nameof(model.SubjectId));
+        Input.Id = id;
+        Input.SubjectId = current.SubjectId;
+        Input.CurrentStatus = current.Status;
+        ModelState.Remove($"Input.{nameof(Input.SubjectId)}");
         if (ModelState.IsValid)
         {
             try
             {
-                await questions.UpdateAsync(id, new UpdateQuestionRequest(model.TopicId, model.Content,
-                    model.ExpectedAnswer, model.BloomLevel!.Value, model.Difficulty!.Value), cancellationToken);
+                await questions.UpdateAsync(id, new UpdateQuestionRequest(Input.TopicId, Input.Content,
+                    Input.ExpectedAnswer, Input.BloomLevel!.Value, Input.Difficulty!.Value), cancellationToken);
                 TempData.Toast(current.Status == QuestionStatus.Draft
                     ? "Đã lưu thay đổi."
                     : "Đã lưu thay đổi. Câu hỏi được chuyển về Nháp để duyệt lại.");
@@ -48,18 +53,18 @@ public sealed class EditModel(IQuestionService questions, ISubjectService subjec
             }
             catch (ResourceNotFoundException)
             {
-                ModelState.AddModelError(nameof(model.TopicId), "Chủ đề đã chọn không còn tồn tại.");
+                ModelState.AddModelError($"Input.{nameof(Input.TopicId)}", "Chủ đề đã chọn không còn tồn tại.");
             }
             catch (Exception exception) when (TryAddError(exception)) { }
         }
-        await LoadFormListsAsync(model.SubjectId, cancellationToken);
-        return RenderContent("/Pages/Questions/_EditContent.cshtml", model);
+        await LoadFormListsAsync(Input.SubjectId, cancellationToken);
+        return Page();
     }
 
     private async Task LoadFormListsAsync(Guid? subjectId, CancellationToken cancellationToken)
     {
-        ViewData["Subjects"] = SelectLists.Subjects((await SubjectMapAsync(cancellationToken)).Values);
-        ViewData["Topics"] = subjectId is null
+        Input.Subjects = SelectLists.Subjects((await SubjectMapAsync(cancellationToken)).Values);
+        Input.Topics = subjectId is null
             ? Array.Empty<SelectListItem>()
             : (await TopicMapAsync(subjectId, cancellationToken)).Values
                 .Select(x => new SelectListItem(x.Name, x.Id.ToString())).ToArray();
@@ -70,13 +75,13 @@ public sealed class EditModel(IQuestionService questions, ISubjectService subjec
         switch (exception)
         {
             case ValidationException validation:
-                ModelState.AddErrors(validation);
+                ModelState.AddErrors(validation, nameof(Input));
                 return true;
             case ResourceConflictException:
-                ModelState.AddModelError(string.Empty, "Môn học hoặc chủ đề vừa bị xóa. Tải lại trang và thử lại.");
+                ModelState.AddModelError(nameof(Input), "Môn học hoặc chủ đề vừa bị xóa. Tải lại trang và thử lại.");
                 return true;
             case DomainValidationException:
-                ModelState.AddModelError(nameof(QuestionFormViewModel.TopicId), "Chủ đề phải thuộc môn học đã chọn.");
+                ModelState.AddModelError($"Input.{nameof(QuestionFormViewModel.TopicId)}", "Chủ đề phải thuộc môn học đã chọn.");
                 return true;
             default:
                 return false;

@@ -1,3 +1,19 @@
 @page "/Exams/Create/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.Exams.CreateModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    ViewData["Title"] = "Tạo kỳ thi vấn đáp";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-page="/Exams/Index">Kỳ thi</a> @Icons.Get("chevron-right", 14) <span>Tạo mới</span>
+    </nav>
+    <div class="page-head">
+        <h1 class="page-title">Tạo kỳ thi vấn đáp mới</h1>
+    </div>
+
+    <form method="post" asp-page="/Exams/Create">
+        @Html.AntiForgeryToken()
+        <partial name="_Form" model="Model.Input" />
+    </form>
+</div>

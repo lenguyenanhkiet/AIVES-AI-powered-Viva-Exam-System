@@ -1,7 +1,8 @@
 @model TopicFormViewModel
 @{
+    ViewData.TemplateInfo.HtmlFieldPrefix = "Input";
     var isEdit = Model.Id is not null;
-    var subjects = (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Subjects;
+    var subjects = Model.Subjects;
 }
 
 <form method="post" class="card" novalidate>

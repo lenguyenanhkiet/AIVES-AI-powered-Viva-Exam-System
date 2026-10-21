@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -12,7 +13,7 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Account;
 
 [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
 [Authorize]
-public sealed class LogoutModel : ContentPageModel
+public sealed class LogoutModel : PageModel
 {
     public async Task<IActionResult> OnPostAsync()
     {

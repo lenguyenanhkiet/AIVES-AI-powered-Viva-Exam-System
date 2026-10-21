@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Domain.Common;
@@ -10,9 +11,18 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.ExamPools;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(ExamPoolService pools) : ContentPageModel
+public sealed class IndexModel(ExamPoolService pools) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct) => RenderContent("/Pages/ExamPools/_IndexContent.cshtml", await PageAsync(id, new(), ct));
+    public ExamPoolViewModel Vm { get; private set; } = default!;
+
+    [BindProperty]
+    public ExamPoolSelectionViewModel Input { get; set; } = new();
+
+    public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
+    {
+        Vm = await PageAsync(id, new(), ct);
+        return Page();
+    }
 
     private async Task<ExamPoolViewModel> PageAsync(Guid examId, ExamPoolSelectionViewModel form, CancellationToken ct) =>
         new() { Page = await pools.GetPageAsync(examId, ct), Form = form };

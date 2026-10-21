@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
@@ -13,52 +14,56 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Rubrics;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class CreateModel(IRubricService rubrics, IQuestionService questions) : ContentPageModel
+public sealed class CreateModel(IRubricService rubrics, IQuestionService questions) : PageModel
 {
+    [BindProperty]
+    public RubricFormViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid questionId, CancellationToken cancellationToken)
     {
         var question = await questions.GetAsync(questionId, cancellationToken);
         if (question.HasRubric)
             return RedirectToPage("/Questions/Details", new { id = questionId });
-        ViewData["Question"] = question;
-        return RenderContent("/Pages/Rubrics/_CreateContent.cshtml", new RubricFormViewModel
+        Input = new RubricFormViewModel
         {
+            Question = question,
             QuestionId = questionId,
             Criteria = [new CriterionFormViewModel()]
-        });
+        };
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(RubricFormViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
-        model.Id = null;
-        foreach (var criterion in model.Criteria)
+        Input.Id = null;
+        foreach (var criterion in Input.Criteria)
             criterion.Id = null;
-        if (Validate(model))
+        if (Validate(Input))
         {
             try
             {
-                await rubrics.CreateAsync(new CreateRubricRequest(model.QuestionId, model.Name, model.Description,
-                    Criteria(model)), cancellationToken);
+                await rubrics.CreateAsync(new CreateRubricRequest(Input.QuestionId, Input.Name, Input.Description,
+                    Criteria(Input)), cancellationToken);
                 TempData.Toast("Đã tạo rubric. Câu hỏi đã có thể gửi duyệt.");
-                return RedirectToPage("/Questions/Details", new { id = model.QuestionId });
+                return RedirectToPage("/Questions/Details", new { id = Input.QuestionId });
             }
             catch (ResourceConflictException)
             {
                 TempData.Toast("Câu hỏi này đã có rubric.", success: false);
-                return RedirectToPage("/Questions/Details", new { id = model.QuestionId });
+                return RedirectToPage("/Questions/Details", new { id = Input.QuestionId });
             }
             catch (Exception exception) when (TryAddError(exception)) { }
         }
-        ViewData["Question"] = await questions.GetAsync(model.QuestionId, cancellationToken);
-        return RenderContent("/Pages/Rubrics/_CreateContent.cshtml", model);
+        Input.Question = await questions.GetAsync(Input.QuestionId, cancellationToken);
+        return Page();
     }
 
     private bool Validate(RubricFormViewModel model)
     {
         if (model.Criteria.Count == 0)
-            ModelState.AddModelError(string.Empty, "Rubric cần ít nhất một tiêu chí.");
+            ModelState.AddModelError(nameof(Input), "Rubric cần ít nhất một tiêu chí.");
         else if (model.Criteria.Sum(x => x.MaxScore ?? 0) > 999.99m)
-            ModelState.AddModelError(string.Empty, "Tổng điểm không được vượt quá 999.99.");
+            ModelState.AddModelError(nameof(Input), "Tổng điểm không được vượt quá 999.99.");
         return ModelState.IsValid;
     }
 
@@ -71,10 +76,10 @@ public sealed class CreateModel(IRubricService rubrics, IQuestionService questio
         switch (exception)
         {
             case ValidationException validation:
-                ModelState.AddErrors(validation);
+                ModelState.AddErrors(validation, nameof(Input));
                 return true;
             case DomainValidationException domain:
-                ModelState.AddModelError(string.Empty, domain.Message);
+                ModelState.AddModelError(nameof(Input), domain.Message);
                 return true;
             default:
                 return false;

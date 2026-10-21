@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -15,8 +16,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Subjects;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(ISubjectService subjects) : ContentPageModel
+public sealed class IndexModel(ISubjectService subjects) : PageModel
 {
+    public SubjectIndexViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnGetAsync([FromQuery] SubjectListQuery query, CancellationToken cancellationToken)
     {
         // Invalid filters in a hand-edited URL fall back to the default list instead of an error page.
@@ -24,7 +27,8 @@ public sealed class IndexModel(ISubjectService subjects) : ContentPageModel
             || (query.Status is { } status && !Enum.IsDefined(status)))
             query = new SubjectListQuery();
         var page = await subjects.ListAsync(query, cancellationToken);
-        return RenderContent("/Pages/Subjects/_IndexContent.cshtml", new SubjectIndexViewModel { Page = page, Query = query });
+        Vm = new SubjectIndexViewModel { Page = page, Query = query };
+        return Page();
     }
 
     public IActionResult OnPost() => NotFound();

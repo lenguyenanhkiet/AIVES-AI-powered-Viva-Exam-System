@@ -93,9 +93,9 @@ public static class UiExtensions
     }
 
     // Business-layer validators are the source of truth; surface their errors on the matching form fields.
-    public static void AddErrors(this ModelStateDictionary modelState, ValidationException exception)
+    public static void AddErrors(this ModelStateDictionary modelState, ValidationException exception, string? prefix = null)
     {
         foreach (var error in exception.Errors)
-            modelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            modelState.AddModelError(ModelNames.CreatePropertyModelName(prefix, error.PropertyName), error.ErrorMessage);
     }
 }

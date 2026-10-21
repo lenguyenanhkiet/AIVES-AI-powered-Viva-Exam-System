@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -18,8 +19,10 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Questions;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class IndexModel(IQuestionService questions, ISubjectService subjects, ITopicService topics) : ContentPageModel
+public sealed class IndexModel(IQuestionService questions, ISubjectService subjects, ITopicService topics) : PageModel
 {
+    public QuestionIndexViewModel Vm { get; private set; } = default!;
+
     public async Task<IActionResult> OnGetAsync([FromQuery] QuestionListQuery query, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid || query.SubjectId == Guid.Empty || query.TopicId == Guid.Empty
@@ -35,12 +38,13 @@ public sealed class IndexModel(IQuestionService questions, ISubjectService subje
             counts[tab] = (await questions.ListAsync(CountQuery(query, tab), cancellationToken)).TotalCount;
         var all = (await questions.ListAsync(CountQuery(query, null), cancellationToken)).TotalCount;
 
-        return RenderContent("/Pages/Questions/_IndexContent.cshtml", new QuestionIndexViewModel
+        Vm = new QuestionIndexViewModel
         {
             Page = page, Query = query, StatusCounts = counts, AllCount = all,
             Subjects = await SubjectMapAsync(cancellationToken),
             Topics = await TopicMapAsync(query.SubjectId, cancellationToken)
-        });
+        };
+        return Page();
     }
 
     private static readonly QuestionStatus[] StatusTabs =

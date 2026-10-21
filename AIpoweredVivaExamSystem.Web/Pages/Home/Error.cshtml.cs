@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Diagnostics;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
@@ -17,10 +18,15 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Home;
 
 [AllowAnonymous, ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-public sealed class ErrorModel : ContentPageModel
+public sealed class ErrorModel : PageModel
 {
-    public IActionResult OnGet() =>
-        RenderContent("/Pages/Shared/_ErrorContent.cshtml", new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    public ErrorViewModel Vm { get; private set; } = default!;
+
+    public IActionResult OnGet()
+    {
+        Vm = new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier };
+        return Page();
+    }
 
     public IActionResult OnPost() => OnGet();
 }

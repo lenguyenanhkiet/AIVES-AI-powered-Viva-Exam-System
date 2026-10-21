@@ -1,3 +1,165 @@
 @page "/Questions"
 @model AIpoweredVivaExamSystem.Web.Pages.Questions.IndexModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    ViewData["Title"] = "Câu hỏi";
+    var q = Model.Vm.Query;
+    var filtered = q.SubjectId is not null || q.TopicId is not null || !string.IsNullOrWhiteSpace(q.Keyword)
+        || q.BloomLevel is not null || q.Difficulty is not null;
+    Dictionary<string, string?> Route(QuestionStatus? status) => new()
+    {
+        ["subjectId"] = q.SubjectId?.ToString(), ["topicId"] = q.TopicId?.ToString(), ["keyword"] = q.Keyword,
+        ["bloomLevel"] = q.BloomLevel?.ToString(), ["difficulty"] = q.Difficulty?.ToString(), ["status"] = status?.ToString()
+    };
+    var pager = new PagerModel(Model.Vm.Page.Page, Model.Vm.Page.PageSize, Model.Vm.Page.TotalCount, Route(q.Status));
+    Model.Vm.Topics.TryGetValue(q.TopicId ?? Guid.Empty, out var topicFilter);
+}
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Câu hỏi</h1>
+            <p class="page-sub">Ngân hàng câu hỏi vấn đáp, phân loại theo môn, chủ đề và mức Bloom. Câu hỏi cần rubric và được duyệt trước khi dùng.</p>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-primary" asp-route-subjectId="@q.SubjectId" asp-route-topicId="@q.TopicId" asp-page="/Questions/Create">@Icons.Get("plus") Soạn câu hỏi</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <nav class="tabs" aria-label="Lọc theo trạng thái">
+            <a class="tab @(q.Status is null ? "active" : "")" asp-all-route-data="Route(null)" asp-page="/Questions/Index">Tất cả <span class="tab-count">@Model.Vm.AllCount</span></a>
+            @foreach (var (status, count) in Model.Vm.StatusCounts)
+            {
+                <a class="tab @(q.Status == status ? "active" : "")" asp-all-route-data="Route(status)" asp-page="/Questions/Index">@status.ToLabel() <span class="tab-count">@count</span></a>
+            }
+        </nav>
+
+        <form class="toolbar" method="get" asp-page="/Questions/Index">
+            <input type="hidden" name="status" value="@q.Status" />
+            @if (q.TopicId is not null)
+            {
+                <input type="hidden" name="topicId" value="@q.TopicId" />
+            }
+            <label class="search">
+                @Icons.Get("search")
+                <input class="input" type="search" name="keyword" value="@q.Keyword" placeholder="Tìm trong nội dung câu hỏi…" maxlength="255" />
+            </label>
+            <select class="select" name="subjectId" data-auto-submit>
+                <option value="">Tất cả môn học</option>
+                @foreach (var subject in Model.Vm.Subjects.Values.OrderBy(x => x.Code))
+                {
+                    <option value="@subject.Id" selected="@(q.SubjectId == subject.Id)">@subject.Code — @subject.Name</option>
+                }
+            </select>
+            <select class="select" name="bloomLevel" data-auto-submit>
+                <option value="">Mọi mức Bloom</option>
+                @foreach (var level in Enum.GetValues<BloomLevel>())
+                {
+                    <option value="@level" selected="@(q.BloomLevel == level)">@level.ToLabel()</option>
+                }
+            </select>
+            <select class="select" name="difficulty" data-auto-submit>
+                <option value="">Mọi độ khó</option>
+                @foreach (var difficulty in Enum.GetValues<QuestionDifficulty>())
+                {
+                    <option value="@difficulty" selected="@(q.Difficulty == difficulty)">@difficulty.ToLabel()</option>
+                }
+            </select>
+            <button class="btn btn-secondary" type="submit">Lọc</button>
+            @if (filtered)
+            {
+                <a class="btn btn-ghost" asp-route-status="@q.Status" asp-page="/Questions/Index">Xóa bộ lọc</a>
+            }
+        </form>
+
+        @if (topicFilter is not null)
+        {
+            var withoutTopic = Route(q.Status);
+            withoutTopic.Remove("topicId");
+            <div class="filter-chips">
+                <span class="chip">Chủ đề: <strong>@topicFilter.Name</strong>
+                    <a asp-all-route-data="withoutTopic" aria-label="Bỏ lọc chủ đề" asp-page="/Questions/Index">@Icons.Get("x", 12)</a>
+                </span>
+            </div>
+        }
+
+        @if (Model.Vm.Page.Items.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("inbox", 20)</div>
+                @if (filtered || q.Status is not null)
+                {
+                    <div class="empty-title">Không có câu hỏi phù hợp</div>
+                    <p class="empty-text">Thử bộ lọc khác hoặc xem tất cả câu hỏi.</p>
+                    <a class="btn btn-secondary" asp-page="/Questions/Index">Xem tất cả</a>
+                }
+                else if (Model.Vm.Subjects.Count == 0)
+                {
+                    <div class="empty-title">Chưa có môn học nào</div>
+                    <p class="empty-text">Cần tạo môn học trước khi soạn câu hỏi.</p>
+                    <a class="btn btn-primary" asp-page="/Subjects/Create">@Icons.Get("plus") Thêm môn học</a>
+                }
+                else
+                {
+                    <div class="empty-title">Ngân hàng câu hỏi đang trống</div>
+                    <p class="empty-text">Soạn câu hỏi đầu tiên, gắn mức Bloom và rubric chấm điểm.</p>
+                    <a class="btn btn-primary" asp-page="/Questions/Create">@Icons.Get("plus") Soạn câu hỏi</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr><th>Câu hỏi</th><th>Môn</th><th>Bloom</th><th>Độ khó</th><th>Rubric</th><th>Trạng thái</th><th class="actions"></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var question in Model.Vm.Page.Items)
+                        {
+                            Model.Vm.Subjects.TryGetValue(question.SubjectId, out var subject);
+                            Model.Vm.Topics.TryGetValue(question.TopicId ?? Guid.Empty, out var topic);
+                            <tr>
+                                <td class="q-cell">
+                                    <a class="cell-title clamp-2" asp-route-id="@question.Id" asp-page="/Questions/Details">@question.Content</a>
+                                    @if (topic is not null)
+                                    {
+                                        <span class="cell-sub">@Icons.Get("layers", 12) @topic.Name</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (subject is not null)
+                                    {
+                                        <span class="code-chip" title="@subject.Name">@subject.Code</span>
+                                    }
+                                </td>
+                                <td><partial name="_Bloom" model="question.BloomLevel" /></td>
+                                <td><partial name="_Difficulty" model="question.Difficulty" /></td>
+                                <td>
+                                    @if (question.HasRubric)
+                                    {
+                                        <span class="rubric-yes">@Icons.Get("check", 14) Có</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">Chưa có</span>
+                                    }
+                                </td>
+                                <td><partial name="_QuestionStatus" model="question.Status" /></td>
+                                <td class="actions">
+                                    <a class="icon-btn" title="Xem" asp-route-id="@question.Id" asp-page="/Questions/Details">@Icons.Get("eye")</a>
+                                    <a class="icon-btn" title="Sửa" asp-route-id="@question.Id" asp-page="/Questions/Edit">@Icons.Get("edit")</a>
+                                    <a class="icon-btn danger" title="Xóa" asp-route-id="@question.Id"
+                                       data-confirm-action="@Url.Page("/Questions/Delete", new { id = question.Id })"
+                                       data-confirm-title="Xóa câu hỏi này?"
+                                       data-confirm-text="Câu hỏi và rubric đi kèm sẽ bị xóa khỏi ngân hàng câu hỏi." asp-page="/Questions/Delete">@Icons.Get("trash")</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="pager" />
+        }
+    </div>
+</div>

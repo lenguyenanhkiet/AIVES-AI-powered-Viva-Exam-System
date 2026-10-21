@@ -1,3 +1,29 @@
 @page "/QuestionImports/Preview/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.QuestionImports.PreviewModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{ ViewData["Title"] = "Import câu hỏi"; }
+<div class="container stack">
+    <h1 class="page-title">Import câu hỏi CSV/XLSX</h1>
+    <p>File tối đa 5 MB, 1000 câu hỏi. Tất cả câu hỏi được lưu ở trạng thái Nháp. Sửa mọi dòng lỗi trước khi xác nhận.</p>
+    <a class="btn btn-secondary" asp-page="/QuestionImports/Template">Tải mẫu CSV</a>
+    <div asp-validation-summary="All" class="alert"></div>
+    <form method="post" enctype="multipart/form-data" class="card card-body stack" asp-page="/QuestionImports/Preview">
+        <label class="label" asp-for="Input.File">File CSV UTF-8 hoặc Excel XLSX</label>
+        <input asp-for="Input.File" type="file" accept=".csv,.xlsx" required />
+        <button class="btn btn-primary" type="submit">Xem trước và kiểm tra</button>
+    </form>
+    @if (Model.Input.Preview is { } preview)
+    {
+        <h2>@preview.ValidCount câu hợp lệ / @preview.Rows.Count dòng</h2>
+        @foreach (var error in preview.Errors) { <p class="alert">Dòng @error.RowNumber: @error.Message</p> }
+        <div class="card" style="overflow:auto;max-height:500px">
+            <table class="table"><thead><tr><th>Dòng</th><th>Môn</th><th>Chủ đề</th><th>Câu hỏi</th><th>Bloom</th><th>Độ khó</th></tr></thead><tbody>
+            @foreach (var row in preview.Rows)
+            { <tr><td>@row.RowNumber</td><td>@row.SubjectCode</td><td>@row.Topic</td><td>@row.Content</td><td>@row.BloomLevel</td><td>@row.Difficulty</td></tr> }
+            </tbody></table>
+        </div>
+        @if (Model.Input.Token is not null)
+        {
+            <form method="post" asp-page="/QuestionImports/Confirm"><input type="hidden" name="token" value="@Model.Input.Token" /><button class="btn btn-primary" type="submit">Xác nhận import @preview.ValidCount câu hỏi</button></form>
+        }
+    }
+</div>

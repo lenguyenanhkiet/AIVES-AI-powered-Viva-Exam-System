@@ -1,8 +1,9 @@
 @model QuestionFormViewModel
 @{
+    ViewData.TemplateInfo.HtmlFieldPrefix = "Input";
     var isEdit = Model.Id is not null;
-    var subjects = (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Subjects;
-    var topics = (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Topics;
+    var subjects = Model.Subjects;
+    var topics = Model.Topics;
 }
 
 <form method="post" class="card" novalidate>
@@ -83,7 +84,7 @@
                         @foreach (var level in Enum.GetValues<BloomLevel>())
                         {
                             <label class="choice">
-                                <input type="radio" name="@nameof(Model.BloomLevel)" value="@level" checked="@(Model.BloomLevel == level)" />
+                                <input type="radio" name="Input.BloomLevel" value="@level" checked="@(Model.BloomLevel == level)" />
                                 <span class="choice-body">
                                     <span class="choice-title"><span class="choice-dot bloom-@((int)level)"></span>@((int)level). @level.ToLabel()</span>
                                     <span class="choice-hint">@level.ToHint()</span>
@@ -99,7 +100,7 @@
                         @foreach (var difficulty in Enum.GetValues<QuestionDifficulty>())
                         {
                             <label>
-                                <input type="radio" name="@nameof(Model.Difficulty)" value="@difficulty" checked="@(Model.Difficulty == difficulty)" />
+                                <input type="radio" name="Input.Difficulty" value="@difficulty" checked="@(Model.Difficulty == difficulty)" />
                                 <span>@difficulty.ToLabel()</span>
                             </label>
                         }

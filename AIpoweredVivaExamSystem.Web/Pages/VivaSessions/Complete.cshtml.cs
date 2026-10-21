@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Application.Common;
@@ -10,7 +11,7 @@ namespace AIpoweredVivaExamSystem.Web.Pages.VivaSessions;
 
 [Authorize(Roles = "STUDENT")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class CompleteModel(IVivaSessionService sessions) : ContentPageModel
+public sealed class CompleteModel(IVivaSessionService sessions) : PageModel
 {
     public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken ct)
     {

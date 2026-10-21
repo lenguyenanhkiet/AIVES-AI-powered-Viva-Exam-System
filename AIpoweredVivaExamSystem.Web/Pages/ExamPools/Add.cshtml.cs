@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Domain.Common;
@@ -10,22 +11,32 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.ExamPools;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class AddModel(ExamPoolService pools) : ContentPageModel
+public sealed class AddModel(ExamPoolService pools) : PageModel
 {
-    public async Task<IActionResult> OnPostAsync(Guid id, ExamPoolSelectionViewModel form, CancellationToken ct)
+    public ExamPoolViewModel Vm { get; private set; } = default!;
+
+    [BindProperty]
+    public ExamPoolSelectionViewModel Input { get; set; } = new();
+
+    public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken ct)
     {
-        var page = await PageAsync(id, form, ct);
-        if (!ModelState.IsValid) return RenderContent("/Pages/ExamPools/_IndexContent.cshtml", page);
+        var page = await PageAsync(id, Input, ct);
+        if (!ModelState.IsValid)
+        {
+            Vm = page;
+            return Page();
+        }
         try
         {
-            await pools.AddAsync(id, form.QuestionIds, ct);
+            await pools.AddAsync(id, Input.QuestionIds, ct);
             TempData.Toast("Đã thêm câu hỏi vào pool.");
             return RedirectToPage("/ExamPools/Index", new { id });
         }
         catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-            return RenderContent("/Pages/ExamPools/_IndexContent.cshtml", await PageAsync(id, form, ct));
+            Vm = await PageAsync(id, Input, ct);
+            return Page();
         }
     }
 

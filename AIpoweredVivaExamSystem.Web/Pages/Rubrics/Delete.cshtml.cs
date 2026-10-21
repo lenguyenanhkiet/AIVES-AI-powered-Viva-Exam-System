@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
@@ -13,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Rubrics;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class DeleteModel(IRubricService rubrics, IQuestionService questions) : ContentPageModel
+public sealed class DeleteModel(IRubricService rubrics, IQuestionService questions) : PageModel
 {
     public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken cancellationToken)
     {

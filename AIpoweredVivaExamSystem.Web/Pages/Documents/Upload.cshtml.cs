@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.QuestionBank;
 using AIpoweredVivaExamSystem.Application.Subjects;
@@ -16,24 +17,28 @@ namespace AIpoweredVivaExamSystem.Web.Pages.Documents;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
 [RequestSizeLimit(21 * 1024 * 1024)]
-public sealed class UploadModel(DocumentService documents, ISubjectService subjects) : ContentPageModel
+public sealed class UploadModel(DocumentService documents, ISubjectService subjects) : PageModel
 {
-    public async Task<IActionResult> OnPostAsync(DocumentsViewModel model, CancellationToken ct)
+    [BindProperty]
+    public DocumentsViewModel Input { get; set; } = new();
+
+    public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
-        if (model.File is null || model.File.Length is 0 or > 20 * 1024 * 1024)
-            ModelState.AddModelError(nameof(model.File), "Chọn PDF/PPTX tối đa 20 MB.");
+        if (Input.File is null || Input.File.Length is 0 or > 20 * 1024 * 1024)
+            ModelState.AddModelError($"Input.{nameof(Input.File)}", "Chọn PDF/PPTX tối đa 20 MB.");
         if (ModelState.IsValid)
         {
             try
             {
-                using var stream = new MemoryStream(); await model.File!.CopyToAsync(stream, ct);
-                var document = await documents.UploadAsync(model.SubjectId!.Value, stream.ToArray(), model.File.FileName, ct);
+                using var stream = new MemoryStream(); await Input.File!.CopyToAsync(stream, ct);
+                var document = await documents.UploadAsync(Input.SubjectId!.Value, stream.ToArray(), Input.File.FileName, ct);
                 return RedirectToPage("/Documents/Generate", new { id = document.Id });
             }
             catch (Exception ex) when (ex is ResourceConflictException or DomainValidationException)
             { ModelState.AddModelError("", ex.Message); }
         }
-        return RenderContent("/Pages/Documents/_IndexContent.cshtml", await LoadAsync(model, ct));
+        Input = await LoadAsync(Input, ct);
+        return Page();
     }
 
     private async Task<DocumentsViewModel> LoadAsync(DocumentsViewModel model, CancellationToken ct)

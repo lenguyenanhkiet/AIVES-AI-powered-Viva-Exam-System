@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
@@ -13,45 +14,49 @@ using Microsoft.AspNetCore.Mvc;
 namespace AIpoweredVivaExamSystem.Web.Pages.Rubrics;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class EditModel(IRubricService rubrics, IQuestionService questions) : ContentPageModel
+public sealed class EditModel(IRubricService rubrics, IQuestionService questions) : PageModel
 {
+    [BindProperty]
+    public RubricFormViewModel Input { get; set; } = new();
+
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken)
     {
         var rubric = await rubrics.GetAsync(id, cancellationToken);
-        ViewData["Question"] = await questions.GetAsync(rubric.QuestionId, cancellationToken);
-        return RenderContent("/Pages/Rubrics/_EditContent.cshtml", RubricFormViewModel.From(rubric));
+        Input = RubricFormViewModel.From(rubric);
+        Input.Question = await questions.GetAsync(rubric.QuestionId, cancellationToken);
+        return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(Guid id, RubricFormViewModel model, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostAsync(Guid id, CancellationToken cancellationToken)
     {
         var current = await rubrics.GetAsync(id, cancellationToken);
-        model.Id = id;
-        model.QuestionId = current.QuestionId;
-        if (Validate(model))
+        Input.Id = id;
+        Input.QuestionId = current.QuestionId;
+        if (Validate(Input))
         {
             try
             {
-                await rubrics.UpdateAsync(id, new UpdateRubricRequest(model.Name, model.Description, Criteria(model)),
+                await rubrics.UpdateAsync(id, new UpdateRubricRequest(Input.Name, Input.Description, Criteria(Input)),
                     cancellationToken);
                 TempData.Toast("Đã lưu rubric.");
-                return RedirectToPage("/Questions/Details", new { id = model.QuestionId });
+                return RedirectToPage("/Questions/Details", new { id = Input.QuestionId });
             }
             catch (ResourceConflictException)
             {
-                ModelState.AddModelError(string.Empty, "Rubric vừa được người khác sửa. Tải lại trang rồi thử lại.");
+                ModelState.AddModelError(nameof(Input), "Rubric vừa được người khác sửa. Tải lại trang rồi thử lại.");
             }
             catch (Exception exception) when (TryAddError(exception)) { }
         }
-        ViewData["Question"] = await questions.GetAsync(model.QuestionId, cancellationToken);
-        return RenderContent("/Pages/Rubrics/_EditContent.cshtml", model);
+        Input.Question = await questions.GetAsync(Input.QuestionId, cancellationToken);
+        return Page();
     }
 
     private bool Validate(RubricFormViewModel model)
     {
         if (model.Criteria.Count == 0)
-            ModelState.AddModelError(string.Empty, "Rubric cần ít nhất một tiêu chí.");
+            ModelState.AddModelError(nameof(Input), "Rubric cần ít nhất một tiêu chí.");
         else if (model.Criteria.Sum(x => x.MaxScore ?? 0) > 999.99m)
-            ModelState.AddModelError(string.Empty, "Tổng điểm không được vượt quá 999.99.");
+            ModelState.AddModelError(nameof(Input), "Tổng điểm không được vượt quá 999.99.");
         return ModelState.IsValid;
     }
 
@@ -64,10 +69,10 @@ public sealed class EditModel(IRubricService rubrics, IQuestionService questions
         switch (exception)
         {
             case ValidationException validation:
-                ModelState.AddErrors(validation);
+                ModelState.AddErrors(validation, nameof(Input));
                 return true;
             case DomainValidationException domain:
-                ModelState.AddModelError(string.Empty, domain.Message);
+                ModelState.AddModelError(nameof(Input), domain.Message);
                 return true;
             default:
                 return false;

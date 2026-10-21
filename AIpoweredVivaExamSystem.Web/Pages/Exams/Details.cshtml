@@ -1,3 +1,217 @@
 @page "/Exams/Details/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.Exams.DetailsModel
-<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@{
+    var s = Model.Vm.Details.Summary;
+    ViewData["Title"] = s.Name;
+    var rowVersion = Convert.ToBase64String(Model.Vm.Details.RowVersion);
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-page="/Exams/Index">Kỳ thi</a> @Icons.Get("chevron-right", 14) <span>@s.Name</span>
+    </nav>
+
+    <div class="page-head">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span class="code-chip">@Model.Vm.SubjectCode</span>
+                <partial name="_ExamStatus" model="s.Status" />
+            </div>
+            <h1 class="page-title">@s.Name</h1>
+            <p class="page-sub">Môn học: <strong>@Model.Vm.SubjectCode — @Model.Vm.SubjectName</strong></p>
+        </div>
+
+        <div class="head-actions">
+            @if (s.Status == ExamStatus.Draft)
+            {
+                <a class="btn btn-secondary" asp-route-id="@s.Id" asp-page="/Exams/Edit">@Icons.Get("edit") Sửa</a>
+
+                @if (Model.Vm.CanPublish)
+                {
+                    <form method="post" asp-route-id="@s.Id" style="display:inline" asp-page="/Exams/Transition">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="target" value="@ExamStatus.Published" />
+                        <input type="hidden" name="rowVersion" value="@rowVersion" />
+                        <button class="btn btn-primary" type="submit">@Icons.Get("check") Công bố kỳ thi (Publish)</button>
+                    </form>
+                }
+
+                <form method="post" asp-route-id="@s.Id" style="display:inline"
+                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa kỳ thi nháp này?');" asp-page="/Exams/Delete">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="rowVersion" value="@rowVersion" />
+                    <button class="btn btn-secondary" type="submit" style="color:var(--danger)">@Icons.Get("trash") Xóa</button>
+                </form>
+            }
+            else if (s.Status == ExamStatus.Published)
+            {
+                @if (Model.Vm.CanStart)
+                {
+                    <form method="post" asp-route-id="@s.Id" style="display:inline" asp-page="/Exams/Transition">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="target" value="@ExamStatus.Ongoing" />
+                        <input type="hidden" name="rowVersion" value="@rowVersion" />
+                        <button class="btn btn-success" type="submit">@Icons.Get("sparkles") Bắt đầu kỳ thi (Start)</button>
+                    </form>
+                }
+                else
+                {
+                    <span class="hint" style="align-self:center">Kỳ thi sẽ mở nút Bắt đầu khi đến khung giờ (@s.StartAt.ToLocalText() – @s.EndAt.ToLocalText()).</span>
+                }
+            }
+            else if (s.Status == ExamStatus.Ongoing)
+            {
+                <form method="post" asp-route-id="@s.Id" style="display:inline"
+                      onsubmit="return confirm('Hoàn thành kỳ thi này? Sau khi hoàn thành sẽ không thể tạo thêm phiên vấn đáp.');" asp-page="/Exams/Transition">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="target" value="@ExamStatus.Completed" />
+                    <input type="hidden" name="rowVersion" value="@rowVersion" />
+                    <button class="btn btn-primary" type="submit">@Icons.Get("check") Hoàn thành kỳ thi (Complete)</button>
+                </form>
+            }
+
+            @if (Model.Vm.CanCancel)
+            {
+                <form method="post" asp-route-id="@s.Id" style="display:inline"
+                      onsubmit="return confirm('Hủy kỳ thi này? Hành động này không thể hoàn tác.');" asp-page="/Exams/Transition">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="target" value="@ExamStatus.Cancelled" />
+                    <input type="hidden" name="rowVersion" value="@rowVersion" />
+                    <button class="btn btn-secondary" type="submit" style="color:var(--danger)">Hủy kỳ thi</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="stack">
+            <!-- Readiness Checklist card (TM3 requirement) -->
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title">Kiểm tra điều kiện công bố kỳ thi (Readiness Checklist)</div>
+                </div>
+                <div class="card-body">
+                    <ul class="steps" style="margin:0;padding:0">
+                        <li class="@(Model.Vm.IsPoolReady ? "" : "todo")">
+                            <div>
+                                <strong>1. Ngân hàng câu hỏi của kỳ thi (Pool)</strong>
+                                <span>
+                                    @(Model.Vm.IsPoolReady ? "✓ Đạt: " : "✗ Chưa đạt: ")
+                                    Đã chọn @Model.Vm.Counts.PoolQuestions câu hỏi (Yêu cầu tối thiểu @Model.Vm.Details.MainQuestions câu Approved từ môn học).
+                                </span>
+                                <a class="stat-link" asp-route-id="@s.Id" asp-page="/ExamPools/Index">@(Model.Vm.IsPoolReady ? "Xem pool câu hỏi" : "Chọn câu hỏi cho pool") →</a>
+                            </div>
+                        </li>
+                        <li class="@(Model.Vm.IsRosterReady ? "" : "todo")">
+                            <div>
+                                <strong>2. Danh sách thí sinh dự thi (Roster)</strong>
+                                <span>
+                                    @(Model.Vm.IsRosterReady ? "✓ Đạt: " : "✗ Chưa đạt: ")
+                                    Đã thêm @Model.Vm.Counts.Students sinh viên vào danh sách dự thi (Yêu cầu ít nhất 1 sinh viên).
+                                </span>
+                                <a class="stat-link" asp-route-id="@s.Id" asp-page="/ExamStudents/Roster">@(Model.Vm.IsRosterReady ? "Xem danh sách thí sinh" : "Thêm thí sinh") →</a>
+                            </div>
+                        </li>
+                        <li class="@(Model.Vm.IsScheduleReady ? "" : "todo")">
+                            <div>
+                                <strong>3. Xếp lịch ca thi (Scheduling)</strong>
+                                <span>
+                                    @(Model.Vm.IsScheduleReady ? "✓ Đạt: " : "✗ Chưa đạt: ")
+                                    Đã xếp lịch cho @Model.Vm.Counts.ScheduledStudents / @Model.Vm.Counts.Students thí sinh (Yêu cầu toàn bộ thí sinh có ca thi).
+                                </span>
+                                <a class="stat-link" asp-route-id="@s.Id" asp-page="/Schedules/Exam">@(Model.Vm.IsScheduleReady ? "Xem lịch thi" : "Xếp lịch ca thi") →</a>
+                            </div>
+                        </li>
+                    </ul>
+
+                    @if (s.Status == ExamStatus.Draft && !Model.Vm.CanPublish)
+                    {
+                        <div class="alert" style="margin-top:16px;margin-bottom:0">
+                            Cần hoàn tất đủ 3 điều kiện trên trước khi có thể bấm nút <strong>Công bố kỳ thi (Publish)</strong>.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Modules integration links card -->
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-title">Các phân hệ liên kết (Nhóm 2)</div>
+                </div>
+                <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
+                        <div style="font-weight:600">Ngân hàng đề thi (Pool)</div>
+                        <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Vm.Counts.PoolQuestions câu hỏi đã chọn</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Sơn</span>
+                            <a class="btn btn-secondary btn-sm" asp-route-id="@s.Id" asp-page="/ExamPools/Index">Quản lý pool →</a>
+                        </div>
+                    </div>
+
+                    <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
+                        <div style="font-weight:600">Danh sách thí sinh (Roster)</div>
+                        <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Vm.Counts.Students sinh viên đăng ký</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Long</span>
+                            <a class="btn btn-secondary btn-sm" asp-route-id="@s.Id" asp-page="/ExamStudents/Roster">Quản lý roster →</a>
+                        </div>
+                    </div>
+
+                    <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
+                        <div style="font-weight:600">Lịch thi cá nhân (Schedule)</div>
+                        <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Vm.Counts.ScheduledStudents ca thi đã gán</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Dương</span>
+                            <a class="btn btn-secondary btn-sm" asp-route-id="@s.Id" asp-page="/Schedules/Exam">Xếp lịch →</a>
+                        </div>
+                    </div>
+
+                    <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm)">
+                        <div style="font-weight:600">Phiên vấn đáp &amp; Real-time</div>
+                        <div class="muted" style="font-size:13px;margin:4px 0 8px">@Model.Vm.Counts.Sessions ca thi đã mở</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <span class="hint">Phụ trách: Dũng (SignalR)</span>
+                            <a class="btn btn-secondary btn-sm" asp-route-id="@s.Id" asp-page="/ExamFoundation/Details">Theo dõi real-time →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column details card -->
+        <div class="card">
+            <div class="card-head"><div class="card-title">Cấu hình kỳ thi</div></div>
+            <div class="card-body">
+                <dl class="meta">
+                    <div>
+                        <dt>Trạng thái</dt>
+                        <dd><partial name="_ExamStatus" model="s.Status" /></dd>
+                    </div>
+                    <div>
+                        <dt>Môn học</dt>
+                        <dd>@Model.Vm.SubjectCode — @Model.Vm.SubjectName</dd>
+                    </div>
+                    <div>
+                        <dt>Thời gian bắt đầu</dt>
+                        <dd>@s.StartAt.ToLocalText()</dd>
+                    </div>
+                    <div>
+                        <dt>Thời gian kết thúc</dt>
+                        <dd>@s.EndAt.ToLocalText()</dd>
+                    </div>
+                    <div>
+                        <dt>Thời lượng mỗi ca</dt>
+                        <dd><strong>@Model.Vm.Details.DurationMinutes phút</strong> / thí sinh</dd>
+                    </div>
+                    <div>
+                        <dt>Cấu hình câu hỏi</dt>
+                        <dd>
+                            <div><strong>@Model.Vm.Details.MainQuestions</strong> câu hỏi chính</div>
+                            <div>Tối đa <strong>@Model.Vm.Details.MaxFollowUps</strong> câu đào sâu / câu chính</div>
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

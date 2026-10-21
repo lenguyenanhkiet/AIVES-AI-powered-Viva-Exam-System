@@ -54,8 +54,8 @@ if (criteria) {
         const rows = criteria.querySelectorAll("[data-criterion]");
         rows.forEach((row, i) => {
             row.querySelector("[data-criterion-index]").textContent = i + 1;
-            row.querySelectorAll("[name^='Criteria[']").forEach((input) =>
-                input.name = input.name.replace(/^Criteria\[[^\]]+\]/, `Criteria[${i}]`));
+            row.querySelectorAll("[name^='Input.Criteria[']").forEach((input) =>
+                input.name = input.name.replace(/^Input\.Criteria\[[^\]]+\]/, `Input.Criteria[${i}]`));
             row.querySelector("[data-remove-criterion]").disabled = rows.length === 1;
         });
         const sum = [...criteria.querySelectorAll("[data-score]")]
