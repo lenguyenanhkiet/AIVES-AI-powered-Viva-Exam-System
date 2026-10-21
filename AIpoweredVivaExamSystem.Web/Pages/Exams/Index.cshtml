@@ -1,0 +1,7 @@
+@page "/Exams"
+@model AIpoweredVivaExamSystem.Web.Pages.Exams.IndexModel
+<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@section Scripts {
+<script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/exam-list-realtime.js" asp-append-version="true"></script>
+}

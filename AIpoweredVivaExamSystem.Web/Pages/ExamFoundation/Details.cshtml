@@ -1,0 +1,7 @@
+@page "/ExamFoundation/Details/{id?}"
+@model AIpoweredVivaExamSystem.Web.Pages.ExamFoundation.DetailsModel
+<partial name="@Model.ContentPartial" model="Model.ContentModel" />
+@section Scripts {
+<script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/exam-realtime.js" asp-append-version="true"></script>
+}

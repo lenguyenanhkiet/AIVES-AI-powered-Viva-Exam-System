@@ -1,0 +1,19 @@
+@model PagerModel
+@{
+    // "page" is a Razor Pages route key, so list pagination belongs in the query string.
+    string PageUrl(int page) => Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(
+        Url.Page(ViewContext.RouteData.Values["page"]?.ToString())!, Model.For(page));
+}
+
+<div class="pager">
+    <span>Hiển thị @Model.From–@Model.To trên @Model.TotalCount</span>
+    <div class="pager-nav">
+        <a class="btn btn-secondary btn-sm @(Model.Page <= 1 ? "disabled" : "")" href="@PageUrl(Model.Page - 1)">
+            @Icons.Get("chevron-left", 14) Trước
+        </a>
+        <span>Trang @Model.Page / @Model.TotalPages</span>
+        <a class="btn btn-secondary btn-sm @(Model.Page >= Model.TotalPages ? "disabled" : "")" href="@PageUrl(Model.Page + 1)">
+            Sau @Icons.Get("chevron-right", 14)
+        </a>
+    </div>
+</div>

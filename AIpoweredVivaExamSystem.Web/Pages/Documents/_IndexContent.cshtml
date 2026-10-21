@@ -1,0 +1,16 @@
+@model DocumentsViewModel
+@{ ViewData["Title"] = "Tài liệu môn học"; }
+<div class="container stack">
+    <h1 class="page-title">Tài liệu môn học</h1>
+    <p>Upload PDF có text hoặc PPTX (tối đa 20 MB, 500 trang/slide). Nội dung được trích xuất và lưu riêng theo môn học.</p>
+    <div asp-validation-summary="All" class="alert"></div>
+    <form method="post" enctype="multipart/form-data" class="card card-body stack" asp-page="/Documents/Upload">
+        <label class="label" asp-for="SubjectId">Môn học</label><select class="select" asp-for="SubjectId" asp-items="Model.Subjects" required><option value="">Chọn môn học</option></select>
+        <label class="label" asp-for="File">Tài liệu</label><input asp-for="File" type="file" accept=".pdf,.pptx" required />
+        <button class="btn btn-primary" type="submit">Upload và xử lý tài liệu</button>
+    </form>
+    <div class="card"><table class="table"><thead><tr><th>Tài liệu</th><th>Ngày tải</th><th></th></tr></thead><tbody>
+        @foreach (var doc in Model.Documents)
+        { <tr><td>@doc.FileName</td><td>@doc.CreatedAt.ToLocalText()</td><td><a asp-route-id="@doc.Id" asp-page="/Documents/Generate">Sinh câu hỏi AI</a></td></tr> }
+    </tbody></table></div>
+</div>

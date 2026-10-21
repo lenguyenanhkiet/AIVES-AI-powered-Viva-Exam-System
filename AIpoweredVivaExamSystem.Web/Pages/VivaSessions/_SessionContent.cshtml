@@ -1,0 +1,30 @@
+@model AIpoweredVivaExamSystem.Application.Exams.StudentSession
+@using AIpoweredVivaExamSystem.Application.VivaSessions
+@{ ViewData["Title"] = "Phiên thi vấn đáp"; }
+
+<div class="container stack">
+    <nav class="breadcrumb"><a asp-page="/VivaSessions/Index">Lịch thi của tôi</a><span> / Phiên thi</span></nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Phiên thi vấn đáp</h1>
+            <p class="page-sub">Bắt đầu lúc @Model.StartedAt.ToLocalText() · @((Model.CompletedAt.HasValue ? SessionState.Completed : SessionState.InProgress).ToLabel()) · Giờ Việt Nam (UTC+7)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <ol>
+            @foreach (var question in Model.Questions)
+            { <li value="@question.Position"><p style="white-space: pre-wrap">@question.Content</p></li> }
+        </ol>
+        <div class="form-actions">
+            <a class="btn btn-secondary" asp-page="/VivaSessions/Index">@Icons.Get("arrow-left") Quay lại lịch thi</a>
+            @if (!Model.CompletedAt.HasValue)
+            {
+                <form method="post" asp-page="/VivaSessions/Complete">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-primary">Hoàn thành phiên thi</button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

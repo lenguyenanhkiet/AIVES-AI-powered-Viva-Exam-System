@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+@{
+    var module = ViewContext.RouteData.Values["page"]?.ToString()?.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+    string Active(string name) => string.Equals(module, name, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · AIVES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <a class="brand" asp-page="/Home/Index">
+                <span class="brand-mark">@Icons.Get("mic", 18)</span>
+                <span>
+                    <span class="brand-name">AIVES</span>
+                    <span class="brand-sub">AI Viva Exam System</span>
+                </span>
+            </a>
+
+            <nav class="nav">
+                <a class="nav-item @Active("Home")" asp-page="/Home/Index">@Icons.Get("home") Tổng quan</a>
+
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                {
+                <div class="nav-label">Ngân hàng câu hỏi</div>
+                <a class="nav-item @Active("Subjects")" asp-page="/Subjects/Index">@Icons.Get("book") Môn học</a>
+                <a class="nav-item @Active("Topics")" asp-page="/Topics/Index">@Icons.Get("layers") Chủ đề</a>
+                <a class="nav-item @(Active("Questions") + Active("Rubrics"))" asp-page="/Questions/Index">@Icons.Get("help") Câu hỏi &amp; rubric</a>
+                <a class="nav-item @Active("QuestionImports")" asp-page="/QuestionImports/Index">Import câu hỏi</a>
+                <a class="nav-item @Active("Documents")" asp-page="/Documents/Index">Tài liệu &amp; sinh câu hỏi AI</a>
+                }
+                @if (User.IsInRole("ADMIN"))
+                { <a class="nav-item @Active("Access")" asp-page="/Access/Index">Phân quyền &amp; phân môn</a> }
+
+                <div class="nav-label">Thi vấn đáp</div>
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                { <a class="nav-item @Active("Exams")" asp-page="/Exams/Index">@Icons.Get("calendar") Quản lý kỳ thi</a> }
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                { <a class="nav-item @Active("Schedules")" asp-page="/Schedules/Index">@Icons.Get("calendar") Lịch thi</a> }
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                { <a class="nav-item @Active("ExamFoundation")" asp-page="/ExamFoundation/Index">@Icons.Get("calendar") Nền tảng kỳ thi</a> }
+                @if (User.IsInRole("ADMIN") || User.IsInRole("LECTURER"))
+                { <a class="nav-item @Active("ExamStudents")" asp-page="/ExamStudents/Index">Sinh viên kỳ thi</a> }
+                @if (User.IsInRole("STUDENT"))
+                { <a class="nav-item @Active("VivaSessions")" asp-page="/VivaSessions/Index">@Icons.Get("calendar") Lịch thi của tôi</a> }
+            </nav>
+
+            <div class="sidebar-foot">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-page="/Account/Profile">@User.Identity.Name</a>
+                    <form method="post" asp-page="/Account/Logout">
+                        <button class="btn btn-secondary" type="submit">Đăng xuất</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-page="/Account/Login">Đăng nhập</a>
+                }
+                <div>PRN222 · Fall 2026</div>
+            </div>
+        </aside>
+
+        <main class="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    @if (TempData["Toast"] is string toast)
+    {
+        var ok = (TempData["ToastType"] as string) != "error";
+        <div class="toast @(ok ? "toast-success" : "toast-error")" role="status" data-toast>
+            @(ok ? Icons.Get("check") : Icons.Get("alert"))
+            <span>@toast</span>
+            <button type="button" class="toast-close" aria-label="Đóng" data-toast-close>@Icons.Get("x", 14)</button>
+        </div>
+    }
+
+    <dialog class="modal" id="confirm-dialog">
+        <form method="post" data-confirm-form>
+            @Html.AntiForgeryToken()
+            <div class="modal-icon">@Icons.Get("trash", 20)</div>
+            <h2 class="modal-title" data-confirm-title>Xóa mục này?</h2>
+            <p class="modal-text" data-confirm-text>Thao tác này không thể hoàn tác.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-confirm-cancel>Hủy</button>
+                <button type="submit" class="btn btn-danger">Xóa</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

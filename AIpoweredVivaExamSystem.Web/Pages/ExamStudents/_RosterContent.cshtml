@@ -1,0 +1,56 @@
+@model AIpoweredVivaExamSystem.Web.ViewModels.ExamStudents.ExamRosterViewModel
+@{ ViewData["Title"] = "Sinh viên — " + Model.Exam.Name; }
+<div class="container stack">
+    <nav class="breadcrumb"><a asp-page="/ExamStudents/Index">Sinh viên kỳ thi</a><span> / @Model.Exam.Name</span></nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">@Model.Exam.Name</h1>
+            <p class="page-sub">Trạng thái: @Model.Exam.Status.ToLabel() · @Model.Students.Count sinh viên · Giờ Việt Nam (UTC+7)</p>
+        </div>
+    </div>
+    <div asp-validation-summary="All" class="alert" role="alert"></div>
+    @if (Model.CanEdit)
+    {
+        <div class="card">
+            <h2>Thêm sinh viên</h2>
+            <p>Nhập email tài khoản STUDENT đã có và đang hoạt động.</p>
+            <form asp-route-id="@Model.Exam.Id" method="post" class="stack" asp-page="/ExamStudents/Add">
+                <div class="field">
+                    <label for="Email">Email sinh viên</label>
+                    @* Explicit name matches the add-form contract; ModelState preserves rejected input. *@
+                    @Html.TextBox("Email", Model.Form.Email, new { type = "email", required = "required", maxlength = "255", autocomplete = "email", @class = "input" })
+                    @Html.ValidationMessage("Email")
+                </div>
+                <div><button class="btn btn-primary" type="submit">Thêm sinh viên</button></div>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="alert">Danh sách đã khóa. Chỉ kỳ thi Draft được thêm hoặc bỏ sinh viên.</div>
+    }
+    <div class="card table-wrap">
+        <table class="table">
+            <thead><tr><th>Họ tên</th><th>Email</th><th>Giờ bắt đầu ca</th>@if (Model.CanEdit) { <th>Thao tác</th> }</tr></thead>
+            <tbody>
+            @foreach (var student in Model.Students)
+            {
+                <tr>
+                    <td>@student.Name</td><td>@student.Email</td>
+                    <td>@(student.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                    @if (Model.CanEdit)
+                    {
+                        <td>
+                            <form asp-route-id="@Model.Exam.Id" method="post" asp-page="/ExamStudents/Remove">
+                                <input type="hidden" name="enrollmentId" value="@student.EnrollmentId" />
+                                <button class="btn btn-danger" type="submit" aria-label="Bỏ @student.Name khỏi kỳ thi">Bỏ sinh viên</button>
+                            </form>
+                        </td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+        @if (Model.Students.Count == 0) { <p>Chưa có sinh viên. Cần ít nhất một sinh viên và lịch hợp lệ trước khi publish.</p> }
+    </div>
+</div>

@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Web.Controllers;
+using AIpoweredVivaExamSystem.Web.Pages.Home;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -294,7 +294,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         return email;
     }
 
-    private static HttpClient Client(WebApplicationFactory<HomeController> factory) => factory.CreateClient(new()
+    private static HttpClient Client(WebApplicationFactory<IndexModel> factory) => factory.CreateClient(new()
     { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
 
     // Lấy token từ form thật để test cả cookie antiforgery và POST MVC, không tắt CSRF trong test.
@@ -312,7 +312,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
     }
 
     // Dùng SQL Server thật trong DB test riêng; không thay repository bằng mock.
-    private WebApplicationFactory<HomeController> CreateFactory(AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<HomeController>()
+    private WebApplicationFactory<IndexModel> CreateFactory(AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<IndexModel>()
         .WithWebHostBuilder(web =>
         {
             web.UseEnvironment("Testing");
