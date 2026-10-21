@@ -1,8 +1,5 @@
 ﻿using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AIpoweredVivaExamSystem.Domain.Entities;
 

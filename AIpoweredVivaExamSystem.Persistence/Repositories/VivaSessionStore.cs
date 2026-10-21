@@ -6,7 +6,6 @@ using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.VivaSessions;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 

@@ -4,9 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using AIpoweredVivaExamSystem.Application.Interfaces;
 using AIpoweredVivaExamSystem.Persistence.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace AIpoweredVivaExamSystem.Persistence;
 
