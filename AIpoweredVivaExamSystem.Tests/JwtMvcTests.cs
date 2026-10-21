@@ -5,10 +5,11 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Web.Controllers;
+using AIpoweredVivaExamSystem.Web.Pages.Home;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,8 +86,8 @@ public sealed class JwtMvcTests
     }
 
     // Probe chỉ được thêm bởi factory test, không tồn tại trong route của Web khi chạy thật.
-    private static WebApplicationFactory<HomeController> Factory(string? setting = null, string? value = null) =>
-        new WebApplicationFactory<HomeController>().WithWebHostBuilder(web =>
+    private static WebApplicationFactory<IndexModel> Factory(string? setting = null, string? value = null) =>
+        new WebApplicationFactory<IndexModel>().WithWebHostBuilder(web =>
         {
             web.UseEnvironment("Testing");
             web.ConfigureAppConfiguration((_, configuration) =>
@@ -99,10 +100,10 @@ public sealed class JwtMvcTests
                 if (setting is not null) settings[setting] = value;
                 configuration.AddInMemoryCollection(settings);
             });
-            web.ConfigureServices(services => services.AddControllers().AddApplicationPart(typeof(JwtProbeController).Assembly));
+            web.ConfigureServices(services => services.AddSingleton<IStartupFilter, JwtProbeStartupFilter>());
         });
 
-    private static HttpClient Client(WebApplicationFactory<HomeController> factory) => factory.CreateClient(new()
+    private static HttpClient Client(WebApplicationFactory<IndexModel> factory) => factory.CreateClient(new()
     { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
 
     // Tự tạo dữ liệu sai độc lập với issuer sản phẩm để phát hiện validator bị nới lỏng.
@@ -123,10 +124,13 @@ public sealed class JwtMvcTests
     }
 }
 
-[Authorize(AuthenticationSchemes = "Bearer")]
-[Route("/_tests/jwt")]
-public sealed class JwtProbeController : ControllerBase
+public sealed class JwtProbeStartupFilter : IStartupFilter
 {
-    [HttpGet]
-    public IActionResult Get() => Ok(new { id = User.FindFirst("sub")?.Value, email = User.FindFirst("email")?.Value });
+    public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) => app =>
+    {
+        next(app);
+        app.UseEndpoints(endpoints => endpoints.MapGet("/_tests/jwt", (HttpContext context) =>
+            Results.Json(new { id = context.User.FindFirst("sub")?.Value, email = context.User.FindFirst("email")?.Value }))
+            .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = "Bearer" }));
+    };
 }

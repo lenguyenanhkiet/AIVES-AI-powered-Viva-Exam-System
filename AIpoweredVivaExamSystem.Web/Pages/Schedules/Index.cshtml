@@ -1,0 +1,53 @@
+@page "/Schedules"
+@model AIpoweredVivaExamSystem.Web.Pages.Schedules.IndexModel
+@{ ViewData["Title"] = "Lịch thi"; }
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Lịch thi</h1>
+            <p class="page-sub">Chọn kỳ thi để xem và xếp ca thi cho sinh viên. Giờ Việt Nam (UTC+7).</p>
+        </div>
+    </div>
+
+    <div class="card">
+        @if (Model.Vm.Exams.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("calendar", 20)</div>
+                <div class="empty-title">Chưa có kỳ thi nào</div>
+                <p class="empty-text">Bạn chưa quản lý kỳ thi nào để xếp lịch.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tên kỳ thi</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu</th>
+                            <th>Kết thúc</th>
+                            <th class="actions"><span class="sr-only">Thao tác</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model.Vm.Exams)
+                        {
+                            <tr>
+                                <td><a class="cell-title" asp-route-id="@exam.Id" asp-page="/Schedules/Exam">@exam.Name</a></td>
+                                <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                <td class="muted">@exam.StartAt.ToLocalText()</td>
+                                <td class="muted">@exam.EndAt.ToLocalText()</td>
+                                <td class="actions">
+                                    <a class="icon-btn" title="Xem lịch" asp-route-id="@exam.Id" asp-page="/Schedules/Exam">@Icons.Get("eye")</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

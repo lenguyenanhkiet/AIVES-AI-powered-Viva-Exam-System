@@ -1,0 +1,20 @@
+@page "/Rubrics/Edit/{id?}"
+@model AIpoweredVivaExamSystem.Web.Pages.Rubrics.EditModel
+@{
+    ViewData["Title"] = "Sửa rubric";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-page="/Questions/Index">Câu hỏi</a> @Icons.Get("chevron-right", 14)
+        <a asp-route-id="@Model.Input.QuestionId" asp-page="/Questions/Details">Chi tiết</a> @Icons.Get("chevron-right", 14)
+        <span>Sửa rubric</span>
+    </nav>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Sửa rubric</h1>
+            <p class="page-sub">Thêm, bớt hoặc chỉnh điểm các tiêu chí. Tiêu chí bị xóa khỏi danh sách sẽ bị xóa khi lưu.</p>
+        </div>
+    </div>
+    <partial name="_Form" model="Model.Input" />
+</div>

@@ -134,7 +134,7 @@ async Task<HttpResponseMessage> Login(HttpClient client, string suppliedPassword
     var html = await client.GetStringAsync("/Account/Login");
     return await client.PostAsync("/Account/Login", new FormUrlEncodedContent(new Dictionary<string, string>
     {
-        ["Email"] = email, ["Password"] = suppliedPassword, ["ReturnUrl"] = "/Account/Profile",
+        ["Input.Email"] = email, ["Input.Password"] = suppliedPassword, ["Input.ReturnUrl"] = "/Account/Profile",
         ["__RequestVerificationToken"] = Token(html)
     }));
 }

@@ -1,0 +1,62 @@
+@page "/VivaSessions"
+@model AIpoweredVivaExamSystem.Web.Pages.VivaSessions.IndexModel
+@{ ViewData["Title"] = "Lịch thi của tôi"; }
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Lịch thi của tôi</h1>
+            <p class="page-sub">Các kỳ thi vấn đáp bạn tham gia. Giờ Việt Nam (UTC+7).</p>
+        </div>
+    </div>
+
+    @if (TempData["SessionMessage"] is string message)
+    {
+        <div class="alert alert-info" role="status">@Icons.Get("check") <span>@message</span></div>
+    }
+    <div asp-validation-summary="All" class="alert" role="alert"></div>
+
+    <div class="card">
+        @if (Model.Vm.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("calendar", 20)</div>
+                <div class="empty-title">Bạn chưa có lịch thi</div>
+                <p class="empty-text">Kỳ thi sẽ hiện ở đây khi giảng viên công bố kỳ thi có bạn.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Kỳ thi</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu ca</th>
+                            <th>Kết thúc ca</th>
+                            <th class="actions"><span class="sr-only">Thao tác</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model.Vm)
+                        {
+                            <tr>
+                                <td class="cell-title">@exam.Name</td>
+                                <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                <td>@(exam.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td>@(exam.EndAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td class="actions">
+                                    <form method="post" asp-page="/VivaSessions/Open">
+                                        <input name="enrollmentId" type="hidden" value="@exam.EnrollmentId" />
+                                        <button type="submit" class="btn btn-primary btn-sm">Mở phiên thi</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

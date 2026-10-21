@@ -5,11 +5,19 @@ using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AIpoweredVivaExamSystem.Web.ViewModels;
 
 public sealed class QuestionFormViewModel
 {
+    [BindNever, ValidateNever]
+    public IEnumerable<SelectListItem> Subjects { get; set; } = [];
+
+    [BindNever, ValidateNever]
+    public IEnumerable<SelectListItem> Topics { get; set; } = [];
+
     public Guid? Id { get; set; }
 
     [Display(Name = "Môn học")]
@@ -70,6 +78,9 @@ public sealed class QuestionDetailsViewModel
 
 public sealed class RubricFormViewModel
 {
+    [BindNever, ValidateNever]
+    public QuestionResponse Question { get; set; } = default!;
+
     public Guid? Id { get; set; }
     public Guid QuestionId { get; set; }
 

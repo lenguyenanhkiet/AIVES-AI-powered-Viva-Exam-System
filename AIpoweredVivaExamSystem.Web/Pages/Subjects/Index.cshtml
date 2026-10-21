@@ -1,0 +1,102 @@
+@page "/Subjects"
+@model AIpoweredVivaExamSystem.Web.Pages.Subjects.IndexModel
+@{
+    ViewData["Title"] = "Môn học";
+    var filtered = !string.IsNullOrWhiteSpace(Model.Vm.Query.Keyword) || Model.Vm.Query.Status is not null;
+    var pager = new PagerModel(Model.Vm.Page.Page, Model.Vm.Page.PageSize, Model.Vm.Page.TotalCount,
+        new Dictionary<string, string?> { ["keyword"] = Model.Vm.Query.Keyword, ["status"] = Model.Vm.Query.Status?.ToString() });
+}
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Môn học</h1>
+            <p class="page-sub">Quản lý các môn học dùng để tổ chức ngân hàng câu hỏi vấn đáp.</p>
+        </div>
+        <div class="head-actions">
+            <a class="btn btn-primary" asp-page="/Subjects/Create">@Icons.Get("plus") Thêm môn học</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <form class="toolbar" method="get" asp-page="/Subjects/Index">
+            <label class="search">
+                @Icons.Get("search")
+                <input class="input" type="search" name="keyword" value="@Model.Vm.Query.Keyword" placeholder="Tìm theo mã hoặc tên môn…" maxlength="255" />
+            </label>
+            <select class="select" name="status" data-auto-submit>
+                <option value="">Tất cả trạng thái</option>
+                @foreach (var status in Enum.GetValues<AcademicStatus>())
+                {
+                    <option value="@status" selected="@(Model.Vm.Query.Status == status)">@status.ToLabel()</option>
+                }
+            </select>
+            <button class="btn btn-secondary" type="submit">Lọc</button>
+            @if (filtered)
+            {
+                <a class="btn btn-ghost" asp-page="/Subjects/Index">Xóa bộ lọc</a>
+            }
+        </form>
+
+        @if (Model.Vm.Page.Items.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("inbox", 20)</div>
+                @if (filtered)
+                {
+                    <div class="empty-title">Không tìm thấy môn học phù hợp</div>
+                    <p class="empty-text">Thử từ khóa khác hoặc bỏ bộ lọc.</p>
+                    <a class="btn btn-secondary" asp-page="/Subjects/Index">Xóa bộ lọc</a>
+                }
+                else
+                {
+                    <div class="empty-title">Chưa có môn học nào</div>
+                    <p class="empty-text">Tạo môn học đầu tiên để bắt đầu xây dựng ngân hàng câu hỏi.</p>
+                    <a class="btn btn-primary" asp-page="/Subjects/Create">@Icons.Get("plus") Thêm môn học</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Mã môn</th>
+                            <th>Tên môn học</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th class="actions"><span class="sr-only"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var subject in Model.Vm.Page.Items)
+                        {
+                            <tr>
+                                <td><span class="code-chip">@subject.Code</span></td>
+                                <td>
+                                    <a class="cell-title" asp-route-id="@subject.Id" asp-page="/Subjects/Details">@subject.Name</a>
+                                    @if (!string.IsNullOrWhiteSpace(subject.Description))
+                                    {
+                                        <span class="cell-sub">@subject.Description</span>
+                                    }
+                                </td>
+                                <td><partial name="_StatusBadge" model="subject.Status" /></td>
+                                <td class="muted">@subject.CreatedAt.ToLocalText()</td>
+                                <td class="actions">
+                                    <a class="icon-btn" title="Xem" asp-route-id="@subject.Id" asp-page="/Subjects/Details">@Icons.Get("eye")</a>
+                                    <a class="icon-btn" title="Sửa" asp-route-id="@subject.Id" asp-page="/Subjects/Edit">@Icons.Get("edit")</a>
+                                    <a class="icon-btn danger" title="Xóa" asp-route-id="@subject.Id"
+                                       data-confirm-action="@Url.Page("/Subjects/Delete", new { id = subject.Id })"
+                                       data-confirm-title="Xóa môn @subject.Code?"
+                                       data-confirm-text="Môn học sẽ bị ẩn khỏi hệ thống. Không thể xóa nếu môn vẫn còn chủ đề hoặc câu hỏi." asp-page="/Subjects/Delete">@Icons.Get("trash")</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <partial name="_Pager" model="pager" />
+        }
+    </div>
+</div>
