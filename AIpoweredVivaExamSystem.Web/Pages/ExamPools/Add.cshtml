@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Pool câu hỏi";
     var poolPage = Model.Vm.Page;
+    var selectedQuestionIds = Model.Input.QuestionIds.ToHashSet();
 }
 
 <div class="container stack">
@@ -55,7 +56,7 @@
                             @foreach (var question in poolPage.AvailableQuestions)
                             {
                                 <tr>
-                                    <td><input type="checkbox" name="Input.QuestionIds" value="@question.Id" disabled="@(!Model.Vm.CanEdit)" aria-label="Chọn câu hỏi" /></td>
+                                    <td><input type="checkbox" name="Input.QuestionIds" value="@question.Id" checked="@selectedQuestionIds.Contains(question.Id)" disabled="@(!Model.Vm.CanEdit)" aria-label="Chọn câu hỏi @question.Content để thêm vào pool" /></td>
                                     <td class="q-cell">@question.Content</td>
                                     <td><partial name="_Bloom" model="question.BloomLevel" /></td>
                                     <td><partial name="_Difficulty" model="question.Difficulty" /></td>
@@ -91,7 +92,7 @@
                             @foreach (var question in poolPage.PooledQuestions)
                             {
                                 <tr>
-                                    <td><input type="checkbox" name="Input.QuestionIds" value="@question.Id" disabled="@(!Model.Vm.CanEdit)" aria-label="Chọn câu hỏi để bỏ" /></td>
+                                    <td><input type="checkbox" name="Input.QuestionIds" value="@question.Id" disabled="@(!Model.Vm.CanEdit)" aria-label="Bỏ câu hỏi @question.Content khỏi pool" /></td>
                                     <td class="q-cell">@question.Content</td>
                                     <td><partial name="_QuestionStatus" model="question.Status" /></td>
                                     <td>@(question.HasRubric ? "Có" : "Không")</td>

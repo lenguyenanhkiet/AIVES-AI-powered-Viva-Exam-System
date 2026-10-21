@@ -90,6 +90,47 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task PooledQuestionEligibilityMatchesTheRulesUsedByThePoolCount()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        await using (var setup = fixture.CreateContext())
+        {
+            setup.Add(new ExamQuestionPool(demo.Exam.Id, eligible.Id));
+            await setup.SaveChangesAsync();
+            await setup.Questions.Where(q => q.Id == eligible.Id)
+                .ExecuteUpdateAsync(update => update.SetProperty(q => q.CreatedBy, demo.Student.Id));
+        }
+
+        var actor = new Actor(demo.Lecturer.Id, IsLecturer: true);
+        await using var db = Context(actor);
+        var page = await Service(db, actor, new Notifier()).GetPageAsync(demo.Exam.Id, default);
+
+        var pooled = Assert.Single(page.PooledQuestions);
+        Assert.True(pooled.HasRubric);
+        Assert.Equal(QuestionStatus.Approved, pooled.Status);
+        Assert.False(pooled.IsEligible);
+        Assert.Equal(0, page.EligiblePoolCount);
+    }
+
+    [Fact]
+    public async Task InvalidEmptyIdRejectsTheWholeAddBatch()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        var actor = new Actor(demo.Lecturer.Id, IsLecturer: true);
+        var notifier = new Notifier();
+        await using (var db = Context(actor))
+        {
+            var service = Service(db, actor, notifier);
+            await Assert.ThrowsAsync<DomainValidationException>(() =>
+                service.AddAsync(demo.Exam.Id, [eligible.Id, Guid.Empty], default));
+        }
+
+        await using var verify = fixture.CreateContext();
+        Assert.Empty(await verify.ExamQuestionPools.Where(p => p.ExamId == demo.Exam.Id).ToArrayAsync());
+        Assert.Empty(notifier.Events);
+    }
+
+    [Fact]
     public async Task DuplicateSelectionIsIdempotentAndNotifiesOnceAfterCommit()
     {
         var (demo, eligible) = await SeedWithEligibleQuestionAsync();
@@ -124,6 +165,50 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetPageAsync(demo.Exam.Id, default));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddAsync(demo.Exam.Id, [eligible.Id], default));
+    }
+
+    [Fact]
+    public async Task AdministratorCanManageTheAssignedLecturersPool()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        var administrator = new Actor(Guid.NewGuid(), IsAdministrator: true);
+        var notifier = new Notifier();
+        await using (var db = Context(administrator))
+        {
+            var service = Service(db, administrator, notifier);
+            var page = await service.GetPageAsync(demo.Exam.Id, default);
+            Assert.Contains(page.AvailableQuestions, question => question.Id == eligible.Id);
+            await service.AddAsync(demo.Exam.Id, [eligible.Id], default);
+        }
+
+        await using var verify = fixture.CreateContext();
+        Assert.True(await verify.ExamQuestionPools.AnyAsync(pool =>
+            pool.ExamId == demo.Exam.Id && pool.QuestionId == eligible.Id));
+        Assert.Single(notifier.Events);
+    }
+
+    [Fact]
+    public async Task RemovingPoolEntriesNotifiesOnlyWhenThePoolChanges()
+    {
+        var (demo, eligible) = await SeedWithEligibleQuestionAsync();
+        await using (var setup = fixture.CreateContext())
+        {
+            setup.Add(new ExamQuestionPool(demo.Exam.Id, eligible.Id));
+            await setup.SaveChangesAsync();
+        }
+
+        var actor = new Actor(demo.Lecturer.Id, IsLecturer: true);
+        var notifier = new Notifier();
+        await using (var db = Context(actor))
+        {
+            var service = Service(db, actor, notifier);
+            await service.RemoveAsync(demo.Exam.Id, [eligible.Id], default);
+            await service.RemoveAsync(demo.Exam.Id, [eligible.Id], default);
+        }
+
+        await using var verify = fixture.CreateContext();
+        Assert.Empty(await verify.ExamQuestionPools.Where(pool => pool.ExamId == demo.Exam.Id).ToArrayAsync());
+        Assert.Equal(new[] { demo.Exam.Id }, notifier.Events);
     }
 
     [Fact]
