@@ -9,13 +9,13 @@ Branch: `feature/long-mvc-login-jwt`, bắt đầu từ main `4fdda29` (MVC, kh�
 3. `LoginService` trim/lowercase email, giữ nguyên password; chỉ chấp nhận User Active, chưa soft-delete và hash hợp lệ.
 4. `LoginUserRepository` đọc SQL bằng EF Core `AsNoTracking`. Connection lấy từ `ConnectionStrings:DefaultConnection`; DbContext không chứa secret.
 5. `IdentityPasswordVerifier` dùng `Microsoft.AspNetCore.Identity.PasswordHasher<User>`, cùng thuật toán với branch Register mới của Minh (`ad7c208`).
-6. Controller tạo ticket cookie `AIVES.Auth`, redirect tới ReturnUrl nội bộ hoặc `/`. Không đưa hash/token/mật khẩu vào trang tài khoản.
+6. Trang `Pages/Account/Login` tạo ticket cookie `AIVES.Auth`, redirect tới ReturnUrl nội bộ hoặc `/`. Không đưa hash/token/mật khẩu vào trang tài khoản.
 7. `MvcCookieEvents.ValidatePrincipal` kiểm tra User từ SQL trên mỗi request có cookie; khóa/ngừng hoạt động/xóa tài khoản sẽ thu hồi phiên ở request tiếp theo.
 8. `POST /Account/Logout` có antiforgery và xóa cookie của trình duyệt hiện tại.
 
 | Thành phần | Reference trong code | Mục đích |
 |---|---|---|
-| Web | `Controllers/AccountController.cs`, `Models/LoginViewModel.cs`, `Views/Account` | Form, validation, redirect và phiên trình duyệt |
+| Web | `Pages/Account/*.cshtml` + `.cshtml.cs`, `ViewModels/LoginViewModel.cs` | Form, validation, redirect và phiên trình duyệt |
 | Application | `Authentication/LoginService.cs`, `ILoginUserRepository`, `IPasswordVerifier` | Nghiệp vụ độc lập MVC/SQL/thuật toán hash |
 | Persistence | `Repositories/LoginUserRepository.cs` | Triển khai truy vấn tài khoản từ DB thật |
 | Infrastructure | `Authentication/IdentityPasswordVerifier.cs` | Xác thực hash từ Register |

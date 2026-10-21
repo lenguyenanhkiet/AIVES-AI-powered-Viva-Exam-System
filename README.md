@@ -1,11 +1,11 @@
 # AIVES – AI-powered Viva Exam System
 
-Ứng dụng **ASP.NET Core MVC (.NET 10)** theo mô hình 3 tầng, chạy bằng Docker cùng SQL Server 2022.
+Ứng dụng **ASP.NET Core Razor Pages (.NET 10)** + SignalR theo mô hình 3 tầng, chạy bằng Docker cùng SQL Server 2022.
 
-Login MVC, cookie/JWT, cấu hình cá nhân và các lệnh test SQL/smoke test: xem [docs/AUTH_MVC.md](docs/AUTH_MVC.md).
+Đăng nhập, cookie/JWT, cấu hình cá nhân và các lệnh test SQL/smoke test: xem [docs/AUTH.md](docs/AUTH.md).
 
 Nhóm chức năng 1 (import CSV/XLSX, PDF/PPTX, AI/RAG có nguồn, RBAC/ownership): xem [hướng dẫn thiết lập](docs/GROUP_1_SETUP.md).
-Cấu trúc folder MVC: [MVC_ARCHITECTURE.md](docs/MVC_ARCHITECTURE.md). Phân công nhóm 2 cho 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md). Nhóm 2 trên `main`:
+Cấu trúc folder: [ARCHITECTURE.md](docs/ARCHITECTURE.md). Phân công nhóm 2 cho 6 người tại [GROUP_2_TEAM_BACKLOG.md](docs/GROUP_2_TEAM_BACKLOG.md). Nhóm 2 trên `main`:
 
 | Module | Route | Bàn giao |
 |---|---|---|
@@ -23,7 +23,7 @@ Còn thiếu Exam CRUD/lifecycle (Tuệ Minh), nên chưa demo được toàn lu
 
 ```text
 AIpoweredVivaExamSystem/
-├── AIpoweredVivaExamSystem.Web/            # Presentation: MVC Controllers, Views, ViewModels
+├── AIpoweredVivaExamSystem.Web/            # Presentation: Razor Pages (Pages/), ViewModels, SignalR hub
 ├── AIpoweredVivaExamSystem.Application/    # Business: Services, DTO, Validators, interface Repository
 ├── AIpoweredVivaExamSystem.Domain/         # Business: Entities, Enums, luật nghiệp vụ
 ├── AIpoweredVivaExamSystem.Persistence/    # Data access: DbContext, Configurations, Repositories, Migrations
@@ -48,7 +48,7 @@ Interface repository nằm ở `Application`, class cài đặt nằm ở `Persi
 Docker Compose chạy 2 container:
 
 ```text
-aives-web        ASP.NET Core MVC   → http://localhost:8081
+aives-web        Razor Pages       → http://localhost:8081
 aives-sqlserver  SQL Server 2022    → localhost,1433
 ```
 
