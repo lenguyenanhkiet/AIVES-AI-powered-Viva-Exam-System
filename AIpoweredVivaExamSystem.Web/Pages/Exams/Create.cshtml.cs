@@ -25,7 +25,7 @@ public sealed class CreateModel(IExamService examService, ISubjectService subjec
         var subjects = await GetSubjectOptionsAsync(ct);
         Input = new ExamFormViewModel
         {
-            SubjectId = subjectId ?? Guid.Empty,
+            SubjectId = subjectId,
             SubjectOptions = subjects
         };
         return Page();
@@ -38,7 +38,7 @@ public sealed class CreateModel(IExamService examService, ISubjectService subjec
             try
             {
                 var created = await examService.CreateAsync(new ExamConfiguration(
-                    Input.SubjectId,
+                    Input.SubjectId!.Value,
                     Input.Name,
                     new DateTimeOffset(Input.StartAt, TimeSpan.FromHours(7)),
                     new DateTimeOffset(Input.EndAt, TimeSpan.FromHours(7)),

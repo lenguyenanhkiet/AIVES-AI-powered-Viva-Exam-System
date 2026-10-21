@@ -80,12 +80,7 @@ else
                                 <td><partial name="_ExamStatus" model="exam.Status" /></td>
                                 <td>@(exam.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
                                 <td>@(exam.EndAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
-                                <td class="actions">
-                                    <form method="post" asp-page="/VivaSessions/Open">
-                                        <input name="enrollmentId" type="hidden" value="@exam.EnrollmentId" />
-                                        <button type="submit" class="btn btn-primary btn-sm">Mở phiên thi</button>
-                                    </form>
-                                </td>
+                                <td class="actions"><partial name="_VivaOpenAction" model="exam" /></td>
                             </tr>
                         }
                     </tbody>

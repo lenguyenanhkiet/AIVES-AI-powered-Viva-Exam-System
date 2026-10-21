@@ -19,8 +19,9 @@ public sealed class ExamFormViewModel
 {
     public Guid? Id { get; set; }
 
+    // Nullable so an empty choice fails [Required] with this message instead of the binder's "The value '' is invalid."
     [Required(ErrorMessage = "Vui lòng chọn môn học.")]
-    public Guid SubjectId { get; set; }
+    public Guid? SubjectId { get; set; }
 
     [Required(ErrorMessage = "Tên kỳ thi không được để trống.")]
     [StringLength(200, ErrorMessage = "Tên kỳ thi tối đa 200 ký tự.")]

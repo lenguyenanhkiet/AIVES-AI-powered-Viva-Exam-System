@@ -1,0 +1,19 @@
+@model AIpoweredVivaExamSystem.Application.VivaSessions.MyVivaExam
+@{
+    var state = VivaSlotState.For(Model, DateTimeOffset.UtcNow);
+    var reasonId = $"viva-reason-{Model.EnrollmentId:N}";
+}
+<div class="viva-action">
+    @if (state.CanOpen)
+    {
+        <form method="post" asp-page="/VivaSessions/Open">
+            <input name="enrollmentId" type="hidden" value="@Model.EnrollmentId" />
+            <button type="submit" class="btn @(state.IsPrimary ? "btn-primary" : "btn-secondary") btn-sm" aria-describedby="@reasonId">@state.Label</button>
+        </form>
+    }
+    else
+    {
+        <button type="button" class="btn btn-secondary btn-sm" disabled aria-describedby="@reasonId">@state.Label</button>
+    }
+    <span class="hint" id="@reasonId">@state.Reason</span>
+</div>

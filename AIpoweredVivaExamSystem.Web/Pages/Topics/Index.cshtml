@@ -60,8 +60,15 @@
                 else if (Model.Vm.Subjects.Count == 0)
                 {
                     <div class="empty-title">Chưa có môn học nào</div>
-                    <p class="empty-text">Cần tạo môn học trước khi thêm chủ đề.</p>
-                    <a class="btn btn-primary" asp-page="/Subjects/Create">@Icons.Get("plus") Thêm môn học</a>
+                    @if (User.IsInRole("ADMIN"))
+                    {
+                        <p class="empty-text">Cần tạo môn học trước khi thêm chủ đề.</p>
+                        <a class="btn btn-primary" asp-page="/Subjects/Create">@Icons.Get("plus") Thêm môn học</a>
+                    }
+                    else
+                    {
+                        <p class="empty-text">Bạn chưa được phân môn nào. Quản trị viên sẽ phân môn cho bạn.</p>
+                    }
                 }
                 else
                 {
