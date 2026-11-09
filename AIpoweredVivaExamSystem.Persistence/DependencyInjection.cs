@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<AIpoweredVivaExamSystem.Application.ExamStudents.IExamRosterStore, ExamRosterStore>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.VivaSessions.IMyVivaSessionsReader, MyVivaSessionsReader>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.VivaSessions.IVivaSessionStore, VivaSessionStore>();
+        services.AddScoped<AIpoweredVivaExamSystem.Application.VivaSessions.IVivaInterviewStore, VivaInterviewStore>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.VivaSessions.IExamLiveReader, ExamLiveReader>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamAccessStore>(p => p.GetRequiredService<ExamFoundationStore>());
         services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamFoundationReader>(p => p.GetRequiredService<ExamFoundationStore>());

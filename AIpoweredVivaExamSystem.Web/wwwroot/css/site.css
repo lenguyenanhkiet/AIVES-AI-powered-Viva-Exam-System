@@ -462,4 +462,169 @@ fieldset.field legend { padding: 0; margin-bottom: 6px; }
     .container > .table :is(th, td), .stack > .table :is(th, td) { white-space: nowrap; }
     .breadcrumb { flex-wrap: wrap; }
     .toast { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+    .viva-metrics-bar { grid-template-columns: repeat(2, 1fr); }
+    .viva-active-card .card-head { flex-direction: column; align-items: flex-start; }
+    .viva-tts-controls { width: 100%; justify-content: flex-start; }
 }
+
+/* ---------- Viva AI Interview Core (Group 3) ---------- */
+.badge-warning { background: var(--warning-soft); color: var(--warning); }
+.select-sm { width: auto; min-width: 155px; height: 30px; padding: 0 28px 0 9px; font-size: 13px; }
+
+.viva-metrics-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+}
+.viva-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+.viva-metric-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.viva-metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+.viva-timer {
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.viva-timer-urgent {
+    color: var(--danger);
+    animation: viva-pulse 1s infinite;
+}
+@keyframes viva-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .55; }
+}
+
+.viva-active-card {
+    border-color: #c7d2fe;
+    box-shadow: 0 4px 16px -4px rgb(79 70 229 / .12);
+}
+.viva-turn-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+.viva-tts-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.viva-lang-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.viva-prompt-box {
+    padding: 16px 18px;
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: #1e1b4b;
+}
+.viva-voice-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: #fcfcfc;
+}
+.viva-mic-status {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.viva-mic-recording {
+    box-shadow: 0 0 0 4px rgb(220 38 38 / .2);
+}
+.viva-audio-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-muted);
+}
+.viva-audio-preview audio {
+    height: 34px;
+    max-width: 340px;
+}
+#viva-answer-form .form-actions {
+    align-items: center;
+    justify-content: space-between;
+    margin: 4px -18px -18px;
+}
+
+.viva-timeline {
+    display: grid;
+    gap: 14px;
+}
+.viva-turn-item {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fcfcfc;
+}
+.viva-turn-item.pending {
+    border-color: #c7d2fe;
+    background: #f8faff;
+}
+.viva-turn-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+.viva-turn-meta .js-tts-replay {
+    margin-left: auto;
+}
+.viva-turn-question {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+.viva-turn-answer {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-muted);
+}
+.viva-turn-answer-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.viva-question-list {
+    margin: 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 8px;
+}
+

@@ -33,6 +33,7 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<Exams.IExamRosterService>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
             services.AddScoped<ExamStudents.IExamRosterReader>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
             services.AddScoped<Exams.IVivaSessionService, VivaSessions.VivaSessionService>();
+            services.AddScoped<VivaSessions.IVivaInterviewService, VivaSessions.VivaInterviewService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }

@@ -18,6 +18,9 @@ public static class DependencyInjection
         services.AddScoped<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionFileReader, QuestionBank.QuestionFileReader>();
         services.AddScoped<AIpoweredVivaExamSystem.Application.QuestionBank.IDocumentTextExtractor, QuestionBank.DocumentTextExtractor>();
         services.AddHttpClient<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator, QuestionBank.OpenAiQuestionGenerator>(client => client.Timeout = TimeSpan.FromSeconds(90));
+        services.AddSingleton<AIpoweredVivaExamSystem.Application.VivaSessions.IAnswerAudioStorage>(_ => new VivaSessions.LocalAnswerAudioStorage());
+        services.AddHttpClient<AIpoweredVivaExamSystem.Application.VivaSessions.IVivaAiExaminer, VivaSessions.OpenAiVivaExaminer>(client => client.Timeout = TimeSpan.FromSeconds(25));
+        services.AddHttpClient<AIpoweredVivaExamSystem.Application.VivaSessions.ISpeechTranscriber, VivaSessions.OpenAiSpeechTranscriber>(client => client.Timeout = TimeSpan.FromSeconds(30));
         return services;
     }
 }
