@@ -77,7 +77,12 @@ public sealed class VivaSessionStore(ApplicationDbContext db, IExamUnitOfWork uo
                 var rubric = rubrics.Single(r => r.QuestionId == q.Id);
                 var snapshot = JsonSerializer.Serialize(new { rubric.Name, rubric.Description, rubric.TotalScore,
                     Criteria = rubric.Criteria.OrderBy(c => c.DisplayOrder), q.ExpectedAnswer });
-                db.SessionQuestions.Add(new SessionQuestion(session.Id, q.Id, i + 1, q.Content, snapshot));
+                var sessionQuestion = new SessionQuestion(session.Id, q.Id, i + 1, q.Content, snapshot);
+                db.SessionQuestions.Add(sessionQuestion);
+                if (i == 0)
+                {
+                    db.StudentAnswers.Add(new StudentAnswer(sessionQuestion.Id, Domain.Enums.AnswerType.Main, 0, q.Content, now));
+                }
             }
             sessionId = session.Id;
             changed.Add(examId);

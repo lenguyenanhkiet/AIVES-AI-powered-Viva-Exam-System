@@ -1,4 +1,4 @@
-﻿using AIpoweredVivaExamSystem.Domain.Common;
+using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +24,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<ExamQuestionPool> ExamQuestionPools => Set<ExamQuestionPool>();
     public DbSet<VivaSession> VivaSessions => Set<VivaSession>();
     public DbSet<SessionQuestion> SessionQuestions => Set<SessionQuestion>();
+    public DbSet<StudentAnswer> StudentAnswers => Set<StudentAnswer>();
+    public DbSet<AnswerAnalysis> AnswerAnalyses => Set<AnswerAnalysis>();
+    public DbSet<AnswerAudio> AnswerAudios => Set<AnswerAudio>();
     public DbSet<LecturerSubject> LecturerSubjects => Set<LecturerSubject>();
     public DbSet<CourseDocument> CourseDocuments => Set<CourseDocument>();
     public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
@@ -56,6 +59,10 @@ public class ApplicationDbContext : DbContext
         // Internal entities are manager-only; student modules must explicitly project the safe DTO after the own-enrollment guard.
         modelBuilder.Entity<SessionQuestion>().HasQueryFilter(x => Unrestricted || VivaSessions.Any(s => s.Id == x.VivaSessionId &&
             ExamStudents.Any(r => r.Id == s.ExamStudentId && Exams.Any(e => e.Id == r.ExamId))));
+        modelBuilder.Entity<StudentAnswer>().HasQueryFilter(x => Unrestricted || SessionQuestions.Any(sq => sq.Id == x.SessionQuestionId));
+        modelBuilder.Entity<AnswerAnalysis>().HasQueryFilter(x => Unrestricted || StudentAnswers.Any(a => a.Id == x.StudentAnswerId &&
+            SessionQuestions.Any(sq => sq.Id == a.SessionQuestionId)));
+        modelBuilder.Entity<AnswerAudio>().HasQueryFilter(x => Unrestricted || StudentAnswers.Any(a => a.Id == x.StudentAnswerId));
     }
 
     public override Task<int> SaveChangesAsync(
