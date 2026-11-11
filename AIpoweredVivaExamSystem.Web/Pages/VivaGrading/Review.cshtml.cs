@@ -15,7 +15,15 @@ public sealed class ReviewModel(IVivaGradingService grading) : PageModel
     public async Task<IActionResult> OnGetAsync(Guid? id, CancellationToken ct)
     {
         if (id is not { } sessionId || sessionId == Guid.Empty) return NotFound();
-        Sheet = await grading.GetSessionSheetAsync(sessionId, autoGenerateMissingAi: true, ct);
+        try
+        {
+            Sheet = await grading.GetSessionSheetAsync(sessionId, autoGenerateMissingAi: true, ct);
+        }
+        catch (Exception ex) when (ex is ResourceConflictException or InvalidOperationException || ex.GetType().Name == "DomainValidationException")
+        {
+            TempData.Toast(ex.Message, success: false);
+            Sheet = await grading.GetSessionSheetAsync(sessionId, autoGenerateMissingAi: false, ct);
+        }
         return Page();
     }
 
@@ -26,6 +34,22 @@ public sealed class ReviewModel(IVivaGradingService grading) : PageModel
         {
             await grading.RunAiGradingAsync(id, forceRegrade: true, ct);
             TempData.Toast("AI đã phân tích và cập nhật điểm gợi ý theo rubric cho toàn bộ câu hỏi.");
+        }
+        catch (Exception ex) when (ex is ResourceConflictException or InvalidOperationException || ex.GetType().Name == "DomainValidationException")
+        {
+            TempData.Toast(ex.Message, success: false);
+        }
+
+        return RedirectToPage("/VivaGrading/Review", new { id });
+    }
+
+    public async Task<IActionResult> OnPostRegradeQuestionAsync(Guid id, Guid sessionQuestionId, CancellationToken ct)
+    {
+        if (id == Guid.Empty || sessionQuestionId == Guid.Empty) return NotFound();
+        try
+        {
+            await grading.RunQuestionAiGradingAsync(id, sessionQuestionId, ct);
+            TempData.Toast("AI đã phân tích và cập nhật lại điểm gợi ý cho câu hỏi này.");
         }
         catch (Exception ex) when (ex is ResourceConflictException or InvalidOperationException || ex.GetType().Name == "DomainValidationException")
         {

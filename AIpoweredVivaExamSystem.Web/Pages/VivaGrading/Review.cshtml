@@ -136,6 +136,13 @@
                     {
                         <span class="badge badge-inactive">Chờ giảng viên chốt điểm</span>
                     }
+                    <form method="post" asp-page-handler="RegradeQuestion" asp-route-id="@sheet.SessionId" style="margin: 0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sessionQuestionId" value="@q.SessionQuestionId" />
+                        <button type="submit" class="btn btn-secondary btn-sm">
+                            @Icons.Get("sparkles", 13) Chấm lại AI câu này
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -274,6 +281,7 @@
                                         <tr>
                                             <th>Tiêu chí Rubric</th>
                                             <th>Điểm AI / Tối đa</th>
+                                            <th>Điều chỉnh theo tiêu chí</th>
                                             <th>Dẫn chứng từ Transcript</th>
                                             <th>Nhận xét chi tiết của AI</th>
                                         </tr>
@@ -284,6 +292,19 @@
                                             <tr>
                                                 <td class="cell-title">@crit.CriterionName</td>
                                                 <td><strong>@crit.Score.ToScore()</strong> / @crit.MaxScore.ToScore()</td>
+                                                <td>
+                                                    <div class="score-input">
+                                                        <input class="input js-criterion-score" type="number"
+                                                               step="0.01" min="0" max="@crit.MaxScore.ToScore()"
+                                                               value="@crit.Score.ToScore()"
+                                                               data-ai-score="@crit.Score.ToScore()"
+                                                               data-question-pos="@q.Position"
+                                                               data-target-input="@inputId"
+                                                               data-question-max="@q.MaxScore.ToScore()"
+                                                               aria-label="Điểm tiêu chí @crit.CriterionName" />
+                                                        <span>/ @crit.MaxScore.ToScore()</span>
+                                                    </div>
+                                                </td>
                                                 <td><span class="hint">@(crit.Evidence ?? "—")</span></td>
                                                 <td>@(crit.Comment ?? "—")</td>
                                             </tr>
@@ -327,8 +348,10 @@
                                            value="@defaultFinalScore" required />
                                     @if (q.AiGrading is not null)
                                     {
-                                        <button type="button" class="btn btn-secondary btn-sm"
-                                                onclick="document.getElementById('@inputId').value='@aiScoreText'">
+                                        <button type="button" class="btn btn-secondary btn-sm js-reset-ai-score"
+                                                data-question-pos="@q.Position"
+                                                data-target-input="@inputId"
+                                                data-ai-score="@aiScoreText">
                                             Lấy điểm AI (@aiScoreText)
                                         </button>
                                     }
@@ -364,3 +387,48 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            function round2(n) {
+                return Math.round((n + Number.EPSILON) * 100) / 100;
+            }
+
+            document.querySelectorAll('.js-criterion-score').forEach(input => {
+                input.addEventListener('input', () => {
+                    const pos = input.dataset.questionPos;
+                    const targetId = input.dataset.targetInput;
+                    const maxQuestion = parseFloat(input.dataset.questionMax) || 10;
+                    const target = document.getElementById(targetId);
+                    if (!target) return;
+
+                    let sum = 0;
+                    document.querySelectorAll(`.js-criterion-score[data-question-pos="${pos}"]`).forEach(el => {
+                        const maxCrit = parseFloat(el.max) || maxQuestion;
+                        let val = parseFloat(el.value);
+                        if (Number.isNaN(val) || val < 0) val = 0;
+                        if (val > maxCrit) val = maxCrit;
+                        sum += val;
+                    });
+
+                    const clamped = Math.min(maxQuestion, Math.max(0, round2(sum)));
+                    target.value = clamped.toString();
+                });
+            });
+
+            document.querySelectorAll('.js-reset-ai-score').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const pos = btn.dataset.questionPos;
+                    const target = document.getElementById(btn.dataset.targetInput);
+                    if (target) target.value = btn.dataset.aiScore || '0';
+                    document.querySelectorAll(`.js-criterion-score[data-question-pos="${pos}"]`).forEach(el => {
+                        if (el.dataset.aiScore !== undefined) {
+                            el.value = el.dataset.aiScore;
+                        }
+                    });
+                });
+            });
+        })();
+    </script>
+}

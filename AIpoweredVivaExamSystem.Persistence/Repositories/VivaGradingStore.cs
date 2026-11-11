@@ -128,10 +128,6 @@ public sealed class VivaGradingStore(
                     sumFinal += rev.FinalScore;
                     qMax = rev.MaxScore;
                 }
-                else if (aiBySq.TryGetValue(sq.Id, out var fallbackAi))
-                {
-                    sumFinal += fallbackAi.AiScore;
-                }
 
                 totalMax += qMax;
             }
@@ -147,9 +143,10 @@ public sealed class VivaGradingStore(
 
             if (gradingStatus == VivaGradingStatus.Reviewed) fullyReviewedCount++;
 
+            var isFullyReviewed = reviewCount == totalQ && totalQ > 0;
             decimal? totalAiNullable = aiCount > 0 ? decimal.Round(sumAi, 2, MidpointRounding.AwayFromZero) : null;
-            decimal? totalFinalNullable = reviewCount > 0 ? decimal.Round(sumFinal, 2, MidpointRounding.AwayFromZero) : null;
-            decimal? normFinal10 = reviewCount > 0 && totalMax > 0
+            decimal? totalFinalNullable = isFullyReviewed ? decimal.Round(sumFinal, 2, MidpointRounding.AwayFromZero) : null;
+            decimal? normFinal10 = isFullyReviewed && totalMax > 0
                 ? decimal.Round((sumFinal / totalMax) * 10m, 2, MidpointRounding.AwayFromZero)
                 : null;
 
@@ -328,10 +325,6 @@ public sealed class VivaGradingStore(
                     revEntry.Review.Comment,
                     revEntry.Review.ReviewedAt);
             }
-            else if (aiDetails is not null)
-            {
-                sumFinalScore += aiDetails.AiScore;
-            }
 
             var effectiveMax = reviewDetails?.MaxScore ?? aiDetails?.MaxScore ?? parsedRubric.MaxScore;
             totalMaxScore += effectiveMax;
@@ -353,12 +346,13 @@ public sealed class VivaGradingStore(
                 reviewDetails));
         }
 
+        var isFullyReviewed = reviewedCount == questions.Length && questions.Length > 0;
         decimal? totalAiNullable = aiCount > 0 ? decimal.Round(sumAiScore, 2, MidpointRounding.AwayFromZero) : null;
-        decimal? totalFinalNullable = reviewedCount > 0 ? decimal.Round(sumFinalScore, 2, MidpointRounding.AwayFromZero) : null;
+        decimal? totalFinalNullable = isFullyReviewed ? decimal.Round(sumFinalScore, 2, MidpointRounding.AwayFromZero) : null;
         decimal? normAi10 = aiCount > 0 && totalMaxScore > 0
             ? decimal.Round((sumAiScore / totalMaxScore) * 10m, 2, MidpointRounding.AwayFromZero)
             : null;
-        decimal? normFinal10 = reviewedCount > 0 && totalMaxScore > 0
+        decimal? normFinal10 = isFullyReviewed && totalMaxScore > 0
             ? decimal.Round((sumFinalScore / totalMaxScore) * 10m, 2, MidpointRounding.AwayFromZero)
             : null;
 
@@ -385,7 +379,37 @@ public sealed class VivaGradingStore(
             questionItems);
     }
 
-    public async Task<VivaSessionGradingSheet> GenerateAiGradingsAsync(Guid sessionId, bool forceRegrade, CancellationToken ct)
+    public Task<VivaSessionGradingSheet> GenerateAiGradingsAsync(Guid sessionId, bool forceRegrade, CancellationToken ct) =>
+        GenerateAiGradingsCoreAsync(sessionId, forceRegrade, onlyQuestionId: null, ct);
+
+    public Task<VivaSessionGradingSheet> GenerateQuestionAiGradingAsync(Guid sessionId, Guid sessionQuestionId, CancellationToken ct) =>
+        GenerateAiGradingsCoreAsync(sessionId, forceRegrade: true, onlyQuestionId: sessionQuestionId, ct);
+
+    public async Task<int> GenerateExamAiGradingsAsync(Guid examId, CancellationToken ct)
+    {
+        var sessionIdsWithMissingAi = await (from s in db.VivaSessions.IgnoreQueryFilters().AsNoTracking()
+                                             join r in db.ExamStudents.IgnoreQueryFilters().AsNoTracking() on s.ExamStudentId equals r.Id
+                                             where r.ExamId == examId &&
+                                                   db.SessionQuestions.IgnoreQueryFilters().Any(sq =>
+                                                       sq.VivaSessionId == s.Id &&
+                                                       !db.AiGradings.IgnoreQueryFilters().Any(g => g.SessionQuestionId == sq.Id))
+                                             select s.Id).Distinct().ToArrayAsync(ct);
+
+        var gradedSessions = 0;
+        foreach (var sid in sessionIdsWithMissingAi)
+        {
+            await GenerateAiGradingsCoreAsync(sid, forceRegrade: false, onlyQuestionId: null, ct);
+            gradedSessions++;
+        }
+
+        return gradedSessions;
+    }
+
+    private async Task<VivaSessionGradingSheet> GenerateAiGradingsCoreAsync(
+        Guid sessionId,
+        bool forceRegrade,
+        Guid? onlyQuestionId,
+        CancellationToken ct)
     {
         var meta = await (from s in db.VivaSessions.IgnoreQueryFilters().AsNoTracking()
                           join r in db.ExamStudents.IgnoreQueryFilters().AsNoTracking() on s.ExamStudentId equals r.Id
@@ -400,15 +424,20 @@ public sealed class VivaGradingStore(
             .OrderBy(sq => sq.Position)
             .ToArrayAsync(ct);
 
+        if (onlyQuestionId is { } qId && questions.All(q => q.Id != qId))
+            throw new ResourceNotFoundException("Không tìm thấy câu hỏi trong phiên thi này.");
+
         var sqIds = questions.Select(q => q.Id).ToArray();
         var existingGradingIds = await db.AiGradings.IgnoreQueryFilters().AsNoTracking()
             .Where(g => sqIds.Contains(g.SessionQuestionId))
             .Select(g => g.SessionQuestionId)
             .ToArrayAsync(ct);
 
-        var targetQuestions = forceRegrade
-            ? questions
-            : questions.Where(q => !existingGradingIds.Contains(q.Id)).ToArray();
+        var targetQuestions = onlyQuestionId.HasValue
+            ? questions.Where(q => q.Id == onlyQuestionId.Value).ToArray()
+            : (forceRegrade
+                ? questions
+                : questions.Where(q => !existingGradingIds.Contains(q.Id)).ToArray());
 
         if (targetQuestions.Length == 0)
         {
@@ -674,10 +703,6 @@ public sealed class VivaGradingStore(
                 reviewCount++;
                 sumFinal += rev.FinalScore;
             }
-            else if (ai is not null)
-            {
-                sumFinal += ai.AiScore;
-            }
 
             items.Add(new StudentQuestionResultItem(
                 sq.Position,
@@ -696,12 +721,13 @@ public sealed class VivaGradingStore(
                 rev?.ReviewedAt));
         }
 
+        var isFullyReviewed = reviewCount == questions.Length && questions.Length > 0;
         decimal? totalAiNullable = aiCount > 0 ? decimal.Round(sumAi, 2, MidpointRounding.AwayFromZero) : null;
-        decimal? totalFinalNullable = reviewCount > 0 ? decimal.Round(sumFinal, 2, MidpointRounding.AwayFromZero) : null;
+        decimal? totalFinalNullable = isFullyReviewed ? decimal.Round(sumFinal, 2, MidpointRounding.AwayFromZero) : null;
         decimal? normAi10 = aiCount > 0 && totalMax > 0
             ? decimal.Round((sumAi / totalMax) * 10m, 2, MidpointRounding.AwayFromZero)
             : null;
-        decimal? normFinal10 = reviewCount > 0 && totalMax > 0
+        decimal? normFinal10 = isFullyReviewed && totalMax > 0
             ? decimal.Round((sumFinal / totalMax) * 10m, 2, MidpointRounding.AwayFromZero)
             : null;
 
@@ -712,90 +738,14 @@ public sealed class VivaGradingStore(
             totalFinalNullable,
             normAi10,
             normFinal10,
-            reviewCount == questions.Length && questions.Length > 0,
+            isFullyReviewed,
             items);
     }
 
     private static decimal ParseSnapshotMaxScore(string rubricSnapshotJson) =>
-        ParseRubricSnapshot(rubricSnapshotJson).MaxScore;
+        VivaGradingService.ParseRubricSnapshot(rubricSnapshotJson).MaxScore;
 
     private static (string RubricName, string? ExpectedAnswer, decimal MaxScore, IReadOnlyList<RubricCriterionSnapshotItem> Criteria) ParseRubricSnapshot(
-        string rubricSnapshotJson)
-    {
-        var rubricName = "Rubric chấm điểm";
-        string? expectedAnswer = null;
-        decimal totalScore = 10m;
-        var criteriaList = new List<RubricCriterionSnapshotItem>();
-
-        try
-        {
-            using var doc = JsonDocument.Parse(rubricSnapshotJson);
-            var root = doc.RootElement;
-            if (root.TryGetProperty("Name", out var nProp) && nProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(nProp.GetString()))
-                rubricName = nProp.GetString()!.Trim();
-            else if (root.TryGetProperty("Title", out var tProp) && tProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(tProp.GetString()))
-                rubricName = tProp.GetString()!.Trim();
-
-            if (root.TryGetProperty("ExpectedAnswer", out var eaProp) && eaProp.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(eaProp.GetString()))
-                expectedAnswer = eaProp.GetString()!.Trim();
-
-            if (root.TryGetProperty("TotalScore", out var tsProp) && tsProp.TryGetDecimal(out var tsVal) && tsVal > 0)
-                totalScore = decimal.Round(tsVal, 2, MidpointRounding.AwayFromZero);
-
-            if (root.TryGetProperty("Criteria", out var cArr) && cArr.ValueKind == JsonValueKind.Array)
-            {
-                var idx = 1;
-                foreach (var item in cArr.EnumerateArray())
-                {
-                    Guid? id = null;
-                    if (item.TryGetProperty("Id", out var idProp) && idProp.ValueKind == JsonValueKind.String &&
-                        Guid.TryParse(idProp.GetString(), out var parsedId) && parsedId != Guid.Empty)
-                    {
-                        id = parsedId;
-                    }
-
-                    var name = item.TryGetProperty("Name", out var nm) && nm.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(nm.GetString())
-                        ? nm.GetString()!.Trim()
-                        : $"Tiêu chí #{idx}";
-                    var desc = item.TryGetProperty("Description", out var ds) && ds.ValueKind == JsonValueKind.String ? ds.GetString()?.Trim() : null;
-                    var concepts = item.TryGetProperty("ExpectedConcepts", out var ec) && ec.ValueKind == JsonValueKind.String ? ec.GetString()?.Trim() : null;
-                    var max = item.TryGetProperty("MaxScore", out var mp) && mp.TryGetDecimal(out var mv) && mv > 0
-                        ? decimal.Round(mv, 2, MidpointRounding.AwayFromZero)
-                        : 0m;
-                    var order = item.TryGetProperty("DisplayOrder", out var op) && op.TryGetInt32(out var ov) && ov > 0 ? ov : idx;
-
-                    criteriaList.Add(new RubricCriterionSnapshotItem(id, name, desc, concepts, max, order));
-                    idx++;
-                }
-            }
-        }
-        catch (JsonException)
-        {
-            // Fallback to default below.
-        }
-
-        if (criteriaList.Count == 0)
-        {
-            criteriaList.Add(new RubricCriterionSnapshotItem(null, "Nội dung & mức độ hiểu bài", null, expectedAnswer, totalScore, 1));
-        }
-        else
-        {
-            var sumCriteria = criteriaList.Sum(c => c.MaxScore);
-            if (sumCriteria > 0)
-            {
-                totalScore = sumCriteria;
-            }
-            else
-            {
-                var each = decimal.Round(totalScore / criteriaList.Count, 2, MidpointRounding.AwayFromZero);
-                for (var i = 0; i < criteriaList.Count; i++)
-                {
-                    var m = i == criteriaList.Count - 1 ? Math.Max(0.01m, totalScore - each * (criteriaList.Count - 1)) : each;
-                    criteriaList[i] = criteriaList[i] with { MaxScore = m };
-                }
-            }
-        }
-
-        return (rubricName, expectedAnswer, totalScore, criteriaList);
-    }
+        string rubricSnapshotJson) =>
+        VivaGradingService.ParseRubricSnapshot(rubricSnapshotJson);
 }

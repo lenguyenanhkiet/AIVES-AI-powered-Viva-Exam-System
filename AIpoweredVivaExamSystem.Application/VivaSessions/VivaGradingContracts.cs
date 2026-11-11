@@ -196,6 +196,8 @@ public interface IVivaGradingStore
     Task<ExamGradingOverview> GetExamOverviewAsync(Guid examId, CancellationToken ct);
     Task<VivaSessionGradingSheet> GetSessionGradingSheetAsync(Guid sessionId, CancellationToken ct);
     Task<VivaSessionGradingSheet> GenerateAiGradingsAsync(Guid sessionId, bool forceRegrade, CancellationToken ct);
+    Task<VivaSessionGradingSheet> GenerateQuestionAiGradingAsync(Guid sessionId, Guid sessionQuestionId, CancellationToken ct);
+    Task<int> GenerateExamAiGradingsAsync(Guid examId, CancellationToken ct);
     Task<VivaSessionGradingSheet> SaveTeacherReviewAsync(SaveTeacherReviewRequest request, CancellationToken ct);
     Task<VivaSessionGradingSheet> ApproveAllAiScoresAsync(Guid sessionId, string? comment, CancellationToken ct);
     Task<StudentSessionGradingResult?> GetStudentResultAsync(Guid sessionId, CancellationToken ct);
@@ -206,6 +208,8 @@ public interface IVivaGradingService
     Task<ExamGradingOverview> GetExamOverviewAsync(Guid examId, CancellationToken ct);
     Task<VivaSessionGradingSheet> GetSessionSheetAsync(Guid sessionId, bool autoGenerateMissingAi, CancellationToken ct);
     Task<VivaSessionGradingSheet> RunAiGradingAsync(Guid sessionId, bool forceRegrade, CancellationToken ct);
+    Task<VivaSessionGradingSheet> RunQuestionAiGradingAsync(Guid sessionId, Guid sessionQuestionId, CancellationToken ct);
+    Task<int> RunExamBatchAiGradingAsync(Guid examId, CancellationToken ct);
     Task<VivaSessionGradingSheet> SaveTeacherReviewAsync(SaveTeacherReviewRequest request, CancellationToken ct);
     Task<VivaSessionGradingSheet> ApproveAllAiScoresAsync(Guid sessionId, string? comment, CancellationToken ct);
     Task<StudentSessionGradingResult?> GetStudentResultAsync(Guid sessionId, CancellationToken ct);

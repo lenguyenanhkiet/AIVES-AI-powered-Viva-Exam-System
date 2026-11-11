@@ -198,6 +198,73 @@ public sealed class VivaGradingTests
         Assert.Equal("Giải thích tốt Clean Architecture.", decision.Strengths);
     }
 
+    [Fact]
+    public async Task OpenAiVivaGrader_matches_criteria_by_id_even_when_returned_out_of_order()
+    {
+        var aiPayload = """
+        {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "message": {
+                "content": "{\"aiScore\":7.0,\"aiComment\":\"Khá\",\"criteria\":[{\"criterionId\":\"22222222-2222-2222-2222-222222222222\",\"criterionName\":\"Tiêu chí 2\",\"maxScore\":4,\"score\":3.5,\"evidence\":\"B\",\"comment\":\"C2\"},{\"criterionId\":\"11111111-1111-1111-1111-111111111111\",\"criterionName\":\"Tiêu chí 1\",\"maxScore\":6,\"score\":5.5,\"evidence\":\"A\",\"comment\":\"C1\"}]}"
+              }
+            }
+          ]
+        }
+        """;
+
+        using var http = new HttpClient(new StubHttpMessageHandler(aiPayload));
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Ai:ApiKey"] = "test-key",
+                ["Ai:Model"] = "gpt-4o-mini"
+            })
+            .Build();
+
+        var grader = new OpenAiVivaGrader(http, config);
+        var rubricJson = """
+        {
+          "Name": "Rubric 2 tiêu chí",
+          "TotalScore": 10,
+          "Criteria": [
+            {
+              "Id": "11111111-1111-1111-1111-111111111111",
+              "Name": "Tiêu chí 1",
+              "MaxScore": 6,
+              "DisplayOrder": 1
+            },
+            {
+              "Id": "22222222-2222-2222-2222-222222222222",
+              "Name": "Tiêu chí 2",
+              "MaxScore": 4,
+              "DisplayOrder": 2
+            }
+          ]
+        }
+        """;
+
+        var ctx = new AiGradingEvaluationContext(
+            "PRN222",
+            "Câu hỏi kiểm thử",
+            rubricJson,
+            10m,
+            30,
+            100,
+            [new ConversationTurn(AnswerType.Main, 0, "Prompt", "Câu trả lời đầy đủ.")]);
+
+        var decision = await grader.GradeQuestionAsync(ctx, CancellationToken.None);
+        Assert.Equal(2, decision.Criteria.Count);
+        Assert.Equal(Guid.Parse("11111111-1111-1111-1111-111111111111"), decision.Criteria[0].RubricCriterionId);
+        Assert.Equal(6m, decision.Criteria[0].MaxScore);
+        Assert.Equal(5.5m, decision.Criteria[0].Score);
+        Assert.Equal(Guid.Parse("22222222-2222-2222-2222-222222222222"), decision.Criteria[1].RubricCriterionId);
+        Assert.Equal(4m, decision.Criteria[1].MaxScore);
+        Assert.Equal(3.5m, decision.Criteria[1].Score);
+        Assert.Equal(9.0m, decision.AiScore);
+    }
+
     private sealed class StubHttpMessageHandler(string json) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>

@@ -113,8 +113,13 @@ public sealed class OpenAiVivaGrader(HttpClient http, IConfiguration configurati
 
             totalAiScore = decimal.Clamp(decimal.Round(totalAiScore, 2, MidpointRounding.AwayFromZero), 0m, parsedRubric.MaxScore);
 
-            var (_, _, _, defaultFluencyNote) = VivaGradingService.CalculateFluencySignals(
-                context.History.Select(h => (DateTimeOffset.UtcNow, (DateTimeOffset?)DateTimeOffset.UtcNow.AddSeconds(Math.Max(1, context.TotalResponseSeconds / Math.Max(1, context.History.Count))), (int?)null, (string?)h.Transcript)));
+            var answeredTurns = context.History.Where(h => !string.IsNullOrWhiteSpace(h.Transcript)).ToArray();
+            var totalWords = answeredTurns.Sum(h => Regex.Matches(h.Transcript, @"[\p{L}\p{N}]+").Count);
+            var defaultFluencyNote = VivaGradingService.FormatFluencyNote(
+                context.TotalResponseSeconds,
+                totalWords,
+                context.WordsPerMinute,
+                answeredTurns.Length);
 
             return new AiGradingDecision(
                 AiScore: totalAiScore,
@@ -166,7 +171,7 @@ public sealed class OpenAiVivaGrader(HttpClient http, IConfiguration configurati
         var order = 1;
         foreach (var criterion in parsed.Criteria)
         {
-            var concepts = ExtractExpectedTerms(criterion.ExpectedConcepts, criterion.Description, criterion.Name);
+            var concepts = ExtractExpectedTerms(criterion.ExpectedConcepts, criterion.Description, parsed.ExpectedAnswer, criterion.Name);
             var matchedConcepts = new List<string>();
             var missedConcepts = new List<string>();
 
@@ -260,9 +265,11 @@ public sealed class OpenAiVivaGrader(HttpClient http, IConfiguration configurati
             _ => $"Câu trả lời còn yếu ({totalAiScore:0.##}/{parsed.MaxScore:0.##} điểm — {ratioPercent}%), chưa đáp ứng được phần lớn tiêu chí của câu hỏi."
         };
 
-        var fluencyNote = context.TotalResponseSeconds > 0
-            ? $"Thời gian trả lời: {context.TotalResponseSeconds}s · Tốc độ nói ước tính: ~{context.WordsPerMinute} từ/phút ({totalWords} từ qua {answeredTurns.Length} lượt)."
-            : $"Tổng số từ: {totalWords} từ qua {answeredTurns.Length} lượt trả lời.";
+        var fluencyNote = VivaGradingService.FormatFluencyNote(
+            context.TotalResponseSeconds,
+            totalWords,
+            context.WordsPerMinute,
+            answeredTurns.Length);
 
         return new AiGradingDecision(
             AiScore: totalAiScore,
@@ -278,88 +285,8 @@ public sealed class OpenAiVivaGrader(HttpClient http, IConfiguration configurati
 
     public static (string RubricName, string? ExpectedAnswer, decimal MaxScore, IReadOnlyList<RubricCriterionSnapshotItem> Criteria) ParseRubricSnapshot(
         string rubricSnapshotJson,
-        decimal fallbackMaxScore = 10m)
-    {
-        var defaultMax = fallbackMaxScore > 0 ? fallbackMaxScore : 10m;
-        var rubricName = "Rubric chấm điểm";
-        string? expectedAnswer = null;
-        decimal totalScore = defaultMax;
-        var criteriaList = new List<RubricCriterionSnapshotItem>();
-
-        try
-        {
-            using var doc = JsonDocument.Parse(rubricSnapshotJson);
-            var root = doc.RootElement;
-            rubricName = OptionalString(root, "Name") ?? OptionalString(root, "Title") ?? rubricName;
-            expectedAnswer = OptionalString(root, "ExpectedAnswer");
-
-            if (root.TryGetProperty("TotalScore", out var tsProp) && tsProp.TryGetDecimal(out var tsVal) && tsVal > 0)
-            {
-                totalScore = decimal.Round(tsVal, 2, MidpointRounding.AwayFromZero);
-            }
-
-            if (root.TryGetProperty("Criteria", out var cArr) && cArr.ValueKind == JsonValueKind.Array)
-            {
-                var idx = 1;
-                foreach (var item in cArr.EnumerateArray())
-                {
-                    Guid? id = null;
-                    if (item.TryGetProperty("Id", out var idProp) && idProp.ValueKind == JsonValueKind.String &&
-                        Guid.TryParse(idProp.GetString(), out var parsedId) && parsedId != Guid.Empty)
-                    {
-                        id = parsedId;
-                    }
-
-                    var name = OptionalString(item, "Name") ?? $"Tiêu chí #{idx}";
-                    var desc = OptionalString(item, "Description");
-                    var concepts = OptionalString(item, "ExpectedConcepts");
-                    var max = item.TryGetProperty("MaxScore", out var mProp) && mProp.TryGetDecimal(out var mVal) && mVal > 0
-                        ? decimal.Round(mVal, 2, MidpointRounding.AwayFromZero)
-                        : 0m;
-                    var order = item.TryGetProperty("DisplayOrder", out var oProp) && oProp.TryGetInt32(out var oVal) && oVal > 0
-                        ? oVal
-                        : idx;
-
-                    criteriaList.Add(new RubricCriterionSnapshotItem(id, name, desc, concepts, max, order));
-                    idx++;
-                }
-            }
-        }
-        catch (JsonException)
-        {
-            // Fallback to single generic criterion below.
-        }
-
-        if (criteriaList.Count == 0)
-        {
-            criteriaList.Add(new RubricCriterionSnapshotItem(
-                null,
-                "Nội dung & mức độ hiểu bài",
-                "Đánh giá mức độ chính xác và đầy đủ của câu trả lời",
-                expectedAnswer,
-                totalScore,
-                1));
-        }
-        else
-        {
-            var sumCriteria = criteriaList.Sum(c => c.MaxScore);
-            if (sumCriteria <= 0)
-            {
-                var each = decimal.Round(totalScore / criteriaList.Count, 2, MidpointRounding.AwayFromZero);
-                for (var i = 0; i < criteriaList.Count; i++)
-                {
-                    var m = i == criteriaList.Count - 1 ? Math.Max(0.01m, totalScore - each * (criteriaList.Count - 1)) : each;
-                    criteriaList[i] = criteriaList[i] with { MaxScore = m };
-                }
-            }
-            else
-            {
-                totalScore = sumCriteria;
-            }
-        }
-
-        return (rubricName, expectedAnswer, totalScore, criteriaList);
-    }
+        decimal fallbackMaxScore = 10m) =>
+        VivaGradingService.ParseRubricSnapshot(rubricSnapshotJson, fallbackMaxScore);
 
     private static AiGradingDecision BuildUnansweredDecision(
         decimal maxScore,
@@ -393,53 +320,115 @@ public sealed class OpenAiVivaGrader(HttpClient http, IConfiguration configurati
         JsonElement root,
         IReadOnlyList<RubricCriterionSnapshotItem> rubricCriteria)
     {
-        var results = new List<AiCriterionEvaluation>();
+        var aiElements = new List<JsonElement>();
         if (root.TryGetProperty("criteria", out var arr) && arr.ValueKind == JsonValueKind.Array)
         {
-            var index = 0;
             foreach (var elem in arr.EnumerateArray())
             {
-                var matchingRubric = index < rubricCriteria.Count ? rubricCriteria[index] : null;
-                Guid? critId = matchingRubric?.Id;
-                if (elem.TryGetProperty("criterionId", out var idProp) && idProp.ValueKind == JsonValueKind.String &&
-                    Guid.TryParse(idProp.GetString(), out var g) && g != Guid.Empty)
-                {
-                    critId = g;
-                }
+                aiElements.Add(elem);
+            }
+        }
 
-                var name = OptionalString(elem, "criterionName") ?? matchingRubric?.Name ?? $"Tiêu chí #{index + 1}";
-                var maxScore = matchingRubric?.MaxScore
-                    ?? (elem.TryGetProperty("maxScore", out var mp) && mp.TryGetDecimal(out var mv) && mv > 0 ? mv : 1m);
+        if (aiElements.Count == 0)
+        {
+            return rubricCriteria
+                .Select(c => new AiCriterionEvaluation(c.Id, c.Name, c.MaxScore, 0m, null, null, c.DisplayOrder))
+                .ToArray();
+        }
+
+        var usedIndices = new HashSet<int>();
+        var results = new List<AiCriterionEvaluation>(rubricCriteria.Count);
+
+        for (var rIdx = 0; rIdx < rubricCriteria.Count; rIdx++)
+        {
+            var rubric = rubricCriteria[rIdx];
+            var matchedIndex = -1;
+
+            // 1. Match by CriterionId first
+            if (rubric.Id.HasValue)
+            {
+                for (var i = 0; i < aiElements.Count; i++)
+                {
+                    if (usedIndices.Contains(i)) continue;
+                    if (aiElements[i].TryGetProperty("criterionId", out var idProp) &&
+                        idProp.ValueKind == JsonValueKind.String &&
+                        Guid.TryParse(idProp.GetString(), out var g) &&
+                        g == rubric.Id.Value)
+                    {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // 2. Match by CriterionName (case-insensitive)
+            if (matchedIndex < 0)
+            {
+                for (var i = 0; i < aiElements.Count; i++)
+                {
+                    if (usedIndices.Contains(i)) continue;
+                    var aiName = OptionalString(aiElements[i], "criterionName");
+                    if (!string.IsNullOrWhiteSpace(aiName) &&
+                        string.Equals(aiName, rubric.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Fallback to same index or first unused element
+            if (matchedIndex < 0 && rIdx < aiElements.Count && !usedIndices.Contains(rIdx))
+            {
+                matchedIndex = rIdx;
+            }
+            if (matchedIndex < 0)
+            {
+                for (var i = 0; i < aiElements.Count; i++)
+                {
+                    if (!usedIndices.Contains(i))
+                    {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedIndex >= 0)
+            {
+                usedIndices.Add(matchedIndex);
+                var elem = aiElements[matchedIndex];
                 var rawScore = elem.TryGetProperty("score", out var sp) && sp.TryGetDecimal(out var sv) ? sv : 0m;
-                var clampedScore = decimal.Clamp(decimal.Round(rawScore, 2, MidpointRounding.AwayFromZero), 0m, maxScore);
+                var clampedScore = decimal.Clamp(decimal.Round(rawScore, 2, MidpointRounding.AwayFromZero), 0m, rubric.MaxScore);
                 var evidence = OptionalString(elem, "evidence");
                 var comment = OptionalString(elem, "comment");
 
                 results.Add(new AiCriterionEvaluation(
-                    critId,
-                    name,
-                    maxScore,
+                    rubric.Id,
+                    rubric.Name,
+                    rubric.MaxScore,
                     clampedScore,
                     evidence,
                     comment,
-                    matchingRubric?.DisplayOrder ?? (index + 1)));
-
-                index++;
+                    rubric.DisplayOrder > 0 ? rubric.DisplayOrder : rIdx + 1));
             }
-        }
-
-        if (results.Count == 0)
-        {
-            foreach (var c in rubricCriteria)
+            else
             {
-                results.Add(new AiCriterionEvaluation(c.Id, c.Name, c.MaxScore, 0m, null, null, c.DisplayOrder));
+                results.Add(new AiCriterionEvaluation(
+                    rubric.Id,
+                    rubric.Name,
+                    rubric.MaxScore,
+                    0m,
+                    null,
+                    null,
+                    rubric.DisplayOrder > 0 ? rubric.DisplayOrder : rIdx + 1));
             }
         }
 
         return results;
     }
 
-    private static string[] ExtractExpectedTerms(string? expectedConcepts, string? description, string name)
+    private static string[] ExtractExpectedTerms(string? expectedConcepts, string? description, string? expectedAnswer, string name)
     {
         if (!string.IsNullOrWhiteSpace(expectedConcepts))
         {
@@ -451,11 +440,13 @@ public sealed class OpenAiVivaGrader(HttpClient http, IConfiguration configurati
             if (phrases.Length > 0) return phrases;
         }
 
-        var source = !string.IsNullOrWhiteSpace(description) ? description : name;
+        var source = !string.IsNullOrWhiteSpace(description)
+            ? $"{description} {expectedAnswer}"
+            : (!string.IsNullOrWhiteSpace(expectedAnswer) ? expectedAnswer : name);
         return Regex.Matches(source, @"[\p{L}\p{N}]{4,}")
             .Select(m => m.Value)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(5)
+            .Take(6)
             .ToArray();
     }
 

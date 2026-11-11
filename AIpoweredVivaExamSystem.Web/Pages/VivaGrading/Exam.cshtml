@@ -4,6 +4,14 @@
 @{
     var exam = Model.Vm.Exam;
     ViewData["Title"] = $"Chấm điểm AI — {exam.Name}";
+    var allStudents = Model.Vm.Students;
+    var filteredStudents = Model.StatusFilter is { } filter
+        ? allStudents.Where(s => s.GradingStatus == filter).ToArray()
+        : allStudents;
+    var pendingAiCount = allStudents.Count(s => s.GradingStatus == VivaGradingStatus.PendingAiGrading);
+    var aiSuggestedCount = allStudents.Count(s => s.GradingStatus == VivaGradingStatus.AiSuggested);
+    var partialCount = allStudents.Count(s => s.GradingStatus == VivaGradingStatus.PartiallyReviewed);
+    var reviewedCount = allStudents.Count(s => s.GradingStatus == VivaGradingStatus.Reviewed);
 }
 
 <div class="container stack">
@@ -28,6 +36,15 @@
 
         <div class="head-actions">
             <a class="btn btn-secondary" asp-page="/Exams/Details" asp-route-id="@exam.Id">@Icons.Get("arrow-left") Chi tiết kỳ thi</a>
+            @if (pendingAiCount > 0)
+            {
+                <form method="post" asp-page-handler="BatchAiGrade" asp-route-id="@exam.Id" style="margin: 0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">
+                        @Icons.Get("sparkles", 15) Chạy AI chấm gợi ý (@pendingAiCount ca)
+                    </button>
+                </form>
+            }
         </div>
     </div>
 
@@ -51,12 +68,46 @@
             <div class="card-title">Danh sách thí sinh &amp; Trạng thái chấm điểm</div>
         </div>
 
-        @if (Model.Vm.Students.Count == 0)
+        @if (allStudents.Count > 0)
+        {
+            <div class="tabs" role="tablist" aria-label="Lọc trạng thái chấm điểm">
+                <a class="tab @(Model.StatusFilter is null ? "active" : "")"
+                   asp-page="/VivaGrading/Exam" asp-route-id="@exam.Id">
+                    Tất cả <span class="tab-count">@allStudents.Count</span>
+                </a>
+                <a class="tab @(Model.StatusFilter == VivaGradingStatus.PendingAiGrading ? "active" : "")"
+                   asp-page="/VivaGrading/Exam" asp-route-id="@exam.Id" asp-route-status="@VivaGradingStatus.PendingAiGrading">
+                    Chờ AI chấm <span class="tab-count">@pendingAiCount</span>
+                </a>
+                <a class="tab @(Model.StatusFilter == VivaGradingStatus.AiSuggested ? "active" : "")"
+                   asp-page="/VivaGrading/Exam" asp-route-id="@exam.Id" asp-route-status="@VivaGradingStatus.AiSuggested">
+                    AI đã gợi ý điểm <span class="tab-count">@aiSuggestedCount</span>
+                </a>
+                <a class="tab @(Model.StatusFilter == VivaGradingStatus.PartiallyReviewed ? "active" : "")"
+                   asp-page="/VivaGrading/Exam" asp-route-id="@exam.Id" asp-route-status="@VivaGradingStatus.PartiallyReviewed">
+                    Đang duyệt điểm <span class="tab-count">@partialCount</span>
+                </a>
+                <a class="tab @(Model.StatusFilter == VivaGradingStatus.Reviewed ? "active" : "")"
+                   asp-page="/VivaGrading/Exam" asp-route-id="@exam.Id" asp-route-status="@VivaGradingStatus.Reviewed">
+                    Đã chốt điểm <span class="tab-count">@reviewedCount</span>
+                </a>
+            </div>
+        }
+
+        @if (allStudents.Count == 0)
         {
             <div class="empty">
                 <div class="empty-icon">@Icons.Get("users", 20)</div>
                 <div class="empty-title">Chưa có thí sinh trong kỳ thi này</div>
                 <p class="empty-text">Hãy thêm thí sinh vào danh sách dự thi (Roster) trước.</p>
+            </div>
+        }
+        else if (filteredStudents.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("checklist", 20)</div>
+                <div class="empty-title">Không có thí sinh ở trạng thái này</div>
+                <p class="empty-text">Hãy chọn bộ lọc khác để xem danh sách thí sinh.</p>
             </div>
         }
         else
@@ -75,7 +126,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var student in Model.Vm.Students)
+                        @foreach (var student in filteredStudents)
                         {
                             <tr>
                                 <td>
@@ -115,6 +166,10 @@
                                         {
                                             <span class="code-chip" style="margin-left: 4px">@student.NormalizedFinalScore10.Value.ToScore() / 10</span>
                                         }
+                                    }
+                                    else if (student.GradingStatus == VivaGradingStatus.PartiallyReviewed)
+                                    {
+                                        <span class="hint">Đang duyệt (@student.TeacherReviewedCount/@student.TotalQuestions câu)</span>
                                     }
                                     else
                                     {
