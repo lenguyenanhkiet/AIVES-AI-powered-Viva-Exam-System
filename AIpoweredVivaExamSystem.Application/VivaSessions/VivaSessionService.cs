@@ -18,7 +18,11 @@ public interface IVivaSessionStore
     Task CompleteAsync(Guid sessionId, CancellationToken ct);
 }
 
-public sealed class VivaSessionService(IVivaSessionStore store, ExamAccessGuard guard, ICurrentUser actor) : IVivaSessionService
+public sealed class VivaSessionService(
+    IVivaSessionStore store,
+    ExamAccessGuard guard,
+    ICurrentUser actor,
+    IVivaGradingStore? gradingStore = null) : IVivaSessionService
 {
     public async Task<StudentSession> GetOrCreateMySessionAsync(Guid enrollmentId, CancellationToken ct)
     {
@@ -32,6 +36,11 @@ public sealed class VivaSessionService(IVivaSessionStore store, ExamAccessGuard 
         RequireStudent();
         await guard.OwnExamStudentAsync(await store.FindEnrollmentAsync(sessionId, ct), ct);
         await store.CompleteAsync(sessionId, ct);
+        if (gradingStore is not null)
+        {
+            try { await gradingStore.GenerateAiGradingsAsync(sessionId, forceRegrade: false, ct); }
+            catch { /* Grading can be re-triggered by the lecturer on the review page if external provider fails. */ }
+        }
     }
 
     private void RequireStudent()

@@ -10,10 +10,14 @@ namespace AIpoweredVivaExamSystem.Web.Pages.VivaSessions;
 
 [Authorize(Roles = "STUDENT")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class OpenModel(IVivaInterviewService interview, IMyVivaSessionsReader mine) : PageModel
+public sealed class OpenModel(
+    IVivaInterviewService interview,
+    IMyVivaSessionsReader mine,
+    IVivaGradingService? grading = null) : PageModel
 {
     public StudentSession? Session { get; private set; }
     public VivaInterviewState? InterviewState { get; private set; }
+    public StudentSessionGradingResult? GradingResult { get; private set; }
     public IReadOnlyList<MyVivaExam> Vm { get; private set; } = default!;
 
     public async Task<IActionResult> OnPostAsync(Guid enrollmentId, CancellationToken ct)
@@ -26,6 +30,10 @@ public sealed class OpenModel(IVivaInterviewService interview, IMyVivaSessionsRe
                 InterviewState.StartedAt,
                 InterviewState.CompletedAt,
                 InterviewState.Questions);
+            if (InterviewState.CompletedAt.HasValue && grading is not null)
+            {
+                GradingResult = await grading.GetStudentResultAsync(InterviewState.SessionId, ct);
+            }
         }
         catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
         {
@@ -48,6 +56,10 @@ public sealed class OpenModel(IVivaInterviewService interview, IMyVivaSessionsRe
                 InterviewState.StartedAt,
                 InterviewState.CompletedAt,
                 InterviewState.Questions);
+            if (InterviewState.CompletedAt.HasValue && grading is not null)
+            {
+                GradingResult = await grading.GetStudentResultAsync(InterviewState.SessionId, ct);
+            }
             return Page();
         }
         catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)

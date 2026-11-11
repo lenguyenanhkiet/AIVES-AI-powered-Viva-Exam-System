@@ -34,6 +34,7 @@ builder.Services.AddRazorPages(options =>
     AddLegacyRoute("/Subjects/Index", "/Subjects/Index/{id?}");
     AddLegacyRoute("/Topics/Index", "/Topics/Index/{id?}");
     AddLegacyRoute("/VivaSessions/Index", "/VivaSessions/Index/{id?}");
+    AddLegacyRoute("/VivaGrading/Index", "/VivaGrading/Index/{id?}");
 });
 builder.Services.AddAivesAuthentication();
 builder.Services.AddHttpContextAccessor();

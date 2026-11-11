@@ -10,7 +10,8 @@ public sealed class VivaInterviewService(
     IVivaInterviewStore interviewStore,
     ISpeechTranscriber transcriber,
     ExamAccessGuard guard,
-    ICurrentUser actor) : IVivaInterviewService
+    ICurrentUser actor,
+    IVivaGradingStore? gradingStore = null) : IVivaInterviewService
 {
     public async Task<VivaInterviewState> OpenOrResumeByEnrollmentAsync(Guid enrollmentId, CancellationToken ct)
     {
@@ -49,7 +50,13 @@ public sealed class VivaInterviewService(
             throw new DomainValidationException("Vui lòng trả lời bằng giọng nói hoặc nhập nội dung câu trả lời trước khi nộp.");
 
         var normalizedRequest = request with { Transcript = transcript.Trim() };
-        return await interviewStore.SubmitAnswerAsync(normalizedRequest, ct);
+        var state = await interviewStore.SubmitAnswerAsync(normalizedRequest, ct);
+        if (state.CompletedAt.HasValue && gradingStore is not null)
+        {
+            try { await gradingStore.GenerateAiGradingsAsync(request.SessionId, forceRegrade: false, ct); }
+            catch { /* Grading can be re-triggered by the lecturer on the review page if external provider fails. */ }
+        }
+        return state;
     }
 
     public async Task<string> TranscribeAudioAsync(Guid sessionId, byte[] audioBytes, string fileName, string language, CancellationToken ct)

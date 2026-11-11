@@ -628,3 +628,84 @@ fieldset.field legend { padding: 0; margin-bottom: 6px; }
     gap: 8px;
 }
 
+/* ---------------- AI Grading & Human-in-the-Loop Review (Group 4) ---------------- */
+.viva-grading-card {
+    border: 1px solid var(--border);
+}
+.viva-signals-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.section-subtitle {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+}
+.viva-ai-box {
+    padding: 16px;
+    border-radius: var(--radius);
+    background: #f8faff;
+    border: 1px solid #c7d2fe;
+}
+.viva-ai-box-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.viva-ai-score-pill {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #e0e7ff;
+    color: #3730a3;
+    font-size: 13px;
+}
+.viva-feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+.viva-feedback-item {
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+.viva-feedback-item strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+}
+.viva-feedback-item p {
+    margin: 0;
+    color: var(--ink-muted);
+    white-space: pre-wrap;
+}
+.viva-feedback-strength {
+    border-left: 3px solid #16a34a;
+}
+.viva-feedback-weakness {
+    border-left: 3px solid #d97706;
+}
+.viva-feedback-missing {
+    border-left: 3px solid #dc2626;
+}
+.viva-teacher-review-box {
+    padding: 16px;
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+}
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+

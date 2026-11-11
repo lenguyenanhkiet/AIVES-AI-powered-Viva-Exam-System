@@ -1,0 +1,143 @@
+@page "/VivaGrading/Exam/{id?}"
+@model AIpoweredVivaExamSystem.Web.Pages.VivaGrading.ExamModel
+@using AIpoweredVivaExamSystem.Application.VivaSessions
+@{
+    var exam = Model.Vm.Exam;
+    ViewData["Title"] = $"Chấm điểm AI — {exam.Name}";
+}
+
+<div class="container stack">
+    <nav class="breadcrumb">
+        <a asp-page="/Exams/Index">Kỳ thi</a> @Icons.Get("chevron-right", 14)
+        <a asp-page="/Exams/Details" asp-route-id="@exam.Id">@exam.Name</a> @Icons.Get("chevron-right", 14)
+        <span>Chấm điểm AI &amp; Duyệt điểm</span>
+    </nav>
+
+    <div class="page-head">
+        <div>
+            <div class="head-tags">
+                <span class="code-chip">@Model.Vm.SubjectCode</span>
+                <partial name="_ExamStatus" model="exam.Status" />
+            </div>
+            <h1 class="page-title">Bảng chấm điểm hỗ trợ bởi AI — @exam.Name</h1>
+            <p class="page-sub">
+                Môn học: <strong>@Model.Vm.SubjectCode — @Model.Vm.SubjectName</strong> ·
+                AI đóng vai trò trợ lý gợi ý điểm theo rubric; giảng viên kiểm tra transcript và chốt điểm cuối cùng (Human-in-the-Loop).
+            </p>
+        </div>
+
+        <div class="head-actions">
+            <a class="btn btn-secondary" asp-page="/Exams/Details" asp-route-id="@exam.Id">@Icons.Get("arrow-left") Chi tiết kỳ thi</a>
+        </div>
+    </div>
+
+    <div class="viva-metrics-bar">
+        <div class="viva-metric">
+            <span class="viva-metric-label">Tổng thí sinh dự thi</span>
+            <strong class="viva-metric-value">@Model.Vm.TotalStudents sinh viên</strong>
+        </div>
+        <div class="viva-metric">
+            <span class="viva-metric-label">Phiên thi đã hoàn thành</span>
+            <strong class="viva-metric-value">@Model.Vm.CompletedSessionsCount / @Model.Vm.TotalStudents</strong>
+        </div>
+        <div class="viva-metric">
+            <span class="viva-metric-label">Đã chốt điểm cuối cùng</span>
+            <strong class="viva-metric-value">@Model.Vm.FullyReviewedSessionsCount / @Model.Vm.TotalStudents</strong>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <div class="card-title">Danh sách thí sinh &amp; Trạng thái chấm điểm</div>
+        </div>
+
+        @if (Model.Vm.Students.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("users", 20)</div>
+                <div class="empty-title">Chưa có thí sinh trong kỳ thi này</div>
+                <p class="empty-text">Hãy thêm thí sinh vào danh sách dự thi (Roster) trước.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Thí sinh</th>
+                            <th>Ca thi</th>
+                            <th>Phiên thi</th>
+                            <th>Trạng thái chấm</th>
+                            <th>Điểm AI gợi ý</th>
+                            <th>Điểm GV chốt (Thang 10)</th>
+                            <th class="actions">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var student in Model.Vm.Students)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="cell-title">@student.StudentName</div>
+                                    <div class="hint">@student.StudentEmail</div>
+                                </td>
+                                <td>@(student.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td>
+                                    <span class="badge @(student.SessionStatus == SessionState.Completed ? "badge-active" : student.SessionStatus == SessionState.InProgress ? "badge-warning" : "badge-inactive")">
+                                        @student.SessionStatus.ToLabel()
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @student.GradingStatus.ToBadgeClass()">
+                                        @student.GradingStatus.ToLabel()
+                                    </span>
+                                    @if (student.TotalQuestions > 0)
+                                    {
+                                        <div class="hint">Đã chốt @student.TeacherReviewedCount/@student.TotalQuestions câu</div>
+                                    }
+                                </td>
+                                <td>
+                                    @if (student.TotalAiScore.HasValue && student.TotalMaxScore.HasValue)
+                                    {
+                                        <strong>@student.TotalAiScore.Value.ToScore()</strong> <span class="hint">/ @student.TotalMaxScore.Value.ToScore()</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (student.TotalFinalScore.HasValue && student.TotalMaxScore.HasValue)
+                                    {
+                                        <strong>@student.TotalFinalScore.Value.ToScore()</strong> <span class="hint">/ @student.TotalMaxScore.Value.ToScore()</span>
+                                        @if (student.NormalizedFinalScore10.HasValue)
+                                        {
+                                            <span class="code-chip" style="margin-left: 4px">@student.NormalizedFinalScore10.Value.ToScore() / 10</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">Chưa chốt</span>
+                                    }
+                                </td>
+                                <td class="actions">
+                                    @if (student.SessionId is { } sid)
+                                    {
+                                        <a class="btn btn-primary btn-sm" asp-page="/VivaGrading/Review" asp-route-id="@sid">
+                                            @Icons.Get("sparkles", 14) Xem transcript &amp; Chấm điểm
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="hint">Sinh viên chưa mở phiên thi</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

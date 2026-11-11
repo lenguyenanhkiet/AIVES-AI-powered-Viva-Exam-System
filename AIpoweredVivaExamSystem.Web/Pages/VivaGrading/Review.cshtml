@@ -1,0 +1,366 @@
+@page "/VivaGrading/Review/{id?}"
+@model AIpoweredVivaExamSystem.Web.Pages.VivaGrading.ReviewModel
+@using AIpoweredVivaExamSystem.Application.VivaSessions
+@using AIpoweredVivaExamSystem.Domain.Enums
+@{
+    var sheet = Model.Sheet;
+    ViewData["Title"] = $"Chấm điểm vấn đáp — {sheet.StudentName}";
+    var isCompleted = sheet.CompletedAt.HasValue;
+    var isAllReviewed = sheet.TeacherReviewedQuestionsCount == sheet.TotalQuestionsCount && sheet.TotalQuestionsCount > 0;
+}
+
+<div class="container stack">
+    <nav class="breadcrumb">
+        <a asp-page="/Exams/Index">Kỳ thi</a> @Icons.Get("chevron-right", 14)
+        <a asp-page="/Exams/Details" asp-route-id="@sheet.ExamId">@sheet.ExamName</a> @Icons.Get("chevron-right", 14)
+        <a asp-page="/VivaGrading/Exam" asp-route-id="@sheet.ExamId">Bảng chấm điểm AI</a> @Icons.Get("chevron-right", 14)
+        <span>@sheet.StudentName</span>
+    </nav>
+
+    <div class="page-head">
+        <div>
+            <div class="head-tags">
+                <span class="code-chip">@sheet.SubjectCode</span>
+                <span class="badge @(isCompleted ? "badge-active" : "badge-warning")">
+                    @((isCompleted ? SessionState.Completed : SessionState.InProgress).ToLabel())
+                </span>
+                <span class="badge @(isAllReviewed ? "badge-active" : "badge-warning")">
+                    @(isAllReviewed ? "Đã chốt toàn bộ điểm" : $"Đã chốt {sheet.TeacherReviewedQuestionsCount}/{sheet.TotalQuestionsCount} câu")
+                </span>
+            </div>
+            <h1 class="page-title">Thí sinh: @sheet.StudentName</h1>
+            <p class="page-sub">
+                Email: <strong>@sheet.StudentEmail</strong> · Kỳ thi: <strong>@sheet.ExamName (@sheet.SubjectCode — @sheet.SubjectName)</strong> ·
+                Bắt đầu: @sheet.StartedAt.ToLocalText()
+                @if (sheet.CompletedAt.HasValue)
+                {
+                    <span> · Hoàn thành: @sheet.CompletedAt.Value.ToLocalText()</span>
+                }
+            </p>
+        </div>
+
+        <div class="head-actions">
+            <a class="btn btn-secondary" asp-page="/VivaGrading/Exam" asp-route-id="@sheet.ExamId">
+                @Icons.Get("arrow-left") Danh sách thí sinh
+            </a>
+
+            <form method="post" asp-page-handler="Regrade" asp-route-id="@sheet.SessionId">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-secondary">
+                    @Icons.Get("sparkles", 15) Chạy lại AI gợi ý điểm
+                </button>
+            </form>
+
+            <form method="post" asp-page-handler="ApproveAll" asp-route-id="@sheet.SessionId"
+                  onsubmit="return confirm('Xác nhận chốt điểm cuối cùng tất cả câu hỏi theo mức điểm AI đề xuất?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">
+                    @Icons.Get("check", 15) Chốt tất cả theo điểm AI
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Thanh tổng hợp điểm số toàn ca thi -->
+    <div class="viva-metrics-bar">
+        <div class="viva-metric">
+            <span class="viva-metric-label">Tổng điểm tối đa (Rubric)</span>
+            <strong class="viva-metric-value">@sheet.TotalMaxScore.ToScore() điểm</strong>
+        </div>
+        <div class="viva-metric">
+            <span class="viva-metric-label">@Icons.Get("sparkles", 14) Tổng điểm AI đề xuất</span>
+            <strong class="viva-metric-value">
+                @if (sheet.TotalAiScore.HasValue)
+                {
+                    <span>@sheet.TotalAiScore.Value.ToScore() / @sheet.TotalMaxScore.ToScore()</span>
+                    @if (sheet.NormalizedAiScore10.HasValue)
+                    {
+                        <span class="hint"> (~@sheet.NormalizedAiScore10.Value.ToScore()/10)</span>
+                    }
+                }
+                else
+                {
+                    <span>Chưa chấm</span>
+                }
+            </strong>
+        </div>
+        <div class="viva-metric">
+            <span class="viva-metric-label">@Icons.Get("check", 14) Điểm Giảng viên chốt (Final)</span>
+            <strong class="viva-metric-value">
+                @if (sheet.TotalFinalScore.HasValue)
+                {
+                    <span>@sheet.TotalFinalScore.Value.ToScore() / @sheet.TotalMaxScore.ToScore()</span>
+                    @if (sheet.NormalizedFinalScore10.HasValue)
+                    {
+                        <span class="code-chip" style="margin-left: 6px">@sheet.NormalizedFinalScore10.Value.ToScore() / 10</span>
+                    }
+                }
+                else
+                {
+                    <span>Chưa chốt (@sheet.TeacherReviewedQuestionsCount/@sheet.TotalQuestionsCount câu)</span>
+                }
+            </strong>
+        </div>
+        <div class="viva-metric">
+            <span class="viva-metric-label">Nguyên tắc chấm</span>
+            <strong class="viva-metric-value">Human-in-the-Loop</strong>
+        </div>
+    </div>
+
+    @foreach (var q in sheet.Questions)
+    {
+        var defaultFinalScore = (q.TeacherReview?.FinalScore ?? q.AiGrading?.AiScore ?? 0m).ToScore();
+        var aiScoreText = (q.AiGrading?.AiScore ?? 0m).ToScore();
+        var inputId = $"final-score-{q.Position}";
+
+        <div class="card viva-grading-card" id="question-@q.Position">
+            <div class="card-head">
+                <div class="viva-turn-header">
+                    <span class="code-chip">Câu hỏi chính #@q.Position</span>
+                    <span class="card-title">@q.RubricName (Tối đa @q.MaxScore.ToScore() điểm)</span>
+                </div>
+                <div class="head-tags">
+                    @if (q.AiGrading is not null)
+                    {
+                        <span class="badge badge-warning">
+                            @Icons.Get("sparkles", 13) AI đề xuất: @q.AiGrading.AiScore.ToScore() / @q.MaxScore.ToScore()
+                        </span>
+                    }
+                    @if (q.TeacherReview is not null)
+                    {
+                        <span class="badge badge-active">
+                            @Icons.Get("check", 13) GV đã chốt: @q.TeacherReview.FinalScore.ToScore() / @q.MaxScore.ToScore()
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-inactive">Chờ giảng viên chốt điểm</span>
+                    }
+                </div>
+            </div>
+
+            <div class="card-body stack">
+                <!-- 1. Đề bài & Đáp án kỳ vọng -->
+                <div class="viva-prompt-box">
+                    <strong>Nội dung câu hỏi #@q.Position:</strong>
+                    <p style="white-space: pre-wrap; margin: 6px 0 0">@q.QuestionContent</p>
+                    @if (!string.IsNullOrWhiteSpace(q.ExpectedAnswer))
+                    {
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border)">
+                            <span class="hint"><strong>Đáp án / Ý kỳ vọng (Expected Answer):</strong> @q.ExpectedAnswer</span>
+                        </div>
+                    }
+                </div>
+
+                <!-- 2. Tín hiệu phụ: Thời gian trả lời & Độ trôi chảy -->
+                <div class="viva-signals-bar">
+                    <span class="code-chip">@Icons.Get("clock", 13) Thời gian trả lời: @q.TotalResponseSeconds giây</span>
+                    <span class="code-chip">Số lượt trao đổi: @q.Turns.Count(t => t.AnsweredAt.HasValue) / @q.Turns.Count lượt</span>
+                    <span class="code-chip">Tổng số từ: @q.TotalWordCount từ</span>
+                    <span class="code-chip">Độ trôi chảy ước tính: ~@q.WordsPerMinute từ/phút (WPM)</span>
+                </div>
+
+                <!-- 3. Nhật ký Transcript câu trả lời của thí sinh -->
+                <div class="stack">
+                    <h3 class="section-subtitle">Transcript đầy đủ câu trả lời của thí sinh</h3>
+                    @if (q.Turns.Count == 0 || q.Turns.All(t => !t.AnsweredAt.HasValue))
+                    {
+                        <div class="alert alert-warning">
+                            @Icons.Get("alert") <span>Thí sinh chưa nộp câu trả lời cho câu hỏi này.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="viva-timeline">
+                            @foreach (var turn in q.Turns)
+                            {
+                                <div class="viva-turn-item @(turn.AnsweredAt.HasValue ? "answered" : "pending")">
+                                    <div class="viva-turn-meta">
+                                        <span class="code-chip">
+                                            @(turn.AnswerType == AnswerType.FollowUp
+                                                ? $"Hỏi xoáy #{turn.FollowUpLevel}"
+                                                : "Câu hỏi chính")
+                                        </span>
+                                        <span class="hint">Hỏi lúc @turn.AskedAt.ToLocalText()</span>
+                                        @if (turn.ResponseSeconds.HasValue)
+                                        {
+                                            <span class="hint">· Thời gian trả lời: @turn.ResponseSeconds.Value giây (@turn.WordCount từ)</span>
+                                        }
+                                        @if (turn.HasAudio)
+                                        {
+                                            <span class="badge badge-active">Có file ghi âm</span>
+                                        }
+                                    </div>
+                                    <div class="viva-turn-question">
+                                        <strong>Giám khảo AI hỏi:</strong>
+                                        <p style="white-space: pre-wrap; margin: 4px 0 0">@turn.PromptText</p>
+                                    </div>
+                                    @if (turn.AnsweredAt.HasValue)
+                                    {
+                                        <div class="viva-turn-answer">
+                                            <strong>Transcript sinh viên trả lời:</strong>
+                                            <p style="white-space: pre-wrap; margin: 4px 0 0">@turn.Transcript</p>
+                                            @if (!string.IsNullOrWhiteSpace(turn.LiveAnalysisSummary) || !string.IsNullOrWhiteSpace(turn.MissingConceptsFromLiveAnalysis))
+                                            {
+                                                <div class="hint" style="margin-top: 6px">
+                                                    @if (!string.IsNullOrWhiteSpace(turn.LiveAnalysisSummary))
+                                                    {
+                                                        <span>Phân tích tức thời: @turn.LiveAnalysisSummary </span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(turn.MissingConceptsFromLiveAnalysis))
+                                                    {
+                                                        <span>· Ý thiếu lúc hỏi: <em>@turn.MissingConceptsFromLiveAnalysis</em></span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="hint"><em>Chưa trả lời lượt này.</em></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- 4. Kết quả AI phân tích & Gợi ý điểm theo Rubric -->
+                @if (q.AiGrading is { } ai)
+                {
+                    <div class="viva-ai-box stack">
+                        <div class="viva-ai-box-head">
+                            <div>
+                                <strong>@Icons.Get("sparkles", 16) Đánh giá &amp; Điểm gợi ý từ AI</strong>
+                                <span class="hint" style="margin-left: 8px">Model: @ai.ModelName · Cập nhật: @ai.GradedAt.ToLocalText()</span>
+                            </div>
+                            <div class="viva-ai-score-pill">
+                                Điểm AI đề xuất: <strong>@ai.AiScore.ToScore() / @ai.MaxScore.ToScore()</strong>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(ai.AiComment))
+                        {
+                            <p style="margin: 0"><strong>Nhận xét tổng quát:</strong> @ai.AiComment</p>
+                        }
+
+                        <div class="viva-feedback-grid">
+                            <div class="viva-feedback-item viva-feedback-strength">
+                                <strong>✓ Điểm mạnh (Strengths)</strong>
+                                <p>@(ai.Strengths ?? "Không có ghi nhận cụ thể.")</p>
+                            </div>
+                            <div class="viva-feedback-item viva-feedback-weakness">
+                                <strong>! Điểm yếu (Weaknesses)</strong>
+                                <p>@(ai.Weaknesses ?? "Không có ghi nhận cụ thể.")</p>
+                            </div>
+                            <div class="viva-feedback-item viva-feedback-missing">
+                                <strong>? Ý còn thiếu (Missing Points)</strong>
+                                <p>@(ai.MissingPoints ?? "Đã bao phủ đầy đủ các ý trong rubric.")</p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(ai.FluencyNote))
+                        {
+                            <div class="hint">
+                                <strong>Đánh giá độ trôi chảy &amp; phản xạ:</strong> @ai.FluencyNote
+                            </div>
+                        }
+
+                        @if (ai.Criteria.Count > 0)
+                        {
+                            <div class="table-wrap">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tiêu chí Rubric</th>
+                                            <th>Điểm AI / Tối đa</th>
+                                            <th>Dẫn chứng từ Transcript</th>
+                                            <th>Nhận xét chi tiết của AI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var crit in ai.Criteria)
+                                        {
+                                            <tr>
+                                                <td class="cell-title">@crit.CriterionName</td>
+                                                <td><strong>@crit.Score.ToScore()</strong> / @crit.MaxScore.ToScore()</td>
+                                                <td><span class="hint">@(crit.Evidence ?? "—")</span></td>
+                                                <td>@(crit.Comment ?? "—")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- 5. Giảng viên điều chỉnh & Quyết định điểm cuối cùng (Human-in-the-Loop) -->
+                <div class="viva-teacher-review-box">
+                    <div class="viva-ai-box-head">
+                        <div>
+                            <strong>@Icons.Get("shield", 16) Quyết định điểm cuối cùng của Giảng viên (Human-in-the-Loop)</strong>
+                            <span class="hint" style="margin-left: 8px">Điểm của giảng viên là quyết định chính thức và không ghi đè dữ liệu gốc của AI.</span>
+                        </div>
+                        @if (q.TeacherReview is { } rev)
+                        {
+                            <span class="hint">
+                                Đã duyệt bởi <strong>@rev.LecturerName</strong> lúc @rev.ReviewedAt.ToLocalText()
+                                @if (rev.AiScoreSnapshot.HasValue)
+                                {
+                                    <span>(Điểm AI lúc duyệt: @rev.AiScoreSnapshot.Value.ToScore())</span>
+                                }
+                            </span>
+                        }
+                    </div>
+
+                    <form method="post" asp-page-handler="SaveReview" asp-route-id="@sheet.SessionId" class="stack" style="margin-top: 12px">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sessionQuestionId" value="@q.SessionQuestionId" />
+
+                        <div class="form-row">
+                            <div class="field" style="max-width: 260px">
+                                <label class="label" for="@inputId">Điểm chốt chính thức (0 – @q.MaxScore.ToScore()):</label>
+                                <div style="display: flex; gap: 8px; align-items: center">
+                                    <input class="input" type="number" id="@inputId" name="finalScore"
+                                           step="0.01" min="0" max="@q.MaxScore.ToScore()"
+                                           value="@defaultFinalScore" required />
+                                    @if (q.AiGrading is not null)
+                                    {
+                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                onclick="document.getElementById('@inputId').value='@aiScoreText'">
+                                            Lấy điểm AI (@aiScoreText)
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="field" style="flex: 1">
+                                <label class="label" for="comment-@q.Position">Nhận xét của giảng viên (tùy chọn):</label>
+                                <input class="input" type="text" id="comment-@q.Position" name="comment"
+                                       maxlength="4000" value="@(q.TeacherReview?.Comment)"
+                                       placeholder="Nhập nhận xét hoặc lý do điều chỉnh điểm cho câu hỏi này..." />
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <span class="hint">
+                                @if (q.TeacherReview is not null)
+                                {
+                                    <span>Điểm hiện tại đã chốt: <strong>@q.TeacherReview.FinalScore.ToScore() / @q.MaxScore.ToScore()</strong>. Bạn có thể cập nhật lại nếu cần.</span>
+                                }
+                                else
+                                {
+                                    <span>Chưa chốt điểm cho câu #@q.Position.</span>
+                                }
+                            </span>
+                            <button type="submit" class="btn btn-primary">
+                                @Icons.Get("check", 15) Lưu điểm chốt Câu #@q.Position
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>

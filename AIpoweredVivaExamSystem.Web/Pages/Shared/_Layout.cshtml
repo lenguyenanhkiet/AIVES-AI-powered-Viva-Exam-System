@@ -42,6 +42,7 @@
                     <a class="nav-item @Active("Schedules")" aria-current="@Current("Schedules")" asp-page="/Schedules/Index">@Icons.Get("clock") Lịch thi</a>
                     <a class="nav-item @Active("ExamFoundation")" aria-current="@Current("ExamFoundation")" asp-page="/ExamFoundation/Index">@Icons.Get("activity") Nền tảng kỳ thi</a>
                     <a class="nav-item @Active("ExamStudents")" aria-current="@Current("ExamStudents")" asp-page="/ExamStudents/Index">@Icons.Get("users") Sinh viên kỳ thi</a>
+                    <a class="nav-item @Active("VivaGrading")" aria-current="@Current("VivaGrading")" asp-page="/VivaGrading/Index">@Icons.Get("checklist") Chấm điểm AI &amp; Duyệt điểm</a>
                 }
                 @if (User.IsInRole("ADMIN"))
                 {

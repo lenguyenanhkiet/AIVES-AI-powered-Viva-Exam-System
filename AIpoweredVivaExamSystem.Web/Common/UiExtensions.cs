@@ -84,6 +84,23 @@ public static class UiExtensions
         _ => state.ToString()
     };
 
+    public static string ToLabel(this VivaGradingStatus status) => status switch
+    {
+        VivaGradingStatus.NotStarted => "Chưa có phiên thi",
+        VivaGradingStatus.PendingAiGrading => "Chờ AI chấm gợi ý",
+        VivaGradingStatus.AiSuggested => "AI đã gợi ý điểm",
+        VivaGradingStatus.PartiallyReviewed => "Đang duyệt điểm",
+        VivaGradingStatus.Reviewed => "Đã chốt điểm",
+        _ => status.ToString()
+    };
+
+    public static string ToBadgeClass(this VivaGradingStatus status) => status switch
+    {
+        VivaGradingStatus.Reviewed => "badge-active",
+        VivaGradingStatus.AiSuggested or VivaGradingStatus.PartiallyReviewed => "badge-warning",
+        _ => "badge-inactive"
+    };
+
     public static string ToScore(this decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
     public static void Toast(this ITempDataDictionary tempData, string message, bool success = true)

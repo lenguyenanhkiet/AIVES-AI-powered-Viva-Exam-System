@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddSingleton<AIpoweredVivaExamSystem.Application.VivaSessions.IAnswerAudioStorage>(_ => new VivaSessions.LocalAnswerAudioStorage());
         services.AddHttpClient<AIpoweredVivaExamSystem.Application.VivaSessions.IVivaAiExaminer, VivaSessions.OpenAiVivaExaminer>(client => client.Timeout = TimeSpan.FromSeconds(25));
         services.AddHttpClient<AIpoweredVivaExamSystem.Application.VivaSessions.ISpeechTranscriber, VivaSessions.OpenAiSpeechTranscriber>(client => client.Timeout = TimeSpan.FromSeconds(30));
+        services.AddHttpClient<AIpoweredVivaExamSystem.Application.VivaSessions.IVivaAiGrader, VivaSessions.OpenAiVivaGrader>(client => client.Timeout = TimeSpan.FromSeconds(45));
         return services;
     }
 }

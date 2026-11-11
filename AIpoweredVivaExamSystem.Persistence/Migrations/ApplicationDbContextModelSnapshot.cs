@@ -22,6 +22,215 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.AiGrading", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AiComment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<decimal>("AiScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FluencyNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("MissingPoints")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("ModelName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("SessionQuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Strengths")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("TotalResponseSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Weaknesses")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("WordsPerMinute")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionQuestionId")
+                        .IsUnique();
+
+                    b.ToTable("AiGradings", t =>
+                        {
+                            t.HasCheckConstraint("CK_AiGradings_AiScore", "[AiScore] >= 0 AND [AiScore] <= [MaxScore]");
+
+                            t.HasCheckConstraint("CK_AiGradings_MaxScore", "[MaxScore] > 0 AND [MaxScore] <= 999.99");
+
+                            t.HasCheckConstraint("CK_AiGradings_ResponseSeconds", "[TotalResponseSeconds] >= 0");
+
+                            t.HasCheckConstraint("CK_AiGradings_WordsPerMinute", "[WordsPerMinute] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.AiGradingCriterion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AiGradingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("CriterionName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Evidence")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid?>("RubricCriterionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AiGradingId", "DisplayOrder")
+                        .IsUnique();
+
+                    b.ToTable("AiGradingCriteria", t =>
+                        {
+                            t.HasCheckConstraint("CK_AiGradingCriteria_DisplayOrder", "[DisplayOrder] >= 1");
+
+                            t.HasCheckConstraint("CK_AiGradingCriteria_MaxScore", "[MaxScore] > 0 AND [MaxScore] <= 999.99");
+
+                            t.HasCheckConstraint("CK_AiGradingCriteria_Score", "[Score] >= 0 AND [Score] <= [MaxScore]");
+                        });
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.TeacherReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AiScoreSnapshot")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("FinalScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<Guid>("LecturerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTimeOffset>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SessionQuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TeacherScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LecturerId");
+
+                    b.HasIndex("SessionQuestionId")
+                        .IsUnique();
+
+                    b.ToTable("TeacherReviews", t =>
+                        {
+                            t.HasCheckConstraint("CK_TeacherReviews_FinalScore", "[FinalScore] >= 0 AND [FinalScore] <= [MaxScore]");
+
+                            t.HasCheckConstraint("CK_TeacherReviews_MaxScore", "[MaxScore] > 0 AND [MaxScore] <= 999.99");
+
+                            t.HasCheckConstraint("CK_TeacherReviews_TeacherScore", "[TeacherScore] >= 0 AND [TeacherScore] <= [MaxScore]");
+                        });
+                });
+
             modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.AnswerAnalysis", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1017,6 +1226,41 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.ExamStudent", null)
                         .WithMany()
                         .HasForeignKey("ExamStudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.AiGrading", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.SessionQuestion", null)
+                        .WithMany()
+                        .HasForeignKey("SessionQuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Criteria");
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.AiGradingCriterion", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.AiGrading", null)
+                        .WithMany("Criteria")
+                        .HasForeignKey("AiGradingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIpoweredVivaExamSystem.Domain.Entities.TeacherReview", b =>
+                {
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("LecturerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIpoweredVivaExamSystem.Domain.Entities.SessionQuestion", null)
+                        .WithMany()
+                        .HasForeignKey("SessionQuestionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

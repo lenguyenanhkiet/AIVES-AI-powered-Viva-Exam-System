@@ -1,0 +1,57 @@
+@page "/VivaGrading/Index"
+@model AIpoweredVivaExamSystem.Web.Pages.VivaGrading.IndexModel
+@{
+    ViewData["Title"] = "Hỗ trợ chấm điểm bằng AI";
+}
+
+<div class="container stack">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Hỗ trợ chấm điểm bằng AI (Human-in-the-Loop)</h1>
+            <p class="page-sub">Chọn kỳ thi để xem transcript câu trả lời, điểm AI đề xuất theo rubric và chốt điểm cuối cùng cho thí sinh.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        @if (Model.Exams.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("checklist", 20)</div>
+                <div class="empty-title">Chưa có kỳ thi nào thuộc phạm vi quản lý</div>
+                <p class="empty-text">Các kỳ thi bạn phụ trách sẽ hiển thị tại đây để thực hiện chấm điểm với sự hỗ trợ của AI.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Kỳ thi</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu</th>
+                            <th>Kết thúc</th>
+                            <th class="actions"><span class="sr-only">Thao tác</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model.Exams)
+                        {
+                            <tr>
+                                <td class="cell-title">@exam.Name</td>
+                                <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                <td>@exam.StartAt.ToLocalText()</td>
+                                <td>@exam.EndAt.ToLocalText()</td>
+                                <td class="actions">
+                                    <a class="btn btn-primary btn-sm" asp-page="/VivaGrading/Exam" asp-route-id="@exam.Id">
+                                        @Icons.Get("sparkles", 14) Bảng chấm điểm AI →
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

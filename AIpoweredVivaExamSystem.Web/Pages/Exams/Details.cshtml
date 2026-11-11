@@ -178,6 +178,15 @@
                             <a class="btn btn-secondary btn-sm" asp-route-id="@s.Id" asp-page="/ExamFoundation/Details">Theo dõi real-time →</a>
                         </div>
                     </div>
+
+                    <div class="module">
+                        <div class="module-title">Chấm điểm AI &amp; Duyệt điểm</div>
+                        <div class="module-meta">@Model.Vm.Counts.Sessions phiên thi cần/đã chấm</div>
+                        <div class="module-foot">
+                            <span class="hint">Human-in-the-Loop (Nhóm 4)</span>
+                            <a class="btn btn-primary btn-sm" asp-route-id="@s.Id" asp-page="/VivaGrading/Exam">@Icons.Get("sparkles", 14) Bảng chấm điểm AI →</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

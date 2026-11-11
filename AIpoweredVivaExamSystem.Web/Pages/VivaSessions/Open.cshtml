@@ -166,6 +166,92 @@
         </div>
     }
 
+    @if (Model.GradingResult is { } gradingResult)
+    {
+        <!-- Kết quả chấm điểm hỗ trợ bởi AI & Giảng viên chốt (Nhóm 4) -->
+        <div class="card">
+            <div class="card-head">
+                <div class="card-title">@Icons.Get("sparkles", 16) Kết quả chấm điểm &amp; Nhận xét đánh giá</div>
+                <span class="badge @(gradingResult.IsFullyReviewed ? "badge-active" : "badge-warning")">
+                    @(gradingResult.IsFullyReviewed ? "Giảng viên đã chốt điểm chính thức" : "Điểm gợi ý từ AI (Chờ giảng viên xác nhận)")
+                </span>
+            </div>
+            <div class="card-body stack">
+                <div class="viva-metrics-bar">
+                    <div class="viva-metric">
+                        <span class="viva-metric-label">Tổng điểm AI gợi ý</span>
+                        <strong class="viva-metric-value">
+                            @(gradingResult.TotalAiScore.HasValue ? $"{gradingResult.TotalAiScore.Value.ToScore()} / {gradingResult.TotalMaxScore.ToScore()}" : "Đang cập nhật")
+                        </strong>
+                    </div>
+                    <div class="viva-metric">
+                        <span class="viva-metric-label">Điểm chính thức (Giảng viên chốt)</span>
+                        <strong class="viva-metric-value">
+                            @if (gradingResult.IsFullyReviewed && gradingResult.TotalFinalScore.HasValue)
+                            {
+                                <span>@gradingResult.TotalFinalScore.Value.ToScore() / @gradingResult.TotalMaxScore.ToScore()</span>
+                                @if (gradingResult.NormalizedFinalScore10.HasValue)
+                                {
+                                    <span class="code-chip" style="margin-left: 6px">@gradingResult.NormalizedFinalScore10.Value.ToScore() / 10</span>
+                                }
+                            }
+                            else
+                            {
+                                <span>Chờ giảng viên duyệt</span>
+                            }
+                        </strong>
+                    </div>
+                </div>
+
+                @foreach (var qRes in gradingResult.Questions)
+                {
+                    <div class="viva-ai-box stack">
+                        <div class="viva-ai-box-head">
+                            <strong>Câu #@qRes.Position: @qRes.QuestionContent</strong>
+                            <div class="head-tags">
+                                @if (qRes.AiScore.HasValue)
+                                {
+                                    <span class="badge badge-warning">AI gợi ý: @qRes.AiScore.Value.ToScore() / @qRes.MaxScore.ToScore()</span>
+                                }
+                                @if (qRes.FinalScore.HasValue)
+                                {
+                                    <span class="badge badge-active">Điểm chốt: @qRes.FinalScore.Value.ToScore() / @qRes.MaxScore.ToScore()</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(qRes.AiComment))
+                        {
+                            <p style="margin: 0"><strong>Nhận xét AI:</strong> @qRes.AiComment</p>
+                        }
+
+                        <div class="viva-feedback-grid">
+                            <div class="viva-feedback-item viva-feedback-strength">
+                                <strong>✓ Điểm mạnh</strong>
+                                <p>@(qRes.Strengths ?? "—")</p>
+                            </div>
+                            <div class="viva-feedback-item viva-feedback-weakness">
+                                <strong>! Điểm yếu</strong>
+                                <p>@(qRes.Weaknesses ?? "—")</p>
+                            </div>
+                            <div class="viva-feedback-item viva-feedback-missing">
+                                <strong>? Ý còn thiếu</strong>
+                                <p>@(qRes.MissingPoints ?? "—")</p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(qRes.TeacherComment))
+                        {
+                            <div class="alert alert-info" style="margin: 0">
+                                @Icons.Get("check") <span><strong>Nhận xét của Giảng viên:</strong> @qRes.TeacherComment</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
     <!-- Lịch sử hội thoại vấn đáp (Transcript Log) -->
     <div class="card">
         <div class="card-head">

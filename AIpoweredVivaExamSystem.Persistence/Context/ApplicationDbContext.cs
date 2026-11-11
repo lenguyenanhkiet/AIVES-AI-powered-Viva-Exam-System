@@ -27,6 +27,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<StudentAnswer> StudentAnswers => Set<StudentAnswer>();
     public DbSet<AnswerAnalysis> AnswerAnalyses => Set<AnswerAnalysis>();
     public DbSet<AnswerAudio> AnswerAudios => Set<AnswerAudio>();
+    public DbSet<AiGrading> AiGradings => Set<AiGrading>();
+    public DbSet<AiGradingCriterion> AiGradingCriteria => Set<AiGradingCriterion>();
+    public DbSet<TeacherReview> TeacherReviews => Set<TeacherReview>();
     public DbSet<LecturerSubject> LecturerSubjects => Set<LecturerSubject>();
     public DbSet<CourseDocument> CourseDocuments => Set<CourseDocument>();
     public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
@@ -63,6 +66,9 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<AnswerAnalysis>().HasQueryFilter(x => Unrestricted || StudentAnswers.Any(a => a.Id == x.StudentAnswerId &&
             SessionQuestions.Any(sq => sq.Id == a.SessionQuestionId)));
         modelBuilder.Entity<AnswerAudio>().HasQueryFilter(x => Unrestricted || StudentAnswers.Any(a => a.Id == x.StudentAnswerId));
+        modelBuilder.Entity<AiGrading>().HasQueryFilter(x => Unrestricted || SessionQuestions.Any(sq => sq.Id == x.SessionQuestionId));
+        modelBuilder.Entity<AiGradingCriterion>().HasQueryFilter(x => Unrestricted || AiGradings.Any(g => g.Id == x.AiGradingId));
+        modelBuilder.Entity<TeacherReview>().HasQueryFilter(x => Unrestricted || SessionQuestions.Any(sq => sq.Id == x.SessionQuestionId));
     }
 
     public override Task<int> SaveChangesAsync(
