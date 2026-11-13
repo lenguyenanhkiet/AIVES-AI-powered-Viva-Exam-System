@@ -1,0 +1,393 @@
+@page "/VivaSessions/Open/{id?}"
+@using AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions
+@model AIpoweredVivaExamSystem.Presentation.Pages.VivaSessions.OpenModel
+@using AIpoweredVivaExamSystem.Business.VivaSessions
+@using AIpoweredVivaExamSystem.DataAccess.Enums
+@if (Model.InterviewState is { } state)
+{
+    ViewData["Title"] = $"Phiên thi vấn đáp — {state.ExamName}";
+    var isCompleted = state.CompletedAt.HasValue;
+    var activeTurn = isCompleted ? null : state.ActiveTurn;
+    var answeredTurns = state.Turns.Where(t => t.AnsweredAt.HasValue).ToList();
+    string TurnLabel(VivaTurnItem t) => t.AnswerType == AnswerType.FollowUp
+        ? $"Câu {t.MainPosition} · Hỏi xoáy {t.FollowUpLevel}"
+        : $"Câu hỏi chính {t.MainPosition}";
+
+<div class="container stack" id="viva-interview-root"
+     data-session-id="@state.SessionId"
+     data-turn-id="@(activeTurn?.TurnId)"
+     data-speak-url="@Url.Content("~/VivaSessions/Speak")"
+     data-transcribe-url="@Url.Content("~/VivaSessions/Transcribe")"
+     data-scribe-token-url="@Url.Content("~/VivaSessions/ScribeToken")"
+     data-remaining-slot-seconds="@state.RemainingSlotSeconds"
+     data-remaining-turn-seconds="@state.RemainingTurnSeconds"
+     data-turn-limit-seconds="@state.TurnLimitSeconds"
+     data-is-completed="@(isCompleted ? "true" : "false")">
+
+    <nav class="breadcrumb">
+        <a asp-page="/VivaSessions/Index">Lịch thi của tôi</a>
+        @Icons.Get("chevron-right", 14)
+        <span>@state.ExamName</span>
+    </nav>
+
+    <div class="page-head">
+        <div>
+            <div class="head-tags">
+                <span class="code-chip">@state.SubjectCode</span>
+                <span class="badge @(isCompleted ? "badge-inactive" : "badge-active")">
+                    @((isCompleted ? SessionState.Completed : SessionState.InProgress).ToLabel())
+                </span>
+            </div>
+            <h1 class="page-title">@state.ExamName</h1>
+            <p class="page-sub">
+                Môn học: <strong>@state.SubjectCode — @state.SubjectName</strong> ·
+                Bắt đầu lúc @state.StartedAt.ToLocalText() · Hết ca lúc @state.SlotEndAt.ToLocalText() (UTC+7)
+            </p>
+        </div>
+
+        <div class="head-actions">
+            <a class="btn btn-secondary" asp-page="/VivaSessions/Index">@Icons.Get("arrow-left") Quay lại lịch thi</a>
+            @if (!isCompleted)
+            {
+                <form method="post" asp-page="/VivaSessions/Complete"
+                      onsubmit="return confirm('Bạn có chắc chắn muốn nộp và kết thúc sớm phiên thi vấn đáp này?');">
+                    <input type="hidden" name="id" value="@state.SessionId" />
+                    <button type="submit" class="btn btn-secondary btn-danger-text">@Icons.Get("check") Kết thúc phiên thi</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @if (TempData["SessionMessage"] is string sessionMsg)
+    {
+        <div class="alert alert-info" role="status">@Icons.Get("check") <span>@sessionMsg</span></div>
+    }
+    @if (TempData["InterviewError"] is string errorMsg)
+    {
+        <div class="alert alert-danger" role="alert">@Icons.Get("alert") <span>@errorMsg</span></div>
+    }
+
+    <div class="viva-metrics-bar">
+        <div class="viva-metric">
+            <span class="viva-metric-label">Câu hỏi chính</span>
+            <strong class="viva-metric-value">@state.CurrentMainPosition / @state.TotalMainQuestions</strong>
+        </div>
+        @if (state.MaxFollowUpPerQuestion > 0 && !isCompleted)
+        {
+            <div class="viva-metric">
+                <span class="viva-metric-label">Hỏi xoáy của câu này</span>
+                <strong class="viva-metric-value">@state.CurrentFollowUpLevel / @state.MaxFollowUpPerQuestion</strong>
+                <span class="viva-metric-note">
+                    @(state.CurrentFollowUpLevel == 0
+                        ? "Chưa có câu hỏi xoáy"
+                        : $"Đang ở câu hỏi xoáy thứ {state.CurrentFollowUpLevel}")
+                </span>
+            </div>
+        }
+        @if (!isCompleted)
+        {
+            <div class="viva-metric" id="turn-timer-box">
+                <span class="viva-metric-label">@Icons.Get("clock", 14) Thời gian trả lời lượt này</span>
+                <strong class="viva-metric-value viva-timer" id="turn-timer">--:--</strong>
+                <span class="viva-timer-bar" aria-hidden="true"><span id="turn-timer-bar"></span></span>
+            </div>
+            <div class="viva-metric" id="slot-timer-box">
+                <span class="viva-metric-label">@Icons.Get("clock", 14) Thời gian còn lại của ca</span>
+                <strong class="viva-metric-value viva-timer" id="slot-timer">--:--</strong>
+            </div>
+            <p class="sr-only" id="timer-announcer" aria-live="assertive"></p>
+        }
+        else
+        {
+            <div class="viva-metric">
+                <span class="viva-metric-label">Hoàn thành lúc</span>
+                <strong class="viva-metric-value">@state.CompletedAt!.Value.ToLocalText()</strong>
+            </div>
+        }
+    </div>
+
+    @if (isCompleted)
+    {
+        <section id="viva-student-result" data-session-id="@state.SessionId"
+                 data-hub-url="@Url.Content("~/hubs/student-results")"
+                 data-result-url="@Url.Page("/VivaSessions/Open", new { id = state.SessionId })">
+        <p class="hint" data-result-connection role="status">Điểm và nhận xét sẽ tự cập nhật khi giảng viên chốt hoặc mở lại bài chấm.</p>
+        <div data-result-content>
+        @if (state.Result is { } result)
+        {
+            <section class="card" aria-labelledby="viva-result-title">
+                <div class="card-head">
+                    <h2 class="card-title" id="viva-result-title">Kết quả</h2>
+                    <span class="hint">Giảng viên chốt điểm lúc @result.FinalisedAt.ToLocalText()</span>
+                </div>
+                <div class="card-body stack">
+                    <div class="result-total"><strong>@result.Total.ToScore()</strong><span class="muted">/ @result.MaxTotal.ToScore() điểm</span></div>
+                    @if (!string.IsNullOrWhiteSpace(result.OverallComment))
+                    {
+                        <div>
+                            <div class="answer-label">Nhận xét chung của giảng viên</div>
+                            <p class="viva-pre">@result.OverallComment</p>
+                        </div>
+                    }
+                    <ol class="result-list">
+                        @foreach (var item in result.Questions)
+                        {
+                            <li class="result-item">
+                                <div class="result-item-head">
+                                    <div><span class="code-chip">Câu @item.Position</span> @item.QuestionText</div>
+                                    <span class="score-pill">@item.Score.ToScore() / @item.MaxScore.ToScore()</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(item.Comment))
+                                {
+                                    <p class="viva-pre muted">Nhận xét: @item.Comment</p>
+                                }
+                            </li>
+                        }
+                    </ol>
+                </div>
+            </section>
+        }
+        else
+        {
+            <div class="alert alert-info" role="status">@Icons.Get("clock") <span>Bạn đã hoàn thành phiên vấn đáp. Kết quả đang chờ giảng viên chấm và chốt điểm; điểm và nhận xét sẽ hiện tại đây khi có.</span></div>
+        }
+        </div>
+        </section>
+    }
+
+    @if (activeTurn is not null)
+    {
+        <section class="card viva-active-card" id="viva-active-card" data-phase="answer" aria-labelledby="active-turn-title">
+            <div class="card-head">
+                <div class="viva-turn-header">
+                    <span class="badge @(activeTurn.AnswerType == AnswerType.FollowUp ? "badge-warning" : "badge-active")">@TurnLabel(activeTurn)</span>
+                    <h2 class="card-title" id="active-turn-title">Giám khảo AI hỏi</h2>
+                </div>
+                <div class="viva-lang">
+                    <label class="viva-lang-label" for="viva-lang-select">Ngôn ngữ</label>
+                    <select id="viva-lang-select" class="select select-sm" aria-describedby="viva-lang-hint">
+                        <option value="vi-VN" selected>Tiếng Việt</option>
+                        <option value="en-US">English</option>
+                    </select>
+                    <span class="sr-only" id="viva-lang-hint">Ngôn ngữ nhận diện câu trả lời và giọng đọc dự phòng của trình duyệt.</span>
+                </div>
+            </div>
+
+            <div class="card-body stack">
+                <div class="viva-phase" role="status">
+                    <span class="viva-phase-dot" aria-hidden="true"></span>
+                    <div>
+                        <strong class="viva-phase-title" id="viva-phase-title">Đến lượt bạn trả lời</strong>
+                        <span class="viva-phase-detail" id="viva-phase-detail"></span>
+                    </div>
+                </div>
+
+                @if (activeTurn.AnswerType == AnswerType.FollowUp)
+                {
+                    <div class="alert alert-warning" role="note">
+                        <strong>Câu hỏi xoáy cho câu @activeTurn.MainPosition.</strong>
+                        Giám khảo hỏi thêm dựa trên câu trả lời vừa rồi của bạn; hãy bổ sung hoặc làm rõ ý đó.
+                    </div>
+                }
+                <div class="viva-prompt-box">
+                    <p class="viva-prompt-text">@activeTurn.PromptText</p>
+                    <button type="button" class="btn btn-secondary btn-sm js-speak" id="btn-speak-active"
+                            data-turn-id="@activeTurn.TurnId" data-tts-text="@VivaQuestionSpeechService.SpokenText(activeTurn)">
+                        @Icons.Get("volume", 15) <span class="js-speak-label">Nghe câu hỏi</span>
+                    </button>
+                </div>
+
+                <form method="post" asp-page="/VivaSessions/Answer" enctype="multipart/form-data" id="viva-answer-form" class="stack">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="sessionId" value="@state.SessionId" />
+                    <input type="hidden" name="turnId" value="@activeTurn.TurnId" />
+                    <input type="hidden" name="language" id="input-language" value="vi" />
+                    <input type="hidden" name="audioDurationSeconds" id="input-audio-duration" value="" />
+                    <input type="hidden" name="timedOut" id="input-timed-out" value="true" disabled />
+                    <input type="file" name="audioFile" id="input-audio-file" accept="audio/*" class="sr-only" tabindex="-1" aria-hidden="true" />
+
+                    <div class="viva-voice-bar" id="viva-voice-bar">
+                        <button type="button" class="btn btn-primary viva-mic-btn" id="btn-toggle-mic" aria-pressed="false">
+                            @Icons.Get("mic", 18) <span id="mic-btn-label">Bắt đầu trả lời</span>
+                        </button>
+                        <div class="viva-rec-indicator" id="rec-indicator" hidden>
+                            <span class="viva-rec-dot" aria-hidden="true"></span>
+                            <span class="viva-timer" id="rec-elapsed">00:00</span>
+                            <span class="viva-level" aria-hidden="true" title="Mức âm thanh micro"><span id="rec-level"></span></span>
+                        </div>
+                        <button type="button" class="btn btn-ghost btn-sm" id="btn-server-stt" hidden>
+                            @Icons.Get("sparkles", 14) <span>Nhận diện lại bằng AI Server</span>
+                        </button>
+                    </div>
+
+                    <div id="audio-preview-wrap" class="viva-audio-preview" hidden>
+                        <span class="hint">Bản ghi âm sẽ được nộp kèm câu trả lời:</span>
+                        <audio id="audio-preview-player" controls preload="metadata"></audio>
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="transcript-input">Câu trả lời của bạn</label>
+                        <span class="hint" id="transcript-hint">Lời nói hiện thành văn bản tại đây. Kiểm tra và sửa thuật ngữ chuyên ngành trước khi nộp, hoặc gõ trực tiếp.</span>
+                        <textarea class="textarea" id="transcript-input" name="transcript" rows="5" maxlength="8000" required
+                                  aria-describedby="transcript-hint"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <span class="hint">
+                            @(state.MaxFollowUpPerQuestion > 0
+                                ? $"Sau khi nộp, Giám khảo AI có thể hỏi xoáy (tối đa {state.MaxFollowUpPerQuestion} lượt mỗi câu) hoặc chuyển sang câu tiếp theo."
+                                : "Sau khi nộp, phiên thi chuyển sang câu tiếp theo.")
+                        </span>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-answer">
+                            @Icons.Get("send", 15) <span id="submit-btn-label">Nộp câu trả lời</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    }
+
+    <section class="card" aria-labelledby="viva-history-title">
+        <div class="card-head">
+            <h2 class="card-title" id="viva-history-title">Các lượt đã trả lời (@answeredTurns.Count)</h2>
+        </div>
+        <div class="card-body">
+            @if (answeredTurns.Count == 0)
+            {
+                <p class="muted viva-empty-note">Chưa có lượt nào được trả lời.</p>
+            }
+            else
+            {
+                <ol class="viva-timeline">
+                    @foreach (var turn in answeredTurns)
+                    {
+                        <li class="viva-turn-item">
+                            <div class="viva-turn-meta">
+                                <span class="badge @(turn.AnswerType == AnswerType.FollowUp ? "badge-warning" : "badge-inactive")">@TurnLabel(turn)</span>
+                                <span class="hint">Hỏi lúc @turn.AskedAt.ToLocalText()</span>
+                                <button type="button" class="btn btn-ghost btn-sm js-speak js-tts-replay"
+                                        data-turn-id="@turn.TurnId" data-tts-text="@VivaQuestionSpeechService.SpokenText(turn)"
+                                        aria-label="Nghe lại câu hỏi: @TurnLabel(turn)">
+                                    @Icons.Get("volume", 14) <span class="js-speak-label">Nghe lại</span>
+                                </button>
+                            </div>
+                            <div class="viva-turn-question">
+                                <strong>Giám khảo AI:</strong>
+                                <p class="viva-pre">@turn.PromptText</p>
+                            </div>
+                            <div class="viva-turn-answer">
+                                <div class="viva-turn-answer-head">
+                                    <strong>Câu trả lời của bạn:</strong>
+                                    @if (turn.TimedOut)
+                                    {
+                                        <span class="badge badge-warning">Hết giờ</span>
+                                    }
+                                    <span class="hint viva-answer-time">
+                                        @(turn.TimedOut ? "Tự động nộp lúc" : "Nộp lúc") @turn.AnsweredAt!.Value.ToLocalText()
+                                        @if (turn.HasAudio)
+                                        {
+                                            <span> · Đã lưu file ghi âm</span>
+                                        }
+                                    </span>
+                                </div>
+                                @if (string.IsNullOrWhiteSpace(turn.Transcript))
+                                {
+                                    <p class="viva-pre muted">@(turn.TimedOut ? "(Không có câu trả lời — đã hết thời gian)" : "(Không có nội dung trả lời)")</p>
+                                }
+                                else
+                                {
+                                    <p class="viva-pre">@turn.Transcript</p>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ol>
+            }
+        </div>
+    </section>
+
+    <details class="card viva-question-pool" open="@isCompleted">
+        <summary class="card-head">
+            <span class="card-title">Bộ câu hỏi chính của phiên thi (@state.Questions.Count câu)</span>
+            @Icons.Get("chevron-right", 16)
+        </summary>
+        <div class="card-body">
+            <ol class="viva-question-list">
+                @foreach (var question in state.Questions)
+                {
+                    <li value="@question.Position">
+                        <p class="viva-pre">@question.Content</p>
+                    </li>
+                }
+            </ol>
+        </div>
+    </details>
+</div>
+
+@section Scripts {
+    <script src="~/js/viva-interview.js" asp-append-version="true"></script>
+    @if (isCompleted)
+    {
+        <script src="~/lib/signalr/signalr.min.js"></script>
+        <script src="~/js/viva-result.js" asp-append-version="true"></script>
+    }
+}
+}
+else
+{
+    ViewData["Title"] = "Lịch thi của tôi";
+
+<div class="container">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Lịch thi của tôi</h1>
+            <p class="page-sub">Các kỳ thi vấn đáp bạn tham gia. Giờ Việt Nam (UTC+7).</p>
+        </div>
+    </div>
+
+    @if (TempData["SessionMessage"] is string message)
+    {
+        <div class="alert alert-info" role="status">@Icons.Get("check") <span>@message</span></div>
+    }
+    <div asp-validation-summary="All" class="alert" role="alert"></div>
+
+    <div class="card">
+        @if (Model.Vm.Count == 0)
+        {
+            <div class="empty">
+                <div class="empty-icon">@Icons.Get("calendar", 20)</div>
+                <div class="empty-title">Bạn chưa có lịch thi</div>
+                <p class="empty-text">Kỳ thi sẽ hiện ở đây khi giảng viên công bố kỳ thi có bạn.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Kỳ thi</th>
+                            <th>Trạng thái</th>
+                            <th>Bắt đầu ca</th>
+                            <th>Kết thúc ca</th>
+                            <th class="actions"><span class="sr-only">Thao tác</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var exam in Model.Vm)
+                        {
+                            <tr>
+                                <td class="cell-title">@exam.Name</td>
+                                <td><partial name="_ExamStatus" model="exam.Status" /></td>
+                                <td>@(exam.ScheduledAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td>@(exam.EndAt?.ToLocalText() ?? "Chưa xếp lịch")</td>
+                                <td class="actions"><partial name="_VivaOpenAction" model="exam" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+}

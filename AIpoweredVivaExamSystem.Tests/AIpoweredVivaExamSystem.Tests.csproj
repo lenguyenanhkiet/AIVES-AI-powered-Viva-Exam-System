@@ -15,8 +15,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../AIpoweredVivaExamSystem.Web/AIpoweredVivaExamSystem.Web.csproj" />
-    <ProjectReference Include="../AIpoweredVivaExamSystem.Application/AIpoweredVivaExamSystem.Application.csproj" />
-    <ProjectReference Include="../AIpoweredVivaExamSystem.Persistence/AIpoweredVivaExamSystem.Persistence.csproj" />
+    <ProjectReference Include="../AIpoweredVivaExamSystem.Presentation/AIpoweredVivaExamSystem.Presentation.csproj" />
   </ItemGroup>
 </Project>

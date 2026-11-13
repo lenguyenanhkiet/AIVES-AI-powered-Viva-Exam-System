@@ -1,6 +1,4 @@
-# Login MVC và dịch vụ JWT của Long
-
-Branch: `feature/long-mvc-login-jwt`, bắt đầu từ main `4fdda29` (MVC, không còn REST API).
+# Đăng nhập Razor Pages và JWT
 
 ## Luồng và trách nhiệm từng tầng
 
@@ -15,14 +13,14 @@ Branch: `feature/long-mvc-login-jwt`, bắt đầu từ main `4fdda29` (MVC, kh�
 
 | Thành phần | Reference trong code | Mục đích |
 |---|---|---|
-| Web | `Pages/Account/*.cshtml` + `.cshtml.cs`, `ViewModels/LoginViewModel.cs` | Form, validation, redirect và phiên trình duyệt |
-| Application | `Authentication/LoginService.cs`, `ILoginUserRepository`, `IPasswordVerifier` | Nghiệp vụ độc lập MVC/SQL/thuật toán hash |
-| Persistence | `Repositories/LoginUserRepository.cs` | Triển khai truy vấn tài khoản từ DB thật |
-| Infrastructure | `Authentication/IdentityPasswordVerifier.cs` | Xác thực hash từ Register |
-| Infrastructure | `Authentication/JwtAccessTokenIssuer.cs`, `JwtOptions` | Phát JWT HS256 cho consumer đã xác thực |
-| Web | `Authentication/AuthConfiguration.cs`, `MvcCookieEvents.cs` | Chọn scheme, validate JWT và bảo vệ phiên MVC |
+| Presentation | `Pages/Account`, `ViewModels/LoginViewModel.cs` | Form, validation, redirect và phiên trình duyệt |
+| Business | `Services/Authentication/LoginService.cs`, `Interfaces/Authentication/IPasswordVerifier.cs` | Nghiệp vụ xác thực |
+| DataAccess | `Repositories/LoginUserRepository.cs`, `Contracts/Authentication/ILoginUserRepository.cs` | Truy vấn tài khoản từ DB thật |
+| Business | `Integrations/Authentication/IdentityPasswordVerifier.cs` | Xác thực hash Identity |
+| Business | `Integrations/Authentication/JwtAccessTokenIssuer.cs`, `JwtOptions.cs` | Phát JWT HS256 cho consumer đã xác thực |
+| Presentation | `Authentication/AuthConfiguration.cs`, `MvcCookieEvents.cs` | Chọn scheme, validate JWT và bảo vệ phiên trình duyệt |
 
-Các hàm và đoạn xử lý quan trọng có XML summary/comment giải thích mục đích. Các tầng được nối qua `AddApplication`, `AddInfrastructure`, `AddPersistence` và `AddAivesAuthentication` trong `Web/Program.cs`.
+Cookie events và PageModel nhận LoginService qua constructor injection. Business đăng ký dịch vụ xác thực và gọi DataAccess đăng ký repository; Presentation không reference DataAccess. Chiều tham chiếu và vòng đời đối tượng được mô tả tại [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Cookie và JWT
 
@@ -36,7 +34,7 @@ Token chứa `sub`, `email`, `name`, `jti`, `iat`, `nbf`, `exp`; chữ ký HS256
 
 ## Cấu hình cá nhân và chạy local
 
-`Web/appsettings.json` được commit chỉ có mẫu connection string và Jwt key trống. Cấu hình thật của Long từ checkout cũ đã được giữ nguyên trong `Web/appsettings.Development.json` của worktree mới. File Development và `.env` bị ignore; Docker build và publish loại bỏ file Development. Cả hai appsettings đều Always copy khi build để sửa cấu hình có hiệu lực sau build.
+`AIpoweredVivaExamSystem.Presentation/appsettings.json` được commit chỉ có mẫu connection string và Jwt key trống. File `appsettings.Development.json` và `.env` chứa cấu hình riêng, bị ignore; Docker build và publish loại bỏ file Development. Cả hai appsettings đều Always copy khi build để sửa cấu hình có hiệu lực sau build.
 
 Đọc cấu hình trực tiếp qua `ConnectionStrings:DefaultConnection`, không User Secrets. Với Docker, connection string môi trường của service `web` ghi đè cấu hình SQL local; `Jwt__Key` lấy từ `JWT_KEY` trong `.env`. Cần key ngẫu nhiên thật, không dùng giá trị mẫu `.env.example`. SQL local và SQL Docker là hai instance khác nhau; có thể chạy song song nếu khác port. Override riêng của Long dùng Docker SQL `127.0.0.1:14330`; file override không commit.
 
@@ -44,17 +42,17 @@ Chạy từ root worktree mới:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT = 'Development'
-dotnet run --project AIpoweredVivaExamSystem.Web --no-launch-profile --urls http://127.0.0.1:5088
+dotnet run --project AIpoweredVivaExamSystem.Presentation --no-launch-profile --urls http://127.0.0.1:5088
 ```
 
 Mở `http://127.0.0.1:5088/Account/Login`. Tài khoản cần tồn tại trong Users với hash Identity, Status=Active và DeletedAt=NULL. Smoke tool dùng tài khoản tạm và dọn ngay sau test, nên không để lại một tài khoản/mật khẩu mẫu trong DB.
 
 ## Test và smoke test với SQL thật
 
-Suite dùng SQL Server local nhưng tạo/xóa DB test riêng `AivesRubricTests_<guid>`; không xóa DB ứng dụng. Test factory thay DbContext bằng connection của fixture, inject Jwt key test riêng. Probe `/_tests/jwt` nằm trong assembly Tests, chỉ factory test nạp vào MVC; production không có route đó.
+Suite dùng SQL Server local nhưng tạo/xóa DB test riêng `AivesRubricTests_<guid>`; không xóa DB ứng dụng. Test factory cấu hình connection của fixture và Jwt key test qua IConfiguration. Probe `/_tests/jwt` nằm trong assembly Tests, chỉ factory test nạp vào host; production không có route đó.
 
 ```powershell
-$localConfig = Get-Content AIpoweredVivaExamSystem.Web/appsettings.Development.json -Raw | ConvertFrom-Json
+$localConfig = Get-Content AIpoweredVivaExamSystem.Presentation/appsettings.Development.json -Raw | ConvertFrom-Json
 $env:AIVES_TEST_CONNECTION = $localConfig.ConnectionStrings.DefaultConnection
 dotnet test AIpoweredVivaExamSystem.slnx
 Remove-Item Env:AIVES_TEST_CONNECTION
@@ -74,17 +72,6 @@ Tool đọc cùng appsettings/biến môi trường như Web, chỉ cho phép UR
 
 Nếu DB thiếu migration, chế độ toàn luồng dừng trước khi seed. Chỉ sau khi chủ DB đã duyệt cập nhật schema mới chạy thêm `--apply-migrations`; chế độ này áp dụng các migration hiện có của main. Login không thêm migration mới.
 
-## Giới hạn tích hợp hiện tại
+## Current limits
 
-Main chưa có Role/UserRole và Register; branch của Minh chưa được merge. Login/JWT ở đây không tự gán role hoặc thay code Register. Khi tích hợp User constructor mới của Minh, cần cập nhật seed/test/smoke tool và nối role claims/policy theo quy ước nhóm. Hiện các tài khoản Active đã đăng nhập có thể truy cập trang nghiệp vụ; chưa phân quyền ADMIN/LECTURER/STUDENT.
-
-Cookie kiểm tra trạng thái User ở mỗi request nhưng chưa có security stamp để thu hồi toàn bộ phiên khi đổi mật khẩu. JWT chỉ kiểm tra chữ ký/claims/hạn dùng; không kiểm tra lại trạng thái tài khoản từ SQL trên mỗi request. Các chức năng đổi mật khẩu, refresh token, phân quyền và khóa do nhiều lần đăng nhập sai thuộc task tiếp theo.
-
-## Kết quả kiểm chứng ngày 01/10/2026
-
-- Main baseline: 25/25 test chạy thành công trên SQL Server local.
-- Suite sau Login/JWT: 55/55 test thành công ở cả Debug và Release, không skip; gồm 25 test nghiệp vụ cũ, 15 test MVC Login/session và 15 test JWT/configuration.
-- Smoke qua HTTP Kestrel thật: 14 kiểm tra thành công trên DB ứng dụng local, gồm mật khẩu sai/đúng, profile khớp SQL, dashboard, Subjects, CSRF, JWT, logout và dọn tài khoản tạm.
-- Sau khi Long cho phép cập nhật schema, đã áp dụng 2 migration có sẵn trên main: `20260927074412_AddRubricsAndQuestionDependencies` và `20260929193713_SubjectCodeUniqueAmongActive`. Lần smoke cuối không còn pending migration.
-- Publish Release thành công, 0 warning/error; `appsettings.Development.json` không có trong thư mục publish.
-- Cấu hình Development local được so sánh hash file và giữ nguyên nội dung từ checkout cũ. Không push/merge trong lần triển khai này.
+Cookie authentication reloads account status and roles from SQL on each request. There is no security stamp to revoke all sessions after a password change. JWT validates signature, claims and expiry; it does not recheck the SQL account on every request and has no refresh-token or revocation store. Cookie logout does not revoke an already-issued JWT.

@@ -1,8 +1,8 @@
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.Interfaces;
-using AIpoweredVivaExamSystem.Application.Rubrics;
-using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.DataAccess.Contracts.Interfaces;
+using AIpoweredVivaExamSystem.Business.Rubrics;
+using AIpoweredVivaExamSystem.DataAccess.Models.Rubrics;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
 using FluentValidation;
 using Xunit;
 

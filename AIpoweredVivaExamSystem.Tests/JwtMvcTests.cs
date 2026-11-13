@@ -4,8 +4,10 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Web.Pages.Home;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.Business.Integrations.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Models.Authentication;
+using AIpoweredVivaExamSystem.Presentation.Pages.Home;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -28,9 +30,8 @@ public sealed class JwtMvcTests
     {
         await using var factory = Factory();
         using var client = Client(factory);
-        using var scope = factory.Services.CreateScope();
-        var issuer = scope.ServiceProvider.GetService<IAccessTokenIssuer>();
-        Assert.NotNull(issuer);
+        var config = factory.Services.GetRequiredService<IConfiguration>();
+        var issuer = new JwtAccessTokenIssuer(Options.Create(config.GetSection("Jwt").Get<JwtOptions>()!), TimeProvider.System);
         var user = new AuthenticatedUser(Guid.NewGuid(), "jwt@example.com", "JWT test user");
         var token = issuer.Issue(user);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Value);

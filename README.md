@@ -15,7 +15,7 @@ Cấu trúc folder: [ARCHITECTURE.md](docs/ARCHITECTURE.md). Phân công nhóm 2
 | Pool câu hỏi, kiểm tra eligibility, thêm/bỏ theo lô | `/ExamPools` | Sơn |
 | Session, chọn câu, SignalR dashboard | `/VivaSessions`, `/ExamFoundation/Details/{id}` | [Dũng](docs/GROUP_2_DUNG_HANDOFF.md) |
 
-Còn thiếu Exam CRUD/lifecycle (Tuệ Minh), nên chưa demo được toàn luồng tạo kỳ thi → publish → thi.
+Exam CRUD/lifecycle, phỏng vấn AI và chấm điểm đã có trong luồng demo.
 
 ---
 
@@ -23,11 +23,9 @@ Còn thiếu Exam CRUD/lifecycle (Tuệ Minh), nên chưa demo được toàn lu
 
 ```text
 AIpoweredVivaExamSystem/
-├── AIpoweredVivaExamSystem.Web/            # Presentation: Razor Pages (Pages/), ViewModels, SignalR hub
-├── AIpoweredVivaExamSystem.Application/    # Business: Services, DTO, Validators, interface Repository
-├── AIpoweredVivaExamSystem.Domain/         # Business: Entities, Enums, luật nghiệp vụ
-├── AIpoweredVivaExamSystem.Persistence/    # Data access: DbContext, Configurations, Repositories, Migrations
-├── AIpoweredVivaExamSystem.Infrastructure/ # Authentication, đọc file CSV/XLSX/PDF/PPTX, gọi AI
+├── AIpoweredVivaExamSystem.Presentation/ # Razor Pages, ViewModels, cookie, SignalR
+├── AIpoweredVivaExamSystem.Business/     # Services, validation, gọi AI, khởi tạo nghiệp vụ
+├── AIpoweredVivaExamSystem.DataAccess/   # Entities, DTO, repository, DbContext, file, migrations
 ├── AIpoweredVivaExamSystem.Tests/          # xUnit
 ├── docker-compose.yml
 ├── .env.example
@@ -37,13 +35,11 @@ AIpoweredVivaExamSystem/
 Chiều tham chiếu:
 
 ```text
-Web ──► Application ──► Domain
- ├────► Persistence ──► Application, Domain
- └────► Infrastructure ──► Application, Domain
+Presentation ──► Business ──► DataAccess
 ```
 
-Interface repository nằm ở `Application`, class cài đặt nằm ở `Persistence` (Dependency Inversion).
-`Web` đăng ký các tầng qua DI trong `Program.cs` (`AddApplication()`, `AddPersistence(...)`).
+DataAccess không reference project khác. Presentation gọi service Business, không gọi repository hay DbContext.
+Cách đăng ký DI và trách nhiệm từng tầng: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Docker Compose chạy 2 container:
 
@@ -96,7 +92,7 @@ Dừng: `docker compose down`. **Không** dùng `docker compose down -v` nếu m
 
 ## 4. EF Core Migration
 
-Migration nằm trong `AIpoweredVivaExamSystem.Persistence`, startup project là `AIpoweredVivaExamSystem.Web`.
+Migration nằm trong `AIpoweredVivaExamSystem.DataAccess`; design-time factory tạo DbContext trực tiếp, không khởi động web host.
 Ứng dụng **không** tự chạy migration khi khởi động, nên sau khi tạo DB mới cần cập nhật schema.
 Cần `dotnet-ef` 10.x vì project dùng EF Core 10; bản 9.x không chạy được: `dotnet tool update -g dotnet-ef --version "10.*"`.
 
@@ -106,12 +102,12 @@ Khi chạy lệnh từ máy local tới SQL Server trong Docker, truyền connec
 ```powershell
 $env:ConnectionStrings__DefaultConnection = "Server=localhost,1433;Database=AIpoweredVivaExamSystemDb;User Id=sa;Password=<DB_PASSWORD>;TrustServerCertificate=True;"
 
-dotnet ef database update --project AIpoweredVivaExamSystem.Persistence --startup-project AIpoweredVivaExamSystem.Web
-dotnet ef migrations add <TenMigration> --project AIpoweredVivaExamSystem.Persistence --startup-project AIpoweredVivaExamSystem.Web --output-dir Migrations
-dotnet ef migrations list --project AIpoweredVivaExamSystem.Persistence --startup-project AIpoweredVivaExamSystem.Web
+dotnet ef database update --project AIpoweredVivaExamSystem.DataAccess
+dotnet ef migrations add <TenMigration> --project AIpoweredVivaExamSystem.DataAccess --output-dir Migrations
+dotnet ef migrations list --project AIpoweredVivaExamSystem.DataAccess
 ```
 
-Khi đổi Entity: sửa Domain → sửa Configuration nếu cần → tạo migration → commit cả migration.
+Khi đổi Entity: sửa Entity trong DataAccess → sửa Configuration nếu cần → tạo migration → commit cả migration.
 
 ---
 

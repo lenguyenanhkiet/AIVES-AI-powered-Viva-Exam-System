@@ -1,11 +1,12 @@
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Models.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -115,7 +116,7 @@ public class ExamFoundationTests(SqlServerFixture fixture)
             observedCommittedData = db.Database.CurrentTransaction is null && await verify.ExamQuestionPools.AnyAsync(p => p.ExamId == id);
             throw new InvalidOperationException("Simulated disconnect");
         });
-        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        var uow = new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier);
         await uow.ExecuteAsync(_ => { db.Add(new ExamQuestionPool(d.Exam.Id, d.Question.Id)); return Task.CompletedTask; }, [d.Exam.Id, d.Exam.Id], default);
         Assert.Single(notifier.Events);
         Assert.True(observedCommittedData);
@@ -125,7 +126,7 @@ public class ExamFoundationTests(SqlServerFixture fixture)
     public async Task FailedWorkRollsBackAndNeverNotifies()
     {
         var d = await SeedAsync(); await using var db = fixture.CreateContext(); var notifier = new Recorder();
-        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        var uow = new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier);
         await Assert.ThrowsAsync<InvalidOperationException>(() => uow.ExecuteAsync(async ct => {
             db.Add(new ExamQuestionPool(d.Exam.Id, d.Question.Id)); await db.SaveChangesAsync(ct);
             throw new InvalidOperationException("Rollback");
@@ -140,7 +141,7 @@ public class ExamFoundationTests(SqlServerFixture fixture)
         var a = await first.ExamStudents.SingleAsync(x => x.Id == d.Enrollment.Id);
         var b = await second.ExamStudents.SingleAsync(x => x.Id == d.Enrollment.Id);
         a.Schedule(d.Exam.StartAt); await first.SaveChangesAsync(); b.Schedule(d.Exam.StartAt.AddMinutes(15));
-        var notify = new Recorder(); var uow = new ExamUnitOfWork(second, notify, NullLogger<ExamUnitOfWork>.Instance);
+        var notify = new Recorder(); var uow = new NotifyingExamUnitOfWork(new ExamUnitOfWork(second), notify);
         await Assert.ThrowsAsync<ResourceConflictException>(() => uow.ExecuteAsync(_ => Task.CompletedTask, [d.Exam.Id], default));
         Assert.Empty(notify.Events);
     }

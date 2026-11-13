@@ -20,7 +20,7 @@ Database của AIVES được chia thành 8 nhóm:
 7. Document / RAG
 8. Audit & Transparency
 
-> `BaseEntity`, `AuditableEntity` và `IAggregateRoot` thuộc Domain Layer, **không phải bảng database**.
+> `BaseEntity` và `AuditableEntity` thuộc DataAccess, **không phải bảng database**.
 
 ---
 
@@ -734,7 +734,7 @@ TeacherReviews.SessionQuestionId
 
 ---
 
-# 16. Base Entity trong Domain
+# 16. Base Entity trong DataAccess
 
 ## BaseEntity
 

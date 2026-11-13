@@ -1,0 +1,52 @@
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+
+namespace AIpoweredVivaExamSystem.DataAccess.Entities;
+
+public class User : AuditableEntity
+{
+    public string Email { get; private set; } = string.Empty;
+    public string PasswordHash { get; private set; } = string.Empty;
+    public string FullName { get; private set; } = string.Empty;
+    public UserStatus Status { get; private set; }
+    public UserRole Role { get; private set; } = UserRole.STUDENT;
+
+    public void AssignRole(UserRole role)
+    {
+        DomainRules.DefinedEnum(role, nameof(Role));
+        Role = role;
+    }
+    private User() { } // Private constructor for EF Core
+
+    public User(string email, string passwordHash, string fullName, UserStatus status)
+    {
+        Email = email;
+        PasswordHash = passwordHash;
+        FullName = fullName;
+        Status = status;
+    }
+    public void UpdateProfile(string fullName)
+    {
+        FullName = fullName;
+    }
+
+    public void ChangePassword(string passwordHash)
+    {
+        PasswordHash = passwordHash;
+    }
+
+    public void Activate()
+    {
+        Status = UserStatus.Active;
+    }
+
+    public void Deactivate()
+    {
+        Status = UserStatus.Inactive;
+    }
+
+    public void Lock()
+    {
+        Status = UserStatus.Locked;
+    }
+}

@@ -1,11 +1,11 @@
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -32,7 +32,7 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
 
     private ExamPoolService Service(ApplicationDbContext db, Actor actor, Notifier notifier) => new(
         new ExamPoolStore(db), new ExamAccessGuard(new ExamFoundationStore(db), actor),
-        new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance));
+        new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier));
 
     private async Task<(ExamDemo Demo, Question Eligible)> SeedWithEligibleQuestionAsync()
     {

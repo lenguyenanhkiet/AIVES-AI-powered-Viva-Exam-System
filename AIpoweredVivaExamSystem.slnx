@@ -2,10 +2,8 @@
   <Folder Name="/Solution Items/">
     <File Path=".dockerignore" />
   </Folder>
-  <Project Path="AIpoweredVivaExamSystem.Application/AIpoweredVivaExamSystem.Application.csproj" />
-  <Project Path="AIpoweredVivaExamSystem.Domain/AIpoweredVivaExamSystem.Domain.csproj" />
-  <Project Path="AIpoweredVivaExamSystem.Infrastructure/AIpoweredVivaExamSystem.Infrastructure.csproj" />
-  <Project Path="AIpoweredVivaExamSystem.Persistence/AIpoweredVivaExamSystem.Persistence.csproj" />
+  <Project Path="AIpoweredVivaExamSystem.Business/AIpoweredVivaExamSystem.Business.csproj" />
+  <Project Path="AIpoweredVivaExamSystem.DataAccess/AIpoweredVivaExamSystem.DataAccess.csproj" />
   <Project Path="AIpoweredVivaExamSystem.Tests/AIpoweredVivaExamSystem.Tests.csproj" />
-  <Project Path="AIpoweredVivaExamSystem.Web/AIpoweredVivaExamSystem.Web.csproj" />
+  <Project Path="AIpoweredVivaExamSystem.Presentation/AIpoweredVivaExamSystem.Presentation.csproj" />
 </Solution>

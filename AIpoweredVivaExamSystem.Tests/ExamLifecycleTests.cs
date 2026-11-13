@@ -1,11 +1,13 @@
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.Scheduling;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Contracts.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Models.Exams;
+using AIpoweredVivaExamSystem.Business.Scheduling;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -247,7 +249,7 @@ public sealed class ExamLifecycleSqlTests(SqlServerFixture fixture)
     {
         var actor = new Actor(demo.Lecturer.Id);
         var guard = new ExamAccessGuard(new ExamFoundationStore(db), actor);
-        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        var uow = new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier);
         return new(new ExamRepository(db), reader ?? new ExamFoundationStore(db),
             guard, actor, uow, new ExamScheduleService(new ExamScheduleStore(db), guard, uow, actor,
                 new ExamFoundationStore(db)));
@@ -417,7 +419,7 @@ public sealed class ExamLifecycleSqlTests(SqlServerFixture fixture)
         await using var db = Context(demo, actor);
         var notifier = new Notifier();
         var guard = new ExamAccessGuard(new ExamFoundationStore(db), actor);
-        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        var uow = new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier);
         var service = new ExamService(new ExamRepository(db), new ExamFoundationStore(db),
             guard, actor, uow, new ExamScheduleService(new ExamScheduleStore(db), guard, uow, actor,
                 new ExamFoundationStore(db)));

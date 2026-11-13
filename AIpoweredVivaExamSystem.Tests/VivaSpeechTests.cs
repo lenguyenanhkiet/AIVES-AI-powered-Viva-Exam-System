@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text.Json;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Infrastructure.VivaSessions;
+using AIpoweredVivaExamSystem.Business.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.Business.Integrations.VivaSessions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -14,10 +14,10 @@ public sealed class VivaSpeechTests
 {
     private sealed class Provider : HttpMessageHandler, IHttpClientFactory
     {
+        public HttpClient CreateClient(string name) => new(this, disposeHandler: false);
         public int Calls;
         public TaskCompletionSource NextStarted {get;}=new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource ReleaseNext {get;}=new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public HttpClient CreateClient(string name)=>new(this,disposeHandler:false);
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken ct)
         {
             Interlocked.Increment(ref Calls);

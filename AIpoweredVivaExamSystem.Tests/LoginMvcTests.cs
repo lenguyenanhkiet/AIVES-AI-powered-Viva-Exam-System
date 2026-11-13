@@ -1,13 +1,13 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Web.Pages.Home;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.Presentation.Pages.Home;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
-using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.DataAccess.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -229,11 +229,11 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
         Assert.Equal(QuestionStatus.Draft, (await verify.Questions.SingleAsync(q => q.SubjectId == subjectId)).Status);
     }
 
-    private sealed class CitedGenerator : AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator
+    private sealed class CitedGenerator : AIpoweredVivaExamSystem.Business.QuestionBank.IQuestionGenerator
     {
-        public Task<IReadOnlyList<AIpoweredVivaExamSystem.Application.QuestionBank.GeneratedDraft>> GenerateAsync(string instruction,
+        public Task<IReadOnlyList<AIpoweredVivaExamSystem.DataAccess.Models.QuestionBank.GeneratedDraft>> GenerateAsync(string instruction,
             BloomLevel bloom, QuestionDifficulty difficulty, int count, IReadOnlyList<DocumentChunk> sources, CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<AIpoweredVivaExamSystem.Application.QuestionBank.GeneratedDraft>>(
+            => Task.FromResult<IReadOnlyList<AIpoweredVivaExamSystem.DataAccess.Models.QuestionBank.GeneratedDraft>>(
                 [new("Explain dependency injection.", "Dependencies are supplied to a class.", sources[0].Id, sources[0].Text)]);
     }
 
@@ -312,7 +312,7 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
     }
 
     // Dùng SQL Server thật trong DB test riêng; không thay repository bằng mock.
-    private WebApplicationFactory<IndexModel> CreateFactory(AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<IndexModel>()
+    private WebApplicationFactory<IndexModel> CreateFactory(AIpoweredVivaExamSystem.Business.QuestionBank.IQuestionGenerator? generator = null) => new WebApplicationFactory<IndexModel>()
         .WithWebHostBuilder(web =>
         {
             web.UseEnvironment("Testing");
@@ -324,19 +324,12 @@ public sealed class LoginMvcTests(SqlServerFixture fixture)
                     ["Jwt:Issuer"] = "Aives.Tests", ["Jwt:Audience"] = "Aives.Tests.Client",
                     ["Jwt:ExpirationMinutes"] = "60"
                 }));
-            // Thay toàn bộ cấu hình DbContext: minimal hosting đăng ký options trước callback này.
-            // Test chỉ được phép truy cập DB test riêng của fixture.
-            web.ConfigureServices(services =>
-            {
-                services.RemoveAll<ApplicationDbContext>();
-                services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
-                services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
-                services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(fixture.ConnectionString));
-                if (generator is not null)
+            if (generator is not null)
+                web.ConfigureServices(services =>
                 {
-                    services.RemoveAll<AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionGenerator>();
+                    services.RemoveAll<AIpoweredVivaExamSystem.Business.QuestionBank.IQuestionGenerator>();
                     services.AddSingleton(generator);
-                }
-            });
+                });
         });
+
 }

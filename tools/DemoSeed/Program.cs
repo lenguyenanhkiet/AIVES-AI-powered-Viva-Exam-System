@@ -2,21 +2,25 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using AIpoweredVivaExamSystem.Application;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.Grading;
-using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Infrastructure;
-using AIpoweredVivaExamSystem.Persistence;
-using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.Business;
+using AIpoweredVivaExamSystem.Business.Integrations.Grading;
+using Microsoft.Extensions.DependencyInjection;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.Business.Grading;
+using AIpoweredVivaExamSystem.DataAccess.Contracts.Grading;
+using AIpoweredVivaExamSystem.DataAccess.Models.Grading;
+using AIpoweredVivaExamSystem.Business.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Contracts.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess;
+using AIpoweredVivaExamSystem.DataAccess.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 var timer=Stopwatch.StartNew();
@@ -40,9 +44,11 @@ if(sql.InitialCatalog!="AivesPanelDemo" || !sql.IntegratedSecurity ||
 var assets=Path.Combine(tool,"assets"); Directory.CreateDirectory(assets);
 var lecturerId=Stable("lecturer");var actor=new Actor(lecturerId);
 var services=new ServiceCollection().AddLogging(x=>x.AddConsole().SetMinimumLevel(LogLevel.Warning));
-services.AddSingleton<IConfiguration>(config); services.AddSingleton<ICurrentUser>(actor);
-services.AddApplication().AddInfrastructure().AddPersistence(config);
-services.AddSingleton<IExamNotifier,Notifier>();
+services.AddSingleton<IConfiguration>(config);
+services.AddSingleton<ICurrentUser>(actor);
+services.AddBusiness();
+services.AddSingleton<CachedGrader>(p=>new CachedGrader(p.GetRequiredService<OpenAiRubricGrader>(),assets));
+services.AddSingleton<IAiRubricGrader>(p=>p.GetRequiredService<CachedGrader>());
 using var provider=services.BuildServiceProvider();
 // Recordings are fictional student answers, synthesised once; successful assets survive resets.
 var speech=provider.GetRequiredService<IExaminerSpeechSynthesizer>();
@@ -65,7 +71,9 @@ await ResetDemoDatabaseAsync(sql);
 // The resolved absolute target is exactly this tool's generated-recordings directory.
 // Retain paid source MP3 assets; only copies for the reset database are disposable.
 if(Directory.Exists(recordingRoot)) Directory.Delete(recordingRoot,recursive:true);
-using var scope=provider.CreateScope();var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+using var scope=provider.CreateScope();
+var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+var cachedGrader=provider.GetRequiredService<CachedGrader>();
 await db.Database.MigrateAsync();
 var now=DateTimeOffset.UtcNow;
 User Account(string key,string email,string name,UserRole role=UserRole.STUDENT)
@@ -146,10 +154,7 @@ var strongSession=await SessionAsync("strong",["di","ef"],[[DemoContent.StrongDi
 var partialSession=await SessionAsync("partial",["di","ef"],[[DemoContent.PartialDi,DemoContent.PartialFollow],[DemoContent.PartialEf]]);
 var timeoutSession=await SessionAsync("timeout",["mvc","ef"],[[DemoContent.TimeoutMvc],[null]]);
 
-var realGrader=scope.ServiceProvider.GetRequiredService<IAiRubricGrader>();
-var cachedGrader=new CachedGrader(realGrader,assets);
-var gradeStore=scope.ServiceProvider.GetRequiredService<IGradingStore>();
-var grading=new GradingService(gradeStore,scope.ServiceProvider.GetRequiredService<ExamAccessGuard>(),actor,cachedGrader);
+var grading=scope.ServiceProvider.GetRequiredService<GradingService>();
 foreach(var item in new[]{strongSession,timeoutSession})
     foreach(var q in item.Questions)
     {

@@ -33,7 +33,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: AIpoweredVivaExamSystem.Web/Dockerfile
+      dockerfile: AIpoweredVivaExamSystem.Presentation/Dockerfile
 
     container_name: aives-web
 
