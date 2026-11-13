@@ -1,5 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Exams;
 using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
+using ContractEnums = AIpoweredVivaExamSystem.Application.Contracts;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -16,23 +17,30 @@ public sealed class ExamPoolStore(ApplicationDbContext db) : IExamPoolStore
             .SingleOrDefaultAsync(e => e.Id == examId && e.DeletedAt == null, ct);
         if (exam is null) return null;
 
-        var available = await ExamPoolQueries.EligibleQuestionBank(db, exam).AsNoTracking()
+        var availableRows = await ExamPoolQueries.EligibleQuestionBank(db, exam).AsNoTracking()
             .Where(q => !db.ExamQuestionPools.IgnoreQueryFilters().Any(p => p.ExamId == examId && p.QuestionId == q.Id))
             .OrderBy(q => q.Content)
-            .Select(q => new ExamPoolQuestion(q.Id, q.Content, q.BloomLevel, q.Difficulty, q.Status,
-                true, q.DeletedAt != null, true)).ToArrayAsync(ct);
+            .Select(q => new { q.Id, q.Content, q.BloomLevel, q.Difficulty, q.Status, IsDeleted = q.DeletedAt != null })
+            .ToArrayAsync(ct);
+        var available = availableRows.Select(q => new ExamPoolQuestion(q.Id, q.Content,
+            (ContractEnums.BloomLevel)q.BloomLevel, (ContractEnums.QuestionDifficulty)q.Difficulty,
+            (ContractEnums.QuestionStatus)q.Status, true, q.IsDeleted, true)).ToArray();
 
         var eligiblePoolIds = (await ExamPoolQueries.EligiblePooledQuestions(db, exam)
             .Select(q => q.Id).ToArrayAsync(ct)).ToHashSet();
 
-        var pooled = await (from pool in db.ExamQuestionPools.IgnoreQueryFilters().AsNoTracking()
+        var pooledRows = await (from pool in db.ExamQuestionPools.IgnoreQueryFilters().AsNoTracking()
                             join question in db.Questions.IgnoreQueryFilters().AsNoTracking() on pool.QuestionId equals question.Id
                             where pool.ExamId == examId
                             orderby question.Content
-                            select new ExamPoolQuestion(question.Id, question.Content, question.BloomLevel,
+                            select new { question.Id, question.Content, question.BloomLevel,
                                 question.Difficulty, question.Status,
-                                db.Rubrics.IgnoreQueryFilters().Any(r => r.QuestionId == question.Id && r.DeletedAt == null),
-                                question.DeletedAt != null, eligiblePoolIds.Contains(question.Id))).ToArrayAsync(ct);
+                                HasRubric = db.Rubrics.IgnoreQueryFilters().Any(r => r.QuestionId == question.Id && r.DeletedAt == null),
+                                IsDeleted = question.DeletedAt != null }).ToArrayAsync(ct);
+        var pooled = pooledRows.Select(q => new ExamPoolQuestion(q.Id, q.Content,
+            (ContractEnums.BloomLevel)q.BloomLevel, (ContractEnums.QuestionDifficulty)q.Difficulty,
+            (ContractEnums.QuestionStatus)q.Status, q.HasRubric, q.IsDeleted,
+            eligiblePoolIds.Contains(q.Id))).ToArray();
 
         var summary = new ExamSummary(exam.Id, exam.SubjectId, exam.Name, (ContractExamStatus)exam.Status,
             exam.StartAt, exam.EndAt);

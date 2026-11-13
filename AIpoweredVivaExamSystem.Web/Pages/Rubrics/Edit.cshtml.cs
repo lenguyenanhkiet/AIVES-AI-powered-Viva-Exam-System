@@ -3,7 +3,6 @@ using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
 using FluentValidation;

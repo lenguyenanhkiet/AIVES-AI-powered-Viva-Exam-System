@@ -107,7 +107,7 @@ public sealed class ExamPoolTests(SqlServerFixture fixture)
 
         var pooled = Assert.Single(page.PooledQuestions);
         Assert.True(pooled.HasRubric);
-        Assert.Equal(QuestionStatus.Approved, pooled.Status);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.QuestionStatus.Approved, pooled.Status);
         Assert.False(pooled.IsEligible);
         Assert.Equal(0, page.EligiblePoolCount);
     }

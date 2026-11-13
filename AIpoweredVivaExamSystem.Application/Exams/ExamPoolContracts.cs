@@ -1,10 +1,10 @@
 using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using ContractEnums = AIpoweredVivaExamSystem.Application.Contracts;
 
 namespace AIpoweredVivaExamSystem.Application.Exams;
 
-public sealed record ExamPoolQuestion(Guid Id, string Content, BloomLevel BloomLevel,
-    QuestionDifficulty Difficulty, QuestionStatus Status, bool HasRubric, bool IsDeleted, bool IsEligible);
+public sealed record ExamPoolQuestion(Guid Id, string Content, ContractEnums.BloomLevel BloomLevel,
+    ContractEnums.QuestionDifficulty Difficulty, ContractEnums.QuestionStatus Status, bool HasRubric, bool IsDeleted, bool IsEligible);
 
 public sealed record ExamPoolPage(ExamSummary Exam, int RequiredQuestions, int CurrentPoolCount,
     int EligiblePoolCount, IReadOnlyList<ExamPoolQuestion> AvailableQuestions,
