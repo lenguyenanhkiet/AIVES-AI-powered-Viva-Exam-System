@@ -13,7 +13,8 @@ public sealed record VivaTurnItem(
     string? Transcript,
     DateTimeOffset AskedAt,
     DateTimeOffset? AnsweredAt,
-    bool HasAudio);
+    bool HasAudio,
+    bool TimedOut = false);
 
 public sealed record VivaInterviewState(
     Guid SessionId,
@@ -33,7 +34,8 @@ public sealed record VivaInterviewState(
     int MaxFollowUpPerQuestion,
     VivaTurnItem? ActiveTurn,
     IReadOnlyList<VivaTurnItem> Turns,
-    IReadOnlyList<StudentQuestion> Questions);
+    IReadOnlyList<StudentQuestion> Questions,
+    AIpoweredVivaExamSystem.Application.Grading.StudentFinalResult? Result = null);
 
 public sealed record ConversationTurn(
     AnswerType AnswerType,
@@ -69,6 +71,7 @@ public interface ISpeechTranscriber
 public interface IAnswerAudioStorage
 {
     Task<string> SaveAudioAsync(Guid sessionId, Guid turnId, byte[] content, string mimeType, CancellationToken ct);
+    Task<Stream?> OpenReadAsync(string storedPath, CancellationToken ct) => Task.FromResult<Stream?>(null);
 }
 
 public sealed record SubmitAnswerRequest(
@@ -78,12 +81,14 @@ public sealed record SubmitAnswerRequest(
     byte[]? AudioBytes = null,
     string? AudioMimeType = null,
     int? AudioDurationSeconds = null,
-    string Language = "vi");
+    string Language = "vi",
+    bool TimedOut = false);
 
 public interface IVivaInterviewStore
 {
+    Task<IAsyncDisposable> AcquireSubmissionAsync(Guid sessionId, CancellationToken ct);
     Task<VivaInterviewState> GetStateAsync(Guid sessionId, CancellationToken ct);
-    Task<VivaInterviewState> SubmitAnswerAsync(SubmitAnswerRequest request, CancellationToken ct);
+    Task<VivaInterviewState> SubmitAnswerAsync(SubmitAnswerRequest request, DateTimeOffset receivedAt, CancellationToken ct);
     Task<string> GetSubjectHintAsync(Guid sessionId, CancellationToken ct);
 }
 

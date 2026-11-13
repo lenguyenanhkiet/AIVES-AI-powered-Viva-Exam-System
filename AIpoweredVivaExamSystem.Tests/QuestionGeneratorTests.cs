@@ -21,7 +21,7 @@ public class QuestionGeneratorTests
         var chunk = new DocumentChunk(Guid.NewGuid(), 1, "MVC separates concerns.");
         using var client = new HttpClient(new Handler(async request =>
         {
-            Assert.Equal("https://api.openai.com/v1/chat/completions", request.RequestUri!.ToString());
+            Assert.Equal("https://api.z.ai/api/coding/paas/v4/chat/completions", request.RequestUri!.ToString());
             Assert.Equal("Bearer", request.Headers.Authorization!.Scheme);
             var body = await request.Content!.ReadAsStringAsync();
             Assert.Contains("json_object", body); Assert.Contains(chunk.Id.ToString(), body);

@@ -27,6 +27,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<StudentAnswer> StudentAnswers => Set<StudentAnswer>();
     public DbSet<AnswerAnalysis> AnswerAnalyses => Set<AnswerAnalysis>();
     public DbSet<AnswerAudio> AnswerAudios => Set<AnswerAudio>();
+    public DbSet<SessionGrading> SessionGradings => Set<SessionGrading>();
+    public DbSet<QuestionGrading> QuestionGradings => Set<QuestionGrading>();
     public DbSet<LecturerSubject> LecturerSubjects => Set<LecturerSubject>();
     public DbSet<CourseDocument> CourseDocuments => Set<CourseDocument>();
     public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
@@ -63,6 +65,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<AnswerAnalysis>().HasQueryFilter(x => Unrestricted || StudentAnswers.Any(a => a.Id == x.StudentAnswerId &&
             SessionQuestions.Any(sq => sq.Id == a.SessionQuestionId)));
         modelBuilder.Entity<AnswerAudio>().HasQueryFilter(x => Unrestricted || StudentAnswers.Any(a => a.Id == x.StudentAnswerId));
+        modelBuilder.Entity<SessionGrading>().HasQueryFilter(x => Unrestricted || VivaSessions.Any(s => s.Id == x.VivaSessionId && ExamStudents.Any(r => r.Id == s.ExamStudentId && Exams.Any(e => e.Id == r.ExamId))));
+        modelBuilder.Entity<QuestionGrading>().HasQueryFilter(x => Unrestricted || SessionQuestions.Any(q => q.Id == x.SessionQuestionId));
     }
 
     public override Task<int> SaveChangesAsync(

@@ -43,6 +43,12 @@ services:
       Jwt__Key: "${JWT_KEY:?Set JWT_KEY in your local .env (at least 32 random bytes)}"
       Ai__ApiKey: "${AI_API_KEY:-}"
       Ai__Model: "${AI_MODEL:-}"
+      Ai__BaseUrl: "${AI_BASE_URL:-}"
+      ElevenLabs__ApiKey: "${ELEVENLABS_API_KEY:-}"
+      ElevenLabs__VoiceId: "${ELEVENLABS_VOICE_ID:-}"
+      ElevenLabs__Model: "${ELEVENLABS_MODEL:-}"
+      ElevenLabs__SttModel: "${ELEVENLABS_STT_MODEL:-}"
+      ElevenLabs__RealtimeSttModel: "${ELEVENLABS_REALTIME_STT_MODEL:-}"
 
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AIpoweredVivaExamSystemDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
 

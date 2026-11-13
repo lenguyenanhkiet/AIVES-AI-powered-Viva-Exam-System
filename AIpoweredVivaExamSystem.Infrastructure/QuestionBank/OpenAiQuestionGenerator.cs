@@ -15,11 +15,11 @@ public sealed class OpenAiQuestionGenerator(HttpClient http, IConfiguration conf
         QuestionDifficulty difficulty, int count, IReadOnlyList<DocumentChunk> sources, CancellationToken ct)
     {
         var key = configuration["Ai:ApiKey"];
-        var model = configuration["Ai:Model"];
-        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(model))
-            throw new ResourceConflictException("AI is not configured. Set Ai__ApiKey and Ai__Model on the server.");
+        var model = AiEndpoint.Model(configuration);
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ResourceConflictException("AI is not configured. Set Ai__ApiKey on the server.");
         var context = sources.Select(s => new { chunkId = s.Id, page = s.PageNumber, text = s.Text });
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+        using var request = new HttpRequestMessage(HttpMethod.Post, AiEndpoint.Url(configuration, "chat/completions"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
         request.Content = JsonContent.Create(new
         {
@@ -32,7 +32,7 @@ public sealed class OpenAiQuestionGenerator(HttpClient http, IConfiguration conf
         });
         try
         {
-            using var response = await http.SendAsync(request, ct);
+            using var response = await AiRequest.SendAsync(http, request, ct);
             if (!response.IsSuccessStatusCode)
                 throw new ResourceConflictException($"AI provider returned HTTP {(int)response.StatusCode}. No questions were saved.");
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));

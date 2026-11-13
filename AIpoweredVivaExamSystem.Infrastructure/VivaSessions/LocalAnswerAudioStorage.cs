@@ -13,6 +13,16 @@ public sealed class LocalAnswerAudioStorage : IAnswerAudioStorage
             : rootDirectory;
     }
 
+    public Task<Stream?> OpenReadAsync(string storedPath, CancellationToken ct)
+    {
+        const string prefix="viva-audios/";
+        if(!storedPath.StartsWith(prefix,StringComparison.Ordinal)) return Task.FromResult<Stream?>(null);
+        var root=Path.GetFullPath(_rootDirectory).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+        var path=Path.GetFullPath(Path.Combine(root,storedPath[prefix.Length..].Replace('/',Path.DirectorySeparatorChar)));
+        if(!path.StartsWith(root,StringComparison.OrdinalIgnoreCase) || !File.Exists(path)) return Task.FromResult<Stream?>(null);
+        return Task.FromResult<Stream?>(new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read,4096,FileOptions.Asynchronous));
+    }
+
     public async Task<string> SaveAudioAsync(Guid sessionId, Guid turnId, byte[] content, string mimeType, CancellationToken ct)
     {
         var ext = mimeType switch

@@ -3,7 +3,7 @@
 @{ ViewData["Title"] = "Sinh câu hỏi AI"; }
 <div class="container stack">
     <h1 class="page-title">Sinh câu hỏi từ @Model.Input.FileName</h1>
-    <p>Các đoạn tài liệu phù hợp được gửi đến OpenAI để sinh câu hỏi Nháp. Mỗi câu có trích dẫn trang/slide để bạn kiểm tra trước khi thêm rubric và duyệt.</p>
+    <p>Các đoạn tài liệu phù hợp được gửi đến nhà cung cấp AI đã cấu hình để sinh câu hỏi Nháp. Mỗi câu có trích dẫn trang/slide để bạn kiểm tra trước khi thêm rubric và duyệt.</p>
     <div asp-validation-summary="All" class="alert"></div>
     <form method="post" class="card card-body stack" asp-page="/Documents/Generate">
         <input asp-for="Input.DocumentId" type="hidden" />

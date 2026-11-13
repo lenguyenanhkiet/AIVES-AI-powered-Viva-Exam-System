@@ -18,6 +18,9 @@ public sealed class VivaInterviewStore(
     IAnswerAudioStorage audioStorage,
     ICurrentUser actor) : IVivaInterviewStore
 {
+    public Task<IAsyncDisposable> AcquireSubmissionAsync(Guid sessionId, CancellationToken ct) =>
+        VivaSubmissionLock.AcquireAsync(db, sessionId, ct);
+
     public async Task<string> GetSubjectHintAsync(Guid sessionId, CancellationToken ct)
     {
         var info = await (from s in db.VivaSessions.IgnoreQueryFilters().AsNoTracking()
@@ -48,7 +51,7 @@ public sealed class VivaInterviewStore(
         return await ProjectStateAsync(sessionId, ct);
     }
 
-    public async Task<VivaInterviewState> SubmitAnswerAsync(SubmitAnswerRequest request, CancellationToken ct)
+    public async Task<VivaInterviewState> SubmitAnswerAsync(SubmitAnswerRequest request, DateTimeOffset receivedAt, CancellationToken ct)
     {
         var meta = await LoadSessionMetadataAsync(request.SessionId, ct);
         var transcript = DomainRules.RequiredText(request.Transcript, nameof(request.Transcript), 8000);
@@ -65,7 +68,36 @@ public sealed class VivaInterviewStore(
             validMime = NormalizeAudioMime(request.AudioMimeType);
             validAudio = bytes;
             audioHash = Convert.ToHexString(SHA256.HashData(bytes));
-            savedAudioPath = await audioStorage.SaveAudioAsync(request.SessionId, request.TurnId, bytes, validMime, ct);
+        }
+
+        // Read an immutable conversation snapshot and evaluate WITHOUT a transaction or exam lock.
+        // The short commit phase below re-reads under the lock; a concurrent winner is idempotent.
+        var previewExam = await db.Exams.IgnoreQueryFilters().AsNoTracking().SingleAsync(e => e.Id == meta.ExamId, ct);
+        var previewEnrollment = await db.ExamStudents.IgnoreQueryFilters().AsNoTracking().SingleAsync(e => e.Id == meta.EnrollmentId, ct);
+        var previewQuestion = await db.SessionQuestions.IgnoreQueryFilters().AsNoTracking()
+            .SingleAsync(q => q.VivaSessionId == request.SessionId && db.StudentAnswers.IgnoreQueryFilters().Any(t => t.Id == request.TurnId && t.SessionQuestionId == q.Id), ct);
+        var previewTurns = await db.StudentAnswers.IgnoreQueryFilters().AsNoTracking()
+            .Where(t => t.SessionQuestionId == previewQuestion.Id).OrderBy(t => t.FollowUpLevel).ToArrayAsync(ct);
+        var previewTurn = previewTurns.Single(t => t.Id == request.TurnId);
+        if (previewTurn.AnsweredAt.HasValue) return await ProjectStateAsync(request.SessionId, ct);
+        var previewEnd = previewExam.SlotEnd(previewEnrollment.ScheduledAt ?? meta.Session.StartedAt);
+        if (previewEnd > previewExam.EndAt) previewEnd = previewExam.EndAt;
+        var previewLimit = VivaInterviewService.CalculateTurnLimitSeconds(previewExam.DurationMinutes, previewExam.NumberOfMainQuestions, previewExam.MaxFollowUpPerQuestion);
+        var previewTimedOut = VivaTurnDeadline.HasExpired(previewEnd, receivedAt, request.TimedOut) ||
+            VivaTurnDeadline.HasExpired(previewTurn.AskedAt.AddSeconds(previewLimit), receivedAt, request.TimedOut);
+        var evaluatedDecision = previewTimedOut
+            ? new ExaminerDecision(false, null, "Turn deadline expired; advanced without AI evaluation.", null, VivaTurnDeadline.TimeoutModelName)
+            : new ExaminerDecision(false, null, "Không còn lượt hỏi xoáy; lưu câu trả lời để giảng viên chấm theo rubric.", null, "server-no-follow-up");
+        // This AI decides whether to ask another follow-up. Grading happens separately;
+        // when the configured cap/time forbids a follow-up there is no decision to wait for.
+        if (!previewTimedOut && previewTurn.FollowUpLevel < previewExam.MaxFollowUpPerQuestion &&
+            (previewEnd - receivedAt).TotalSeconds >= 15)
+        {
+            var subjectName = await db.Subjects.IgnoreQueryFilters().AsNoTracking().Where(x => x.Id == previewExam.SubjectId).Select(x => x.Name).SingleAsync(ct);
+            var history = previewTurns.Where(t => t.AnsweredAt.HasValue).Select(t => new ConversationTurn(t.AnswerType,t.FollowUpLevel,t.PromptText,t.Transcript ?? ""))
+                .Append(new ConversationTurn(previewTurn.AnswerType,previewTurn.FollowUpLevel,previewTurn.PromptText,transcript)).ToArray();
+            evaluatedDecision = await examiner.EvaluateAndFollowUpAsync(new ExaminerEvaluationContext(subjectName,previewQuestion.ContentSnapshot,
+                previewQuestion.RubricSnapshot,previewTurn.FollowUpLevel,previewExam.MaxFollowUpPerQuestion,history),ct);
         }
 
         var changed = new List<Guid>();
@@ -75,15 +107,15 @@ public sealed class VivaInterviewStore(
             var enrollment = await LockEnrollmentAsync(meta.EnrollmentId, token);
             var session = await db.VivaSessions.IgnoreQueryFilters().SingleAsync(s => s.Id == request.SessionId, token);
 
-            if (session.CompletedAt.HasValue)
-                throw new DomainValidationException("Phiên thi đã kết thúc, không thể nộp thêm câu trả lời.");
-
-            var now = DateTimeOffset.UtcNow;
-            if (exam.Status != ExamStatus.Ongoing || enrollment.ScheduledAt is not { } slotStart ||
-                now < slotStart || now >= exam.SlotEnd(slotStart) || now >= exam.EndAt)
+            var now = receivedAt;
+            var slotStart = enrollment.ScheduledAt ?? DateTimeOffset.MaxValue;
+            var slotEnd = slotStart == DateTimeOffset.MaxValue ? slotStart : exam.SlotEnd(slotStart);
+            if (slotEnd > exam.EndAt) slotEnd = exam.EndAt;
+            if (exam.Status != ExamStatus.Ongoing || now < slotStart)
             {
                 throw new DomainValidationException("Thời gian ca thi đã kết thúc hoặc kỳ thi không còn mở.");
             }
+            var slotTimedOut = now >= slotEnd || VivaTurnDeadline.HasExpired(slotEnd, now, request.TimedOut);
 
             var questions = await db.SessionQuestions.IgnoreQueryFilters()
                 .Where(q => q.VivaSessionId == session.Id)
@@ -98,15 +130,33 @@ public sealed class VivaInterviewStore(
 
             var currentTurn = turns.SingleOrDefault(t => t.Id == request.TurnId)
                 ?? throw new ResourceNotFoundException("Không tìm thấy lượt câu hỏi cần trả lời.");
+            await db.Entry(currentTurn).ReloadAsync(token);
+            await db.Entry(session).ReloadAsync(token);
 
             // Idempotent handling: if this turn was already answered in a concurrent request, return cleanly.
             if (currentTurn.AnsweredAt.HasValue)
                 return;
 
+            if (session.CompletedAt.HasValue)
+                throw new DomainValidationException("Phiên thi đã kết thúc, không thể nộp thêm câu trả lời.");
+
             var activeUnanswered = turns.FirstOrDefault(t => !t.AnsweredAt.HasValue);
             if (activeUnanswered is not null && activeUnanswered.Id != currentTurn.Id)
                 throw new ResourceConflictException("Lượt câu hỏi hiện tại đã thay đổi. Hãy tải lại phiên thi.");
 
+            var limit = VivaInterviewService.CalculateTurnLimitSeconds(
+                exam.DurationMinutes, exam.NumberOfMainQuestions, exam.MaxFollowUpPerQuestion);
+            var timedOut = slotTimedOut || VivaTurnDeadline.HasExpired(
+                currentTurn.AskedAt.AddSeconds(limit), now, request.TimedOut);
+            var tooLate = now > slotEnd.AddSeconds(VivaTurnDeadline.GraceSeconds) ||
+                now > currentTurn.AskedAt.AddSeconds(limit + VivaTurnDeadline.GraceSeconds);
+            if (tooLate)
+            {
+                transcript = VivaTurnDeadline.NoAnswerMarker;
+                validAudio = null;
+            }
+            if (validAudio is not null)
+                savedAudioPath = await audioStorage.SaveAudioAsync(request.SessionId, request.TurnId, validAudio, validMime!, token);
             var answerTimestamp = now < currentTurn.AskedAt ? currentTurn.AskedAt : now;
             currentTurn.SubmitResponse(transcript, answerTimestamp);
 
@@ -128,29 +178,12 @@ public sealed class VivaInterviewStore(
             }
 
             var currentQuestion = questions.Single(q => q.Id == currentTurn.SessionQuestionId);
-            var remainingSlotSeconds = (exam.SlotEnd(slotStart) - answerTimestamp).TotalSeconds;
-            var canAskFollowUp = currentTurn.FollowUpLevel < exam.MaxFollowUpPerQuestion && remainingSlotSeconds >= 15;
+            var remainingSlotSeconds = (slotEnd - answerTimestamp).TotalSeconds;
+            var canAskFollowUp = !timedOut && currentTurn.FollowUpLevel < exam.MaxFollowUpPerQuestion && remainingSlotSeconds >= 15;
 
-            var subjectName = await db.Subjects.IgnoreQueryFilters().AsNoTracking()
-                .Where(s => s.Id == exam.SubjectId)
-                .Select(s => s.Name)
-                .SingleAsync(token);
-
-            var questionTurns = turns
-                .Where(t => t.SessionQuestionId == currentQuestion.Id && t.AnsweredAt.HasValue)
-                .OrderBy(t => t.FollowUpLevel)
-                .Select(t => new ConversationTurn(t.AnswerType, t.FollowUpLevel, t.PromptText, t.Transcript ?? ""))
-                .ToArray();
-
-            var context = new ExaminerEvaluationContext(
-                subjectName,
-                currentQuestion.ContentSnapshot,
-                currentQuestion.RubricSnapshot,
-                currentTurn.FollowUpLevel,
-                exam.MaxFollowUpPerQuestion,
-                questionTurns);
-
-            var decision = await examiner.EvaluateAndFollowUpAsync(context, token);
+            var decision = timedOut
+                ? new ExaminerDecision(false, null, "Turn deadline expired; advanced without AI evaluation.", null, VivaTurnDeadline.TimeoutModelName)
+                : evaluatedDecision;
             var followUpPrompt = canAskFollowUp && !decision.IsComplete && !string.IsNullOrWhiteSpace(decision.FollowUpPrompt)
                 ? decision.FollowUpPrompt.Trim()
                 : null;
@@ -164,6 +197,14 @@ public sealed class VivaInterviewStore(
                 decision.ModelName,
                 answerTimestamp));
 
+            var advanceTimestamp = DateTimeOffset.UtcNow;
+            if (slotTimedOut || advanceTimestamp >= slotEnd)
+            {
+                session.Complete(advanceTimestamp);
+                changed.Add(meta.ExamId);
+                return;
+            }
+
             var advanceToNextMain = true;
             if (followUpPrompt is not null)
             {
@@ -172,7 +213,7 @@ public sealed class VivaInterviewStore(
                     AnswerType.FollowUp,
                     currentTurn.FollowUpLevel + 1,
                     followUpPrompt,
-                    answerTimestamp,
+                    advanceTimestamp,
                     currentTurn.Id);
                 db.StudentAnswers.Add(nextFollowUp);
                 advanceToNextMain = false;
@@ -191,7 +232,7 @@ public sealed class VivaInterviewStore(
                             AnswerType.Main,
                             0,
                             nextQuestion.ContentSnapshot,
-                            answerTimestamp));
+                            advanceTimestamp));
                     }
                 }
                 else
@@ -271,7 +312,9 @@ public sealed class VivaInterviewStore(
                                   a.Transcript,
                                   a.AskedAt,
                                   a.AnsweredAt,
-                                  HasAudio = db.AnswerAudios.IgnoreQueryFilters().Any(au => au.StudentAnswerId == a.Id)
+                                  HasAudio = db.AnswerAudios.IgnoreQueryFilters().Any(au => au.StudentAnswerId == a.Id),
+                                  TimedOut = db.AnswerAnalyses.IgnoreQueryFilters().Any(analysis =>
+                                      analysis.StudentAnswerId == a.Id && analysis.ModelName == VivaTurnDeadline.TimeoutModelName)
                               }).ToArrayAsync(ct);
 
         var posBySqId = questions.ToDictionary(q => q.Id, q => q.Position);
@@ -285,10 +328,13 @@ public sealed class VivaInterviewStore(
                 t.AnswerType,
                 t.FollowUpLevel,
                 t.PromptText,
-                t.Transcript,
+                t.TimedOut && (t.Transcript == VivaTurnDeadline.NoAnswerMarker ||
+                    t.Transcript == "[Timed out: no transcript captured; see attached audio if available.]")
+                    ? null : t.Transcript,
                 t.AskedAt,
                 t.AnsweredAt,
-                t.HasAudio))
+                t.HasAudio,
+                t.TimedOut))
             .ToArray();
 
         var activeTurn = header.Session.CompletedAt.HasValue
@@ -339,7 +385,8 @@ public sealed class VivaInterviewStore(
             header.Exam.MaxFollowUpPerQuestion,
             activeTurn,
             turns,
-            safeQuestions);
+            safeQuestions,
+            await StudentGradeProjection.LoadAsync(db,sessionId,ct));
     }
 
     private async Task<(VivaSession Session, Guid EnrollmentId, Guid ExamId)> LoadSessionMetadataAsync(Guid sessionId, CancellationToken ct)
