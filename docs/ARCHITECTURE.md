@@ -1,44 +1,35 @@
-# Razor Pages and three logical layers
+# Three-layer architecture
 
-The presentation layer is ASP.NET Core Razor Pages. There are no MVC controllers: each URL is a page `Pages/<Module>/<Name>.cshtml` with its `PageModel` in `<Name>.cshtml.cs`.
+The three production projects follow the supplied reference diagram:
+
+Diagram: [SVG](architecture-three-layer.svg) · [editable draw.io](architecture-three-layer.drawio).
 
 ```text
-Presentation
-  AIpoweredVivaExamSystem.Web/
-    Pages/                Razor pages (.cshtml) and their PageModels (.cshtml.cs), grouped by module;
-                          Pages/Shared holds the layout and shared partials
-    ViewModels/           Form input ([BindProperty] Input) and page-specific data
-    Realtime/             SignalR ExamHub (/hubs/exams) and the IExamNotifier adapter
-    Authentication/       Cookie validation and current request identity
-    Common/               Presentation helpers and HTTP exception mapping
-    wwwroot/              CSS, JavaScript and static assets
-
-Business
-  AIpoweredVivaExamSystem.Application/
-    Authentication/       Login, role/subject administration, current-user abstraction
-    Subjects/, Topics/    Academic services, DTOs and validators
-    Questions/, Rubrics/  Existing manual CRUD and review workflow
-    QuestionBank/         Import, document ingestion, retrieval and generation orchestration
-    Interfaces/           Repository abstractions for existing CRUD
-  AIpoweredVivaExamSystem.Domain/
-    Entities/             Academic entities, documents, chunks, citations and assignments
-    Enums/, Common/       Value choices and invariant validation
-
-Data access and external integrations
-  AIpoweredVivaExamSystem.Persistence/
-    Context/              EF Core context and design-time factory
-    Configurations/       Schema mapping
-    Repositories/         SQL implementations of Application interfaces
-    Migrations/           Versioned database changes
-  AIpoweredVivaExamSystem.Infrastructure/
-    Authentication/       Password and token adapters
-    QuestionBank/         CSV/XLSX readers, PDF/PPTX extraction and OpenAI adapter
+AIpoweredVivaExamSystem.Presentation
+                  |
+                  v
+AIpoweredVivaExamSystem.Business --> AI / speech providers
+                  |
+                  v
+AIpoweredVivaExamSystem.DataAccess --> SQL Server / local files
 ```
 
-References: `Web → Application → Domain`; `Persistence → Application + Domain`; `Infrastructure → Application + Domain`. Web references the adapters to compose dependency injection. Application and Domain do not reference Web, EF Core, SignalR or an AI SDK.
+`Presentation` references only `Business`. `Business` references only `DataAccess`. `DataAccess` has no project reference. There are no separate Domain, Application or Infrastructure projects. Tests and seed/smoke tools are independent entry points that access the layers they verify or populate.
 
-PageModels take Application services through constructor injection and never query DbContext or call the AI provider directly. Application services orchestrate operations; adapters parse files and persist data. A single `SaveChangesAsync` transaction saves each import batch or generated batch together with its receipt/citations. No partial import is committed when validation fails.
+| Layer | Responsibilities |
+| --- | --- |
+| Presentation | `Pages` and PageModels, `ViewModels`, role filters, cookie/session handling, static assets, SignalR hubs and delivery adapters. |
+| Business | Services and service interfaces, input validation, access checks, exam/interview/grading orchestration, HTTP AI/speech integrations, password verification and token creation. |
+| DataAccess | Entities/enums, shared data models and repository contracts, SQL repositories, EF context/configurations/migrations, file readers/extractors and recording storage. |
 
-Authorization is enforced by `[Authorize]` roles on each PageModel and by request-aware EF query filters. Lecturers see assigned subjects, and only their own questions/documents in those subjects. Rubrics, chunks and citations inherit the parent scope. The current user is supplied by Web; direct design-time/test contexts explicitly omit request scoping. Administrators can manage all data. Authentication reloads the current role from SQL for every cookie request, so role revocation does not wait for cookie expiry.
+PageModels call Business services. They do not call repositories, query EF, or invoke AI providers. Shared entities, enums and transport models are declared in DataAccess and may appear in service signatures; using those types does not grant Presentation a data-access API.
 
-Group 2 has the shared foundation (schema/contracts, RBAC guards, transaction boundary), student roster (`ExamStudents`), sequential scheduling (`Schedules`), the question pool (`ExamPools`) and sessions with the SignalR dashboard (`VivaSessions`, `ExamFoundation/Details`). Exam CRUD/lifecycle remains a separate module. Module status and links are in the README and [GROUP_2_TEAM_BACKLOG.md](GROUP_2_TEAM_BACKLOG.md).
+Presentation calls `AddBusiness()` to register services. Business calls `AddDataAccess()` to register repositories and the EF context, so Presentation does not need a DataAccess project reference. PageModels, cookie events and SignalR hubs receive Business services through constructor injection. DataAccess never registers or calls a Business service.
+
+Services, repositories and the context are scoped to the request or SignalR invocation. The current-user adapter reads the request principal when accessed, including after cookie validation refreshes its roles. Connection registries and the examiner speech cache are singletons; HTTP clients use `IHttpClientFactory`. Presentation supplies the SignalR notification adapters. DI manages object lifetimes and does not change the three-layer reference graph.
+
+AI evaluation runs in Business before the short answer commit. DataAccess serializes submissions and enforces persistence consistency under SQL locks. A transaction commits exam changes before the Business notification wrapper calls Presentation's SignalR adapter; delivery failure cannot undo committed work. File imports and generated drafts are saved atomically with their receipts/citations.
+
+Authorization is enforced by role attributes and Business access guards. DataAccess applies identity-scoped query filters; lecturers see assigned subjects and their own questions/documents. Students receive only safe question projections and finalized lecturer results. Cookie validation reloads account status and role on each request, so revocation is reflected without waiting for expiry.
+
+Setup, migrations, accounts and demonstration steps are maintained in [GROUP_1_SETUP.md](GROUP_1_SETUP.md).

@@ -1,14 +1,17 @@
 using System.Text.Json;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.Grading;
-using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Infrastructure.Grading;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.Business.Grading;
+using AIpoweredVivaExamSystem.DataAccess.Models.Grading;
+using AIpoweredVivaExamSystem.Business.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Contracts.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.Business.Integrations.Grading;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Configuration;
@@ -72,13 +75,13 @@ public sealed class GradingSqlTests(SqlServerFixture fixture)
         }
     }
     private ApplicationDbContext Db(Actor actor)=>new(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(fixture.ConnectionString).Options,actor);
-    private static GradingService Service(ApplicationDbContext db,Actor actor,IAiRubricGrader grader,IStudentResultNotifier? notifier=null)=>new(new GradingStore(db,new ExamUnitOfWork(db,new Notifier(),NullLogger<ExamUnitOfWork>.Instance)),
+    private static GradingService Service(ApplicationDbContext db,Actor actor,IAiRubricGrader grader,IStudentResultNotifier? notifier=null)=>new(new GradingStore(db,new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), new Notifier())),
         new ExamAccessGuard(new ExamFoundationStore(db),actor),actor,grader,notifier);
     private static IVivaInterviewService StudentService(ApplicationDbContext db,Actor actor,ISpeechTranscriber? transcriber=null)
     {
-        var uow=new ExamUnitOfWork(db,new Notifier(),NullLogger<ExamUnitOfWork>.Instance);
-        return new VivaInterviewService(new VivaSessionStore(db,uow,actor),new VivaInterviewStore(db,uow,new Examiner(),new Audio(),actor),
-            transcriber??new Transcriber(),new ExamAccessGuard(new ExamFoundationStore(db),actor),actor);
+        var uow=new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), new Notifier());
+        return new VivaInterviewService(new VivaSessionStore(db,uow,actor),new VivaInterviewStore(db,uow,new Audio(),actor),
+            transcriber??new Transcriber(),new ExamAccessGuard(new ExamFoundationStore(db),actor),actor,new Examiner());
     }
     private async Task<(ExamDemo Demo,VivaSession Session,SessionQuestion Question,StudentAnswer Answer,AnswerAudio Audio)> SeedAsync(bool completed=true,bool expired=false)
     {
@@ -215,7 +218,7 @@ public sealed class GradingSqlTests(SqlServerFixture fixture)
             await transcriber.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
             var lecturer=new Actor(seed.Demo.Lecturer.Id,IsLecturer:true);
             await using var lecturerDb=Db(lecturer);
-            var store=new GradingStore(lecturerDb,new ExamUnitOfWork(lecturerDb,new Notifier(),NullLogger<ExamUnitOfWork>.Instance),
+            var store=new GradingStore(lecturerDb,new NotifyingExamUnitOfWork(new ExamUnitOfWork(lecturerDb), new Notifier()),
                 new Clock(state.SlotEndAt.AddSeconds(VivaTurnDeadline.GraceSeconds+1)));
             var list=await store.ListAsync(seed.Demo.Exam.Id,default);
             Assert.Null(Assert.Single(list.Sessions).CompletedAt);

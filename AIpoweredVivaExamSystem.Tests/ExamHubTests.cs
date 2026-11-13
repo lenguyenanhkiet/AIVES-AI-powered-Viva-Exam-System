@@ -1,8 +1,9 @@
+using AIpoweredVivaExamSystem.Business.Exams;
 using System.Security.Claims;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
-using AIpoweredVivaExamSystem.Web.Realtime;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
+using AIpoweredVivaExamSystem.Presentation.Realtime;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;

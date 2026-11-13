@@ -33,7 +33,7 @@ try {
         & dotnet run --project tools/DemoSeed -- --root $repoRoot
     } else {
         if ([string]::IsNullOrWhiteSpace($env:Jwt__Key)) { throw 'Set JWT_KEY in .env or Jwt__Key in the environment.' }
-        & dotnet run --project AIpoweredVivaExamSystem.Web --no-launch-profile
+        & dotnet run --project AIpoweredVivaExamSystem.Presentation --no-launch-profile
     }
     if ($LASTEXITCODE -ne 0) { throw "Demo $Action failed (exit $LASTEXITCODE)." }
 } finally { Pop-Location }

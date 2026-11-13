@@ -1,6 +1,6 @@
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

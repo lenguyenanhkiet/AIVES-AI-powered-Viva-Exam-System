@@ -1,6 +1,6 @@
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
 using Xunit;
 
 namespace AIpoweredVivaExamSystem.Tests;

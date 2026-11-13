@@ -1,15 +1,17 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Infrastructure.VivaSessions;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.Business.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Contracts.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.Business.Integrations.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -199,7 +201,7 @@ public sealed class VivaExaminerUnitTests
         }).Build();
         var examiner = new OpenAiVivaExaminer(http, config);
 
-        await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceConflictException>(() =>
+        await Assert.ThrowsAsync<AIpoweredVivaExamSystem.DataAccess.Models.Common.ResourceConflictException>(() =>
             examiner.EvaluateAndFollowUpAsync(SampleContext("Incomplete"), default));
         Assert.InRange(handler.Calls, 2, 3);
     }
@@ -230,7 +232,7 @@ public sealed class VivaExaminerUnitTests
         {
             ["Ai:ApiKey"] = "test-key"
         }).Build();
-        await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceConflictException>(() =>
+        await Assert.ThrowsAsync<AIpoweredVivaExamSystem.DataAccess.Models.Common.ResourceConflictException>(() =>
             new OpenAiVivaExaminer(http, config).EvaluateAndFollowUpAsync(SampleContext("Incomplete"), default));
         Assert.Equal(1, handler.Calls);
     }
@@ -278,7 +280,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
     private sealed class FakeTranscriber(string text = "Transcribed from server audio", bool unavailable = false) : ISpeechTranscriber
     {
         public Task<string> TranscribeAsync(byte[] audioBytes, string fileName, string language, string? promptHint, CancellationToken ct) =>
-            unavailable ? throw new AIpoweredVivaExamSystem.Application.Common.ResourceConflictException("Use browser recognition or type.") : Task.FromResult(text);
+            unavailable ? throw new AIpoweredVivaExamSystem.DataAccess.Models.Common.ResourceConflictException("Use browser recognition or type.") : Task.FromResult(text);
     }
 
     private sealed class FakeAudioStorage : IAnswerAudioStorage
@@ -298,16 +300,17 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         IVivaAiExaminer examiner,
         ISpeechTranscriber? transcriber = null)
     {
-        var uow = new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance);
+        var uow = new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier);
         var sessionStore = new VivaSessionStore(db, uow, actor);
         var guard = new ExamAccessGuard(new ExamFoundationStore(db), actor);
-        var interviewStore = new VivaInterviewStore(db, uow, examiner, new FakeAudioStorage(), actor);
+        var interviewStore = new VivaInterviewStore(db, uow, new FakeAudioStorage(), actor);
         return new VivaInterviewService(
             sessionStore,
             interviewStore,
             transcriber ?? new FakeTranscriber(),
             guard,
-            actor);
+            actor,
+            examiner);
     }
 
     private async Task<ExamDemo> SeedOngoingExamAsync(int mainQuestions = 2, int maxFollowUps = 1)
@@ -335,6 +338,25 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
 
         await db.SaveChangesAsync();
         return demo;
+    }
+
+    [Fact]
+    public async Task Invalid_recording_is_rejected_before_examiner_without_consuming_the_turn()
+    {
+        var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 1);
+        var actor = new Actor(demo.Student.Id);
+        await using var db = Context(actor);
+        var service = CreateInterviewService(db, actor, new Notifier(),
+            new FakeExaminer(_ => throw new InvalidOperationException("Invalid recordings must not reach the examiner.")));
+        var state = await service.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        var turnId = state.ActiveTurn!.TurnId;
+
+        await Assert.ThrowsAsync<DomainValidationException>(() => service.SubmitAnswerAsync(
+            new(state.SessionId, turnId, "An answer with an invalid recording.", [1, 2, 3], "text/plain"), default));
+
+        var unchanged = await service.GetStateAsync(state.SessionId, default);
+        Assert.Equal(turnId, unchanged.ActiveTurn!.TurnId);
+        Assert.Null(unchanged.ActiveTurn.AnsweredAt);
     }
 
     [Fact]
@@ -653,10 +675,10 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 intruderService.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default));
             var speech = new VivaQuestionSpeechService(intruderService, new ForbiddenSpeech());
-            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceNotFoundException>(() =>
+            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.DataAccess.Models.Common.ResourceNotFoundException>(() =>
                 speech.SpeakAsync(state.SessionId, state.ActiveTurn!.TurnId, default));
             var tokens = new VivaScribeTokenService(intruderService, new ForbiddenTokens());
-            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceNotFoundException>(() =>
+            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.DataAccess.Models.Common.ResourceNotFoundException>(() =>
                 tokens.CreateAsync(state.SessionId, "vi", default));
         }
 
@@ -669,7 +691,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
                 ["Ai:ApiKey"] = "test-key"
             }).Build();
             var service = CreateInterviewService(db, owner, notifier, examiner, new ElevenLabsSpeechTranscriber(http, config));
-            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceConflictException>(() =>
+            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.DataAccess.Models.Common.ResourceConflictException>(() =>
                 service.SubmitAnswerAsync(new SubmitAnswerRequest(state.SessionId, state.ActiveTurn!.TurnId, null, [1, 2, 3], "audio/webm"), default));
         }
 

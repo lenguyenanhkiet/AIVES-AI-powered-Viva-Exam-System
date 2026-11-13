@@ -78,12 +78,12 @@ Chốt lifecycle: Draft → Published → Ongoing → Completed; Draft/Published
 
 | Mã | Thời gian dự kiến | Mô tả thực hiện | Tiêu chí bàn giao |
 |---|---|---|---|
-| TM1 | 08:30–10:00 | Hoàn thiện rule Exam: tên bắt buộc, start < end, duration/main count > 0, follow-up >= 0. Tạo Application service/repository cho list/get/create/update. | LecturerId lấy từ ICurrentUser; chỉ tạo trong môn có quyền; chỉ sửa Draft; domain tests cho dữ liệu sai. |
+| TM1 | 08:30–10:00 | Hoàn thiện rule Exam: tên bắt buộc, start < end, duration/main count > 0, follow-up >= 0. Tạo Business service/repository cho list/get/create/update. | LecturerId lấy từ ICurrentUser; chỉ tạo trong môn có quyền; chỉ sửa Draft; domain tests cho dữ liệu sai. |
 | TM2 | 10:00–12:00 | Viết ExamsController, Exam ViewModels và Razor Views Index/Create/Edit/Details. Tái dùng CSS/layout sẵn có, không thiết kế giao diện mới. | Tạo và sửa Draft từ trình duyệt; form sai giữ dữ liệu và hiện lỗi; POST có antiforgery. |
 | TM3 | 13:00–14:30 | Thêm Publish/Start/Complete/Cancel, gọi guard/pool count/roster readiness; cấu hình đã publish không được sửa. | Không publish khi thiếu pool/roster/lịch; không start ngoài cửa sổ; transition sai bị từ chối ở service. |
 | TM4 | 14:30–15:30 | Nối event sau save/commit; xử lý conflict RowVersion; cùng Sơn/Long/Dương kiểm tra điều kiện publish. | Refresh trang thể hiện trạng thái từ SQL; lỗi DB không gửi thông báo thành công; có test lifecycle chính. |
 
-**File/module:** `Application/Exams`, `Persistence/Repositories/ExamRepository`, `Controllers/ExamsController`, `ViewModels/Exams`, `Views/Exams`. Sau 15:30 chỉ sửa lỗi demo/kiểm thử chung.
+**File/module:** `Application/Exams`, `DataAccess/Repositories/ExamRepository`, `Controllers/ExamsController`, `ViewModels/Exams`, `Views/Exams`. Sau 15:30 chỉ sửa lỗi demo/kiểm thử chung.
 
 ## Task của Sơn — pool câu hỏi
 
@@ -105,7 +105,7 @@ Chốt lifecycle: Draft → Published → Ongoing → Completed; Draft/Published
 | L3 | 13:00–14:30 | Bàn giao roster/readiness cho Dương và Tuệ Minh; khóa thay đổi roster khi Published để lịch và session ổn định. | Publish kiểm tra roster không rỗng; không xóa người đã có session; không mất liên kết schedule. |
 | L4 | 14:30–15:30 | Test duplicate/role/ownership, nối RosterChanged sau commit và hỗ trợ dữ liệu demo. | Request thêm lặp không trùng; DB lỗi không gửi event; roster page đọc lại trạng thái SQL. |
 
-**File/module:** `Application/ExamStudents`, roster repository/configuration, `Controllers/ExamStudentsController`, `ViewModels/ExamStudents`, `Views/ExamStudents`. Import CSV/XLSX roster chuyển backlog sau MVP.
+**File/module:** `Business/Services/ExamStudents`, roster repository/configuration, `Controllers/ExamStudentsController`, `ViewModels/ExamStudents`, `Views/ExamStudents`. Import CSV/XLSX roster chuyển backlog sau MVP.
 
 ## Task của Dương — scheduling và lịch cá nhân
 
@@ -116,7 +116,7 @@ Chốt lifecycle: Draft → Published → Ongoing → Completed; Draft/Published
 | D3 | 13:00–14:30 | MVC lịch lecturer (bảng theo giờ, không calendar kéo/thả) và MySchedule cho student. Nối roster thật từ Long. | Lecturer xem lịch exam mình; student chỉ xem lịch cá nhân; hiển thị giờ Việt Nam nhất quán. |
 | D4 | 14:30–15:30 | Nối readiness cho publish và slot access cho session; phát ScheduleChanged sau commit. Test giao giờ và biên end. | Không mở session trước ca/sau ca; ca kết thúc đúng EndAt được chấp nhận; preview đủ cho 3 sinh viên demo. |
 
-**File/module:** `Application/Scheduling`, schedule repository, `Controllers/SchedulesController`, `ViewModels/Schedules`, `Views/Schedules`. Dương cập nhật ScheduledAt qua service thống nhất, không thêm migration riêng xung đột với Long.
+**File/module:** `Business/Services/Scheduling`, schedule repository, `Controllers/SchedulesController`, `ViewModels/Schedules`, `Views/Schedules`. Dương cập nhật ScheduledAt qua service thống nhất, không thêm migration riêng xung đột với Long.
 
 ## Task của Dũng — session, selection và real-time
 

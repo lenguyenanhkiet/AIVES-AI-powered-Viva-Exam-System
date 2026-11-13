@@ -7,7 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="../../AIpoweredVivaExamSystem.Persistence/AIpoweredVivaExamSystem.Persistence.csproj" />
-    <ProjectReference Include="../../AIpoweredVivaExamSystem.Infrastructure/AIpoweredVivaExamSystem.Infrastructure.csproj" />
+    <ProjectReference Include="../../AIpoweredVivaExamSystem.Business/AIpoweredVivaExamSystem.Business.csproj" />
   </ItemGroup>
 </Project>

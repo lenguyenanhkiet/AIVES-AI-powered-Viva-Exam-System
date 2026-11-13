@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Web.Pages.Home;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.Presentation.Pages.Home;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -234,13 +234,6 @@ public sealed class ExamRosterMvcTests(SqlServerFixture fixture)
             ["Jwt:Key"] = "roster-tests-only-signing-key-32-bytes-minimum",
             ["Jwt:Issuer"] = "Aives.Tests", ["Jwt:Audience"] = "Aives.Tests.Client", ["Jwt:ExpirationMinutes"] = "60"
         }));
-        web.ConfigureServices(services =>
-        {
-            // The fixture owns a disposable database; never use the application's configured database here.
-            services.RemoveAll<ApplicationDbContext>();
-            services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
-            services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
-            services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(fixture.ConnectionString));
-        });
+
     });
 }

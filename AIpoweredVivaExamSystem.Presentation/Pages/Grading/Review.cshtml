@@ -1,0 +1,321 @@
+@page "/Grading/Review/{id:guid}"
+@using AIpoweredVivaExamSystem.DataAccess.Models.Grading
+@model AIpoweredVivaExamSystem.Presentation.Pages.Grading.ReviewModel
+@using AIpoweredVivaExamSystem.Business.Grading
+@{
+    var vm = Model.Vm;
+    ViewData["Title"] = "Chấm bài — " + vm.StudentName;
+    var editable = vm.CanEdit;
+    var isFinal = vm.State == "finalised";
+    var completed = vm.CompletedAt is not null;
+    var hasFieldErrors = !ViewData.ModelState.IsValid && ViewData.ModelState.Any(e => e.Key != "" && e.Value!.Errors.Count > 0);
+    var anyReady = vm.Questions.Any(q => q.SuggestionState == "ready");
+    string Clock(double seconds) => TimeSpan.FromSeconds(Math.Max(0, Math.Round(seconds))).ToString(@"m\:ss");
+    string Score(decimal? value) => value?.ToScore() ?? "—";
+    string TurnLabel(TurnEvidence t) => t.AnswerType == AnswerType.Main ? "Câu hỏi chính" : $"Hỏi xoáy {t.FollowUpLevel}";
+}
+
+<div class="container">
+    <nav class="breadcrumb">
+        <a asp-page="/Grading/Index">Chấm thi</a> @Icons.Get("chevron-right", 14)
+        <a asp-page="/Grading/Index" asp-route-examId="@vm.ExamId">@vm.ExamName</a> @Icons.Get("chevron-right", 14)
+        <span>@vm.StudentName</span>
+    </nav>
+
+    <div class="page-head">
+        <div>
+            <div class="head-tags">
+                <partial name="_GradeState" model="vm.State" />
+            </div>
+            <h1 class="page-title">@vm.StudentName</h1>
+            <p class="page-sub">
+                @vm.StudentEmail · Bắt đầu @vm.StartedAt.ToLocalText()
+                @if (vm.CompletedAt is { } done) { <text>· Kết thúc @done.ToLocalText()</text> }
+                · Trả lời @Clock(vm.Signals.AnswerSeconds) · @vm.Signals.FollowUpCount lượt hỏi xoáy
+            </p>
+        </div>
+        <nav class="head-actions" aria-label="Chuyển sinh viên">
+            @if (vm.PreviousSessionId is { } prev)
+            {
+                <a class="btn btn-secondary" asp-page="/Grading/Review" asp-route-id="@prev">@Icons.Get("chevron-left") Sinh viên trước</a>
+            }
+            @if (vm.NextSessionId is { } next)
+            {
+                <a class="btn @(isFinal ? "btn-primary" : "btn-secondary")" asp-page="/Grading/Review" asp-route-id="@next">Sinh viên sau @Icons.Get("chevron-right")</a>
+            }
+        </nav>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="alert" role="alert"></div>
+    @if (hasFieldErrors)
+    {
+        <div class="alert" role="alert">@Icons.Get("alert") <span>Chưa lưu được: có điểm chưa hợp lệ hoặc còn thiếu. Xem các ô được đánh dấu đỏ.</span></div>
+    }
+
+    @if (!completed)
+    {
+        <div class="alert alert-warning" role="status">@Icons.Get("clock") <span>Phiên vấn đáp chưa kết thúc. Bạn có thể xem diễn biến, nhưng chỉ chấm được sau khi sinh viên hoàn thành.</span></div>
+    }
+    else if (isFinal)
+    {
+        <div class="alert alert-success" role="status">
+            @Icons.Get("check")
+            <span>
+                Điểm đã chốt@(vm.FinalisedAt is { } at ? " lúc " + at.ToLocalText() : "")@(vm.FinalisedByName is { } by ? " bởi " + by : "").
+                Sinh viên đang xem được điểm và nhận xét. Muốn sửa, bấm <strong>Mở lại để sửa điểm</strong>.
+            </span>
+        </div>
+    }
+    else
+    {
+        <div class="grade-disclaimer">
+            <div class="alert alert-info">
+                @Icons.Get("sparkles")
+                <span><strong>Điểm AI chỉ là gợi ý.</strong> Điểm của sinh viên là điểm bạn nhập vào các ô và bấm Chốt điểm.</span>
+            </div>
+            @if (editable)
+            {
+                <button type="button" class="btn btn-secondary" data-take-ai-all hidden="@(!anyReady)">@Icons.Get("sparkles") Dùng gợi ý AI cho tất cả câu</button>
+            }
+        </div>
+    }
+
+    <form method="post" class="stack grade-form" novalidate data-grading-form
+          data-suggest-url="@Url.Page("/Grading/Review", "Suggest", new { id = vm.SessionId })"
+          data-suggestion-url="@Url.Page("/Grading/Review", "Suggestion", new { id = vm.SessionId })"
+          data-auto-suggest="@(completed && editable ? "true" : "false")">
+        <input asp-for="Input.Version" type="hidden" />
+
+        @for (var qi = 0; qi < vm.Questions.Count; qi++)
+        {
+            var q = vm.Questions[qi];
+            var state = string.IsNullOrEmpty(q.SuggestionState) ? "empty" : q.SuggestionState;
+            var answered = q.Turns.Any(t => !string.IsNullOrWhiteSpace(t.Transcript) || t.AudioUrl is not null);
+            var timedOut = q.Turns.Any(t => t.TimedOut);
+            <section class="card grade-q" data-question-card data-question-id="@q.SessionQuestionId" data-state="@state" aria-labelledby="q@(qi)-title">
+                <header class="grade-q-head">
+                    <div class="grade-q-title">
+                        <div class="head-tags">
+                            <span class="code-chip">Câu @q.Position</span>
+                            @if (!answered) { <span class="badge badge-inactive">Không trả lời</span> }
+                            @if (timedOut) { <span class="badge badge-warning">Có lượt hết giờ</span> }
+                        </div>
+                        <h2 id="q@(qi)-title">@q.QuestionText</h2>
+                        <ul class="grade-signals" aria-label="Thông tin phụ">
+                            <li>@Icons.Get("clock", 13) Trả lời @Clock(q.Signals.AnswerSeconds) / @Clock(q.Signals.TurnLimitSeconds)</li>
+                            <li>@Icons.Get("help", 13) @q.Signals.FollowUpCount hỏi xoáy</li>
+                            @if (q.Signals.AudioSeconds > 0) { <li>@Icons.Get("mic", 13) Ghi âm @Clock(q.Signals.AudioSeconds)</li> }
+                            <li>@Icons.Get("file-text", 13) @q.Signals.AnswerLength ký tự</li>
+                        </ul>
+                    </div>
+                    <div class="grade-q-score">
+                        <div class="grade-q-score-main">Điểm giảng viên <strong data-question-total>@Score(q.LecturerTotal)</strong> / @q.MaxScore.ToScore()</div>
+                        <span class="ai-chip" data-ai-total-chip hidden="@(q.SuggestedTotal is null)">@Icons.Get("sparkles", 12) AI gợi ý <span data-ai-total>@Score(q.SuggestedTotal)</span></span>
+                    </div>
+                </header>
+
+                <div class="grade-q-body">
+                    <div class="grade-convo">
+                        @foreach (var turn in q.Turns)
+                        {
+                            <article class="grade-turn">
+                                <div class="grade-turn-meta">
+                                    <span class="badge @(turn.AnswerType == AnswerType.Main ? "badge-inactive" : "badge-warning")">@TurnLabel(turn)</span>
+                                    @if (turn.TimedOut) { <span class="badge badge-warning">Hết giờ</span> }
+                                    @if (turn.AnsweredAt is not null)
+                                    {
+                                        <span class="hint">@Clock(turn.AnswerSeconds) / @Clock(turn.TurnLimitSeconds) · @turn.AnswerLength ký tự</span>
+                                    }
+                                </div>
+                                @if (turn.AnswerType != AnswerType.Main)
+                                {
+                                    <div class="viva-turn-question"><strong>Giám khảo AI:</strong> @turn.PromptText</div>
+                                }
+                                <div class="viva-turn-answer">
+                                    <strong>Sinh viên:</strong>
+                                    @if (!string.IsNullOrWhiteSpace(turn.Transcript))
+                                    {
+                                        <p class="viva-pre">@turn.Transcript</p>
+                                    }
+                                    else if (turn.AnsweredAt is null)
+                                    {
+                                        <p class="viva-pre muted">(Chưa trả lời)</p>
+                                    }
+                                    else
+                                    {
+                                        <p class="viva-pre muted">@(turn.TimedOut ? "(Không có câu trả lời — đã hết thời gian)" : "(Không có nội dung trả lời)")</p>
+                                    }
+                                    @if (turn.AudioUrl is { } audioUrl)
+                                    {
+                                        <div class="grade-audio">
+                                            <audio controls preload="metadata" aria-label="Ghi âm: @TurnLabel(turn), câu @q.Position">
+                                                <source src="@audioUrl" type="@(turn.AudioMimeType ?? "audio/webm")" />
+                                            </audio>
+                                            @if (turn.AudioDurationSeconds is { } secs) { <span class="hint">Ghi âm @Clock(secs)</span> }
+                                        </div>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    </div>
+
+                    <div class="grade-panel">
+                        <div class="grade-panel-head">
+                            <h3>Chấm theo rubric</h3>
+                            @if (editable)
+                            {
+                                <button type="button" class="btn btn-secondary btn-sm" data-take-ai="Câu @q.Position" hidden="@(state != "ready")">@Icons.Get("sparkles", 14) Dùng gợi ý AI</button>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(q.ExpectedAnswer))
+                        {
+                            <details class="grade-expected">
+                                <summary>Đáp án mong đợi</summary>
+                                <p class="viva-pre">@q.ExpectedAnswer</p>
+                            </details>
+                        }
+
+                        @* Trạng thái gợi ý AI: server vẽ trạng thái đầu, grading-review.js cập nhật tại chỗ khi gợi ý về. *@
+                        <div class="grade-ai-status" aria-live="polite">
+                            @if (editable)
+                            {
+                                <div class="grade-pending" data-ai-when="pending" hidden="@(state != "pending")">AI đang chấm gợi ý cho câu này… Bạn vẫn có thể tự nhập điểm.</div>
+                                <div class="alert alert-warning" data-ai-when="failed" hidden="@(state != "failed")">
+                                    @Icons.Get("alert")
+                                    <div>
+                                        <div>Không có gợi ý AI cho câu này<span data-ai-error>@(string.IsNullOrWhiteSpace(q.SuggestionError) ? "" : ": " + q.SuggestionError.Trim().TrimEnd('.'))</span>. Hãy tự chấm theo rubric.</div>
+                                        <button type="button" class="btn btn-secondary btn-sm grade-retry" data-ai-request="regenerate">Thử lại gợi ý AI</button>
+                                    </div>
+                                </div>
+                                <div class="grade-ai-empty" data-ai-when="empty" hidden="@(state != "empty")">
+                                    <span class="hint">Chưa có gợi ý AI.</span>
+                                    <button type="button" class="btn btn-secondary btn-sm" data-ai-request="new">@Icons.Get("sparkles", 14) Yêu cầu gợi ý AI</button>
+                                </div>
+                            }
+                            <div class="grade-ai-ready" data-ai-when="ready" hidden="@(state != "ready")">
+                                @if (!answered)
+                                {
+                                    <span class="hint">@Icons.Get("sparkles", 12) Không có câu trả lời nên hệ thống gợi ý 0 điểm, không cần gọi AI.</span>
+                                }
+                                else
+                                {
+                                    <span class="hint">@Icons.Get("sparkles", 12) Gợi ý của <span data-ai-model>@(q.AiModel ?? "AI")</span><span data-ai-at>@(q.SuggestedAt is { } sat ? " · " + sat.ToLocalText() : "")</span></span>
+                                    @if (editable) { <button type="button" class="btn btn-ghost btn-sm" data-ai-request="regenerate">Tạo lại gợi ý</button> }
+                                }
+                            </div>
+                        </div>
+
+                        <ol class="grade-criteria">
+                            @for (var ci = 0; ci < q.Criteria.Count; ci++)
+                            {
+                                var c = q.Criteria[ci];
+                                var key = $"q{qi}-c{ci}";
+                                <li class="grade-criterion" data-criterion-id="@c.Id">
+                                    <div>
+                                        <label class="grade-criterion-name" asp-for="Input.Questions[qi].Criteria[ci].Score">@(ci + 1). @c.Name</label>
+                                        @if (!string.IsNullOrWhiteSpace(c.Description)) { <div class="grade-criterion-desc">@c.Description</div> }
+                                        @if (!string.IsNullOrWhiteSpace(c.ExpectedConcepts)) { <div class="grade-criterion-desc">Khái niệm cần có: @c.ExpectedConcepts</div> }
+                                    </div>
+                                    <div class="grade-score">
+                                        <input type="hidden" asp-for="Input.Questions[qi].Criteria[ci].CriterionId" />
+                                        <input class="input" asp-for="Input.Questions[qi].Criteria[ci].Score" type="number" inputmode="decimal"
+                                               min="0" max="@c.MaxScore.ToScore()" step="0.01" placeholder="–" autocomplete="off"
+                                               disabled="@(!editable)" data-score data-max="@c.MaxScore.ToScore()" data-suggested="@(c.SuggestedScore?.ToScore() ?? "")"
+                                               aria-describedby="@key-max ai-@key @key-error" />
+                                        <span class="grade-score-max" id="@key-max">/ @c.MaxScore.ToScore() điểm</span>
+                                    </div>
+                                    <div class="ai-suggest" id="ai-@key" data-ai-criterion hidden="@(c.SuggestedScore is null)">
+                                        <div class="ai-suggest-head">@Icons.Get("sparkles", 12) AI gợi ý <strong data-ai-score>@Score(c.SuggestedScore)</strong> / @c.MaxScore.ToScore()</div>
+                                        <p data-ai-justification>@c.Justification</p>
+                                    </div>
+                                    <span class="field-error" id="@key-error" asp-validation-for="Input.Questions[qi].Criteria[ci].Score"></span>
+                                </li>
+                            }
+                        </ol>
+
+                        <div class="ai-suggest grade-feedback" data-ai-feedback hidden="@(state != "ready")">
+                            <div class="ai-suggest-head">@Icons.Get("sparkles", 12) Nhận định của AI</div>
+                            <div data-ai-part="strengths" hidden="@string.IsNullOrWhiteSpace(q.Strengths)"><h4>Điểm mạnh</h4><p data-ai-text>@q.Strengths</p></div>
+                            <div data-ai-part="weaknesses" hidden="@string.IsNullOrWhiteSpace(q.Weaknesses)"><h4>Điểm yếu</h4><p data-ai-text>@q.Weaknesses</p></div>
+                            <div data-ai-part="missingPoints" hidden="@string.IsNullOrWhiteSpace(q.MissingPoints)"><h4>Còn thiếu</h4><p data-ai-text>@q.MissingPoints</p></div>
+                        </div>
+
+                        <input type="hidden" asp-for="Input.Questions[qi].SessionQuestionId" />
+                        <div class="field grade-comment">
+                            <label class="label" asp-for="Input.Questions[qi].Comment">Nhận xét của giảng viên cho câu @q.Position</label>
+                            @if (editable)
+                            {
+                                <textarea class="textarea" asp-for="Input.Questions[qi].Comment" rows="3" maxlength="2000" placeholder="Sinh viên sẽ thấy nhận xét này sau khi chốt điểm."></textarea>
+                            }
+                            else
+                            {
+                                <p class="viva-pre @(string.IsNullOrWhiteSpace(q.LecturerComment) ? "muted" : "")">@(string.IsNullOrWhiteSpace(q.LecturerComment) ? "(Không có nhận xét)" : q.LecturerComment)</p>
+                            }
+                            <span class="field-error" asp-validation-for="Input.Questions[qi].Comment"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+
+        <section class="card grade-overall" aria-labelledby="overall-title">
+            <div class="card-head"><h2 class="card-title" id="overall-title">Nhận xét chung</h2></div>
+            <div class="card-body">
+                @if (editable)
+                {
+                    <label class="sr-only" asp-for="Input.OverallComment">Nhận xét chung cho cả bài</label>
+                    <textarea class="textarea" asp-for="Input.OverallComment" rows="3" maxlength="4000" placeholder="Nhận xét tổng quát, sinh viên sẽ thấy sau khi chốt điểm."></textarea>
+                    <span class="field-error" asp-validation-for="Input.OverallComment"></span>
+                }
+                else
+                {
+                    <p class="viva-pre @(string.IsNullOrWhiteSpace(vm.OverallComment) ? "muted" : "")">@(string.IsNullOrWhiteSpace(vm.OverallComment) ? "(Không có nhận xét chung)" : vm.OverallComment)</p>
+                }
+            </div>
+        </section>
+
+        <div class="grade-bar @(isFinal ? "is-final" : "")">
+            <div class="grade-bar-total">
+                <span class="grade-bar-label">@(isFinal ? "Điểm đã chốt" : "Điểm giảng viên")</span>
+                <span class="grade-bar-value"><span data-lecturer-total>@Score(vm.LecturerTotal)</span> <small>/ @vm.MaxTotal.ToScore()</small></span>
+            </div>
+            <span class="ai-chip" data-ai-session-chip hidden="@(vm.SuggestedTotal is null)">@Icons.Get("sparkles", 12) AI gợi ý <span data-ai-session-total>@Score(vm.SuggestedTotal)</span> / @vm.MaxTotal.ToScore()</span>
+            <div class="grade-bar-status">
+                @if (editable)
+                {
+                    <span data-missing-count></span>
+                    <span class="grade-dirty" data-dirty-note hidden>Có thay đổi chưa lưu</span>
+                }
+                else if (!completed)
+                {
+                    <span>Chưa thể chấm: phiên chưa kết thúc.</span>
+                }
+            </div>
+            <span class="sr-only" role="status" data-grading-status></span>
+            <div class="grade-bar-actions">
+                @if (editable)
+                {
+                    <button type="submit" class="btn btn-secondary" asp-page-handler="Save">Lưu nháp</button>
+                    <button type="submit" class="btn btn-primary" asp-page-handler="Finalise" data-finalize>@Icons.Get("check") Chốt điểm</button>
+                }
+                else if (vm.CanReopen)
+                {
+                    <button type="submit" class="btn btn-secondary" form="reopen-form">@Icons.Get("edit") Mở lại để sửa điểm</button>
+                }
+            </div>
+        </div>
+    </form>
+
+    @if (vm.CanReopen)
+    {
+        <form method="post" id="reopen-form" asp-page-handler="Reopen" asp-route-id="@vm.SessionId"
+              onsubmit="return confirm('Mở lại điểm đã chốt? Sinh viên sẽ không thấy kết quả cho đến khi bạn chốt lại.');">
+            <input type="hidden" name="version" value="@vm.Version" />
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/grading-review.js" asp-append-version="true"></script>
+}

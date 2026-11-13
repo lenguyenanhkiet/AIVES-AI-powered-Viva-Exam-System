@@ -1,24 +1,24 @@
+using AIpoweredVivaExamSystem.Business;
+using Microsoft.Extensions.DependencyInjection;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Infrastructure;
-using AIpoweredVivaExamSystem.Infrastructure.Authentication;
-using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.Business.Integrations.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
 // Smoke test chạy ngoài TestServer: gửi HTTP thật tới Web đang chạy và đọc Users từ SQL local thật.
 // Credentials chỉ nằm trong bộ nhớ. finally chỉ xóa đúng tài khoản có Guid vừa tạo, không đụng dữ liệu khác.
-var webPath = Path.GetFullPath(Value("--web-path") ?? "AIpoweredVivaExamSystem.Web");
+var webPath = Path.GetFullPath(Value("--web-path") ?? "AIpoweredVivaExamSystem.Presentation");
 var baseUri = new Uri(Value("--base-url") ?? "http://127.0.0.1:5088");
 if (!baseUri.IsLoopback) throw new InvalidOperationException("Smoke test is limited to a local Web URL.");
 var configuration = new ConfigurationBuilder().SetBasePath(webPath)
@@ -84,11 +84,11 @@ try
 
     // Gọi LoginService/repository/issuer thật với cùng DB và cấu hình; token không được đưa ra console.
     var services = new ServiceCollection();
-    services.AddInfrastructure();
-    services.AddOptions<JwtOptions>().Bind(configuration.GetSection("Jwt"));
+    services.AddSingleton<IConfiguration>(configuration);
+    services.AddBusiness();
     using var provider = services.BuildServiceProvider();
     using var scope = provider.CreateScope();
-    var authenticated = await new LoginService(new AIpoweredVivaExamSystem.Persistence.Repositories.LoginUserRepository(context),
+    var authenticated = await new LoginService(new AIpoweredVivaExamSystem.DataAccess.Repositories.LoginUserRepository(context),
         scope.ServiceProvider.GetRequiredService<IPasswordVerifier>()).AuthenticateAsync(email, password, default);
     Check(authenticated?.Id == user.Id, "LoginService verifies real SQL account");
     var token = scope.ServiceProvider.GetRequiredService<IAccessTokenIssuer>().Issue(authenticated!);

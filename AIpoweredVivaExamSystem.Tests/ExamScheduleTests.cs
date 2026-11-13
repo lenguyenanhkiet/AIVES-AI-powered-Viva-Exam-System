@@ -1,12 +1,13 @@
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.Scheduling;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.Business.Scheduling;
+using AIpoweredVivaExamSystem.DataAccess.Models.Scheduling;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -70,7 +71,7 @@ public class ExamScheduleTests(SqlServerFixture fixture)
     private static Actor Owner(ExamDemo demo) => new(demo.Lecturer.Id, IsLecturer: true);
     private static ExamScheduleService Service(ApplicationDbContext db, ICurrentUser actor, Recorder? notifier = null) =>
         new(new ExamScheduleStore(db), new ExamAccessGuard(new ExamFoundationStore(db), actor),
-            new ExamUnitOfWork(db, notifier ?? new Recorder(), NullLogger<ExamUnitOfWork>.Instance), actor,
+            new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier ?? new Recorder()), actor,
             new ExamFoundationStore(db));
     private async Task<ExamDemo> SeedAsync(int students = 1)
     {

@@ -6,7 +6,7 @@ Apply the committed migrations to your chosen database after reviewing them:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection = '<your SQL Server connection>'
-dotnet ef database update --project AIpoweredVivaExamSystem.Persistence --startup-project AIpoweredVivaExamSystem.Web
+dotnet ef database update --project AIpoweredVivaExamSystem.DataAccess
 ```
 
 The Web host does not apply migrations automatically. Migration generation uses a design-time factory and needs no JWT/AI secrets. Install the `dotnet-ef` 10.0.12 tool locally if it is unavailable.

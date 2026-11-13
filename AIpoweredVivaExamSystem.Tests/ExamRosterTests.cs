@@ -1,16 +1,15 @@
-using AIpoweredVivaExamSystem.Application;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence;
-using AIpoweredVivaExamSystem.Persistence.Context;
+using AIpoweredVivaExamSystem.Business;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess;
+using AIpoweredVivaExamSystem.DataAccess.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace AIpoweredVivaExamSystem.Tests;
@@ -26,20 +25,30 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         { Exams.Add(examId); if (onNotify is not null) await onNotify(examId); }
     }
 
-    private ServiceProvider Services(Guid actorId, Notifications? notifications = null, bool lecturer = true, bool admin = false,
+    private RosterScope Services(Guid actorId, Notifications? notifications = null, bool lecturer = true, bool admin = false,
         SaveChangesInterceptor? interceptor = null)
     {
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        { ["ConnectionStrings:DefaultConnection"] = fixture.ConnectionString }).Build();
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<ICurrentUser>(new Actor(actorId, admin, lecturer));
-        services.AddSingleton<IExamNotifier>(notifications ?? new Notifications());
-        services.AddApplication();
-        services.AddPersistence(config);
-        if (interceptor is not null)
-            services.AddDbContext<ApplicationDbContext>(options => options.AddInterceptors(interceptor));
-        return services.BuildServiceProvider();
+        var actor = new Actor(actorId, admin, lecturer);
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(fixture.ConnectionString);
+        if (interceptor is not null) options.AddInterceptors(interceptor);
+        return new RosterScope(new ApplicationDbContext(options.Options, actor), actor, notifications ?? new Notifications());
+    }
+
+    private sealed class RosterScope : IAsyncDisposable
+    {
+        private readonly ApplicationDbContext db;
+        public AIpoweredVivaExamSystem.Business.ExamStudents.ExamRosterService Roster { get; }
+        public ExamFoundationService Foundation { get; }
+        public RosterScope(ApplicationDbContext db, Actor actor, Notifications notifications)
+        {
+            this.db = db;
+            var foundation = new AIpoweredVivaExamSystem.DataAccess.Repositories.ExamFoundationStore(db);
+            var guard = new ExamAccessGuard(foundation, actor);
+            var transactions = new NotifyingExamUnitOfWork(new AIpoweredVivaExamSystem.DataAccess.Repositories.ExamUnitOfWork(db), notifications);
+            Roster = new(new AIpoweredVivaExamSystem.DataAccess.Repositories.ExamRosterStore(db), guard, transactions);
+            Foundation = new(guard, foundation);
+        }
+        public ValueTask DisposeAsync() => db.DisposeAsync();
     }
 
     private async Task<ExamDemo> SeedAsync()
@@ -55,9 +64,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         var student = new User(Guid.NewGuid() + "@example.test", "unused", "New student", UserStatus.Active);
         await using (var db = fixture.CreateContext()) { db.Add(student); await db.SaveChangesAsync(); }
         var notifications = new Notifications();
-        await using var provider = Services(demo.Lecturer.Id, notifications);
-        await using var scope = provider.CreateAsyncScope();
-        var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
+        await using var scope = Services(demo.Lecturer.Id, notifications);
+        var service = scope.Roster;
         await service.AddAsync(demo.Exam.Id, "  " + student.Email.ToUpperInvariant() + "  ", default);
         var roster = await service.ListAsync(demo.Exam.Id, default);
         Assert.Equal(2, roster.Count);
@@ -84,9 +92,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         if (deleted) user.DeletedAt = DateTimeOffset.UtcNow;
         await using (var db = fixture.CreateContext()) { db.Add(user); await db.SaveChangesAsync(); }
         var notifications = new Notifications();
-        await using var provider = Services(d.Lecturer.Id, notifications);
-        await using var scope = provider.CreateAsyncScope();
-        await Assert.ThrowsAsync<DomainValidationException>(() => scope.ServiceProvider.GetRequiredService<IExamRosterService>().AddAsync(d.Exam.Id, user.Email, default));
+        await using var scope = Services(d.Lecturer.Id, notifications);
+        await Assert.ThrowsAsync<DomainValidationException>(() => scope.Roster.AddAsync(d.Exam.Id, user.Email, default));
         await using var verify = fixture.CreateContext();
         Assert.False(await verify.ExamStudents.AnyAsync(x => x.StudentId == user.Id));
         Assert.Empty(notifications.Exams);
@@ -99,9 +106,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
     public async Task InvalidOrUnknownEmailDoesNotChangeRoster(string email)
     {
         var d = await SeedAsync();
-        await using var provider = Services(d.Lecturer.Id);
-        await using var scope = provider.CreateAsyncScope();
-        await Assert.ThrowsAsync<DomainValidationException>(() => scope.ServiceProvider.GetRequiredService<IExamRosterService>().AddAsync(d.Exam.Id, email, default));
+        await using var scope = Services(d.Lecturer.Id);
+        await Assert.ThrowsAsync<DomainValidationException>(() => scope.Roster.AddAsync(d.Exam.Id, email, default));
         await using var verify = fixture.CreateContext();
         Assert.Single(await verify.ExamStudents.Where(x => x.ExamId == d.Exam.Id).ToArrayAsync());
     }
@@ -111,9 +117,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
     {
         var d = await SeedAsync();
         var notifications = new Notifications();
-        await using var provider = Services(d.Lecturer.Id, notifications);
-        await using var scope = provider.CreateAsyncScope();
-        var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
+        await using var scope = Services(d.Lecturer.Id, notifications);
+        var service = scope.Roster;
         await Assert.ThrowsAsync<ResourceConflictException>(() => service.AddAsync(d.Exam.Id, d.Student.Email, default));
         Assert.Single(await service.ListAsync(d.Exam.Id, default));
         Assert.Empty(notifications.Exams);
@@ -130,9 +135,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         await using (var db = fixture.CreateContext())
             await db.Exams.Where(x => x.Id == d.Exam.Id).ExecuteUpdateAsync(x => x.SetProperty(e => e.Status, status));
         var notifications = new Notifications();
-        await using var provider = Services(d.Lecturer.Id, notifications);
-        await using var scope = provider.CreateAsyncScope();
-        var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
+        await using var scope = Services(d.Lecturer.Id, notifications);
+        var service = scope.Roster;
         await Assert.ThrowsAsync<ResourceConflictException>(() => service.AddAsync(d.Exam.Id, d.Student.Email, default));
         await Assert.ThrowsAsync<ResourceConflictException>(() => service.RemoveAsync(d.Exam.Id, d.Enrollment.Id, default));
         Assert.Single(await service.ListAsync(d.Exam.Id, default));
@@ -144,9 +148,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
     {
         var d = await SeedAsync();
         var other = await SeedAsync();
-        await using var provider = Services(d.Lecturer.Id);
-        await using var scope = provider.CreateAsyncScope();
-        var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
+        await using var scope = Services(d.Lecturer.Id);
+        var service = scope.Roster;
         await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.RemoveAsync(d.Exam.Id, other.Enrollment.Id, default));
         var session = new VivaSession(d.Enrollment.Id, DateTimeOffset.UtcNow);
         await using (var db = fixture.CreateContext()) { db.Add(session); await db.SaveChangesAsync(); }
@@ -164,9 +167,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
     public async Task StrangerAndStudentCannotReadOrMutateRoster(bool isStudent)
     {
         var d = await SeedAsync();
-        await using var provider = Services(isStudent ? d.Student.Id : Guid.NewGuid(), lecturer: !isStudent);
-        await using var scope = provider.CreateAsyncScope();
-        var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
+        await using var scope = Services(isStudent ? d.Student.Id : Guid.NewGuid(), lecturer: !isStudent);
+        var service = scope.Roster;
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ListAsync(d.Exam.Id, default));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.AddAsync(d.Exam.Id, d.Student.Email, default));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RemoveAsync(d.Exam.Id, d.Enrollment.Id, default));
@@ -181,9 +183,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         async Task<(bool Won, int Notifications)> Add()
         {
             var notifications = new Notifications();
-            await using var provider = Services(d.Lecturer.Id, notifications);
-            await using var scope = provider.CreateAsyncScope();
-            try { await scope.ServiceProvider.GetRequiredService<IExamRosterService>().AddAsync(d.Exam.Id, user.Email, default); return (true, notifications.Exams.Count); }
+            await using var scope = Services(d.Lecturer.Id, notifications);
+            try { await scope.Roster.AddAsync(d.Exam.Id, user.Email, default); return (true, notifications.Exams.Count); }
             catch (ResourceConflictException) { return (false, notifications.Exams.Count); }
         }
         var results = await Task.WhenAll(Add(), Add());
@@ -207,9 +208,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         var user = new User(Guid.NewGuid() + "@example.test", "unused", "Rollback", UserStatus.Active);
         await using (var db = fixture.CreateContext()) { db.Add(user); await db.SaveChangesAsync(); }
         var notifications = new Notifications();
-        await using var provider = Services(d.Lecturer.Id, notifications, interceptor: new FailAfterSave());
-        await using var scope = provider.CreateAsyncScope();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => scope.ServiceProvider.GetRequiredService<IExamRosterService>()
+        await using var scope = Services(d.Lecturer.Id, notifications, interceptor: new FailAfterSave());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => scope.Roster
             .AddAsync(d.Exam.Id, user.Email, default));
         await using var verify = fixture.CreateContext();
         Assert.False(await verify.ExamStudents.AnyAsync(x => x.StudentId == user.Id));
@@ -231,9 +231,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
             observedCommit = await db.ExamStudents.AnyAsync(x => x.ExamId == id && x.StudentId == user.Id);
             throw new InvalidOperationException("Simulated SignalR disconnection");
         });
-        await using var provider = Services(d.Lecturer.Id, notifications);
-        await using var scope = provider.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<IExamRosterService>().AddAsync(d.Exam.Id, user.Email, default);
+        await using var scope = Services(d.Lecturer.Id, notifications);
+        await scope.Roster.AddAsync(d.Exam.Id, user.Email, default);
         Assert.True(observedCommit);
         Assert.Equal(new[] { d.Exam.Id }, notifications.Exams);
         await using var verify = fixture.CreateContext();
@@ -252,10 +251,9 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         }
         var user = new User(Guid.NewGuid() + "@example.test", "unused", "Unscheduled", UserStatus.Active);
         await using (var db = fixture.CreateContext()) { db.Add(user); await db.SaveChangesAsync(); }
-        await using var provider = Services(d.Lecturer.Id);
-        await using var scope = provider.CreateAsyncScope();
-        var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
-        var foundation = scope.ServiceProvider.GetRequiredService<ExamFoundationService>();
+        await using var scope = Services(d.Lecturer.Id);
+        var service = scope.Roster;
+        var foundation = scope.Foundation;
         await service.AddAsync(d.Exam.Id, user.Email, default);
         var counts = await foundation.CountsAsync(d.Exam.Id, default);
         Assert.Equal(2, counts.Students);
@@ -276,10 +274,9 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         var admin = new User(Guid.NewGuid() + "@example.test", "unused", "Admin", UserStatus.Active);
         admin.AssignRole(UserRole.ADMIN);
         await using (var db = fixture.CreateContext()) { db.Add(admin); await db.SaveChangesAsync(); }
-        await using (var provider = Services(admin.Id, lecturer: false, admin: true))
+        await using (var scope = Services(admin.Id, lecturer: false, admin: true))
         {
-            await using var scope = provider.CreateAsyncScope();
-            var service = scope.ServiceProvider.GetRequiredService<IExamRosterService>();
+            var service = scope.Roster;
             Assert.Single(await service.ListAsync(d.Exam.Id, default));
             await service.RemoveAsync(d.Exam.Id, d.Enrollment.Id, default);
             Assert.Empty(await service.ListAsync(d.Exam.Id, default));
@@ -287,9 +284,8 @@ public sealed class ExamRosterTests(SqlServerFixture fixture)
         }
         await using (var db = fixture.CreateContext())
             await db.LecturerSubjects.Where(x => x.LecturerId == d.Lecturer.Id).ExecuteDeleteAsync();
-        await using var lecturerProvider = Services(d.Lecturer.Id);
-        await using var lecturerScope = lecturerProvider.CreateAsyncScope();
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => lecturerScope.ServiceProvider.GetRequiredService<IExamRosterService>()
+        await using var lecturerScope = Services(d.Lecturer.Id);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => lecturerScope.Roster
             .ListAsync(d.Exam.Id, default));
     }
 }

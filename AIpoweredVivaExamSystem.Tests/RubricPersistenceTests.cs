@@ -1,6 +1,6 @@
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Xunit;

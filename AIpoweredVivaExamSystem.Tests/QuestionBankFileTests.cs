@@ -1,10 +1,10 @@
 using System.IO.Compression;
 using System.Text;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Application.QuestionBank;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Infrastructure.QuestionBank;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.Business.QuestionBank;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Files;
 using Xunit;
 
 namespace AIpoweredVivaExamSystem.Tests;

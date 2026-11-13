@@ -4,7 +4,7 @@
 
 ## Trạng thái bàn giao
 
-Đã triển khai module L1–L4: Application service, SQL repository, MVC, phân quyền,
+Đã triển khai module L1–L4: Business service, SQL repository, MVC, phân quyền,
 transaction và kiểm thử tự động. Chưa đánh dấu hoàn thành demo tích hợp toàn nhóm:
 còn chờ Exam CRUD/lifecycle của Tuệ Minh.
 
@@ -17,12 +17,12 @@ còn chờ Exam CRUD/lifecycle của Tuệ Minh.
 
 ## Contracts và đường đi dữ liệu
 
-- `IExamRosterService` trong `Application/Exams/ModuleContracts.cs`: giữ nguyên
+- `IExamRosterService` trong `Business/Interfaces/Exams`: giữ nguyên
   `ListAsync(examId, ct)`, `AddAsync(examId, studentEmail, ct)`,
   `RemoveAsync(examId, enrollmentId, ct)`.
 - `RosterEntry` có thêm tham số cuối `string Email = ""`; các constructor 5 tham số
   vẫn biên dịch. Các entry sắp theo StudentId để Dương dùng thứ tự ổn định.
-- `IExamRosterReader` thuộc `Application/ExamStudents`: metadata có guard và danh
+- `IExamRosterReader` thuộc `Business/Services/ExamStudents`: metadata có guard và danh
   sách kỳ thi phân trang 20 dòng. Trang chi tiết truy vấn theo ID trực tiếp.
 - `ExamRosterService` kiểm tra `ExamAccessGuard` ở mọi entry point; repository giữ
   query filters của request. PageModel không truy vấn DbContext.

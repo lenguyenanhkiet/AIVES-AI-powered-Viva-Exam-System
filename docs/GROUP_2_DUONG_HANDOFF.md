@@ -31,6 +31,6 @@ Giờ lưu UTC, hiển thị giờ Việt Nam (UTC+7) qua `ToLocalText()`.
 
 ## Code và test
 
-`Application/Scheduling` (`SequentialSchedule`, `ExamScheduleService`, contracts), `Persistence/Repositories/ExamScheduleStore.cs`, `Web/Pages/Schedules` (`.cshtml` + PageModel), `Web/ViewModels/Schedules`.
+`Business/Services/Scheduling` (`SequentialSchedule`, `ExamScheduleService`, contracts), `DataAccess/Repositories/ExamScheduleStore.cs`, `Presentation/Pages/Schedules` (`.cshtml` + PageModel), `Presentation/ViewModels/Schedules`.
 
 `Tests/ExamScheduleTests.cs` (18 test; 14 test SQL cần `AIVES_TEST_CONNECTION`): sinh ca và biên `EndAt`, lưu đủ ca, preview cũ, trùng giờ sinh viên/giảng viên rollback, Apply cạnh tranh, sai quyền, không phải Draft, đã có session, sinh viên chỉ thấy ca của mình, readiness, notifier chỉ chạy sau commit.

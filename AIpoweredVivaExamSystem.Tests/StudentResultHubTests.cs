@@ -1,8 +1,9 @@
+using AIpoweredVivaExamSystem.Business.Grading;
 using System.Security.Claims;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
-using AIpoweredVivaExamSystem.Web.Realtime;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
+using AIpoweredVivaExamSystem.Presentation.Realtime;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -57,7 +58,7 @@ public sealed class StudentResultHubTests(SqlServerFixture fixture)
         var other=new User(Guid.NewGuid()+"@aives.test","unused","Other student",UserStatus.Active);
         var session=new VivaSession(demo.Enrollment.Id,DateTimeOffset.UtcNow);
         session.Complete(DateTimeOffset.UtcNow);db.AddRange(other,session);await db.SaveChangesAsync();
-        var access=new StudentResultAccess(db);var registry=new StudentResultConnections();var clients=new FakeClients();
+        var access=new StudentResultAccessService(new StudentResultAccess(db));var registry=new StudentResultConnections();var clients=new FakeClients();
         var ownerHub=new StudentResultHub(access,registry){Context=new Caller(demo.Student.Id,"owner")};
         var otherHub=new StudentResultHub(access,registry){Context=new Caller(other.Id,"other")};
         await Assert.ThrowsAsync<HubException>(()=>otherHub.JoinSession(session.Id));

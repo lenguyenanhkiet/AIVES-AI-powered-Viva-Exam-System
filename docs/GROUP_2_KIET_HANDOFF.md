@@ -8,7 +8,7 @@ Branch: `g2-integration`. Base: `main` at `25a77aa` (MVC/group one and the one-d
 
 Kết luận: **phần foundation K1–K3 đã có implementation và test; toàn bộ K1–K5 chưa hoàn thành 100%**. K4/K5 còn phụ thuộc code của các module khác. Merge foundation vào main không đồng nghĩa hoàn thành toàn bộ nhóm chức năng 2.
 
-- [x] K1: scaffold Exam, ExamStudent, ExamQuestionPool, VivaSession, SessionQuestion và các Application contracts.
+- [x] K1: scaffold Exam, ExamStudent, ExamQuestionPool, VivaSession, SessionQuestion và các Business service contracts.
 - [x] K2: guard ownership/subject assignment, own enrollment, DI, phân quyền trang MVC và test truy cập trái quyền.
 - [x] K3: migration/snapshot, FK/unique indexes/RowVersion/check constraints và fixture database test riêng.
 - [x] K4 (foundation): DI, menu, trang đọc trạng thái, transaction boundary và abstraction notifier.
@@ -22,7 +22,7 @@ Bằng chứng: `ExamFoundationTests.cs` kiểm tra quyền, query filters, uniq
 
 | Task | Delivered | Remaining dependency |
 |---|---|---|
-| K1 | Five shared entities; validated initial configuration; Application contracts for Exam, pool, roster, scheduling, sessions and notifier; safe student DTO. | Team review of interface changes before implementing each module. |
+| K1 | Five shared entities; validated initial configuration; Business service contracts for Exam, pool, roster, scheduling, sessions and notifier; safe student DTO. | Team review of interface changes before implementing each module. |
 | K2 | ExamAccessGuard, request-scoped query filters, DI, manager-only integration MVC route, existing HTTP 403/404 mapping and ResourceConflictException convention. Tests cover cross-owner access, unassigned lecturers, own enrollment and student management denial. | New modules must invoke guards on every entry point; filters alone do not authorize writes. |
 | K3 | AddExamFoundation migration/snapshot, FKs with restricted delete, unique roster/pool/session/question-position constraints, RowVersion, SQL check constraints; isolated reusable ExamDemo test fixture. | Future schema changes need reviewed migrations. Fixture is test data, not application user provisioning. |
 | K4 | DI wired; read-only `/ExamFoundation` and guarded `/ExamFoundation/Counts/{id}`; menu; transactional write boundary; notifier contract plus clearly identified pending adapter. | Exam CRUD, pool, roster, scheduling, session selection and actual SignalR adapter are not delivered by their owners yet. No full publish/demo flow is available. |
@@ -38,9 +38,9 @@ Bằng chứng: `ExamFoundationTests.cs` kiểm tra quyền, query filters, uniq
 
 SQL constraints enforce structural integrity, not all application business rules: correct student role, approved pool/rubric, matching subject, valid slot window and scheduling conflicts still require module services and tests. No selection/randomization or enrollment service is implemented here.
 
-## Application contracts and registration
+## Business service contracts and registration
 
-`Application/Exams/ModuleContracts.cs` defines `IExamService`, `IExamPoolService`, `IExamRosterService`, `IExamScheduleService`, `IVivaSessionService` and transport records. These interfaces deliberately have no fake implementation or DI registration: each owner implements them and supplies the registration to Kiet. `ExamConfiguration` includes SubjectId for create; update must reject subject changes. Versioned updates must compare ExpectedVersion with the entity's RowVersion.
+`Business/Interfaces/Exams` defines `IExamService`, `IExamPoolService`, `IExamRosterService`, `IExamScheduleService`, `IVivaSessionService` and transport records. These interfaces deliberately have no fake implementation or DI registration: each owner implements them and supplies the registration to Kiet. `ExamConfiguration` includes SubjectId for create; update must reject subject changes. Versioned updates must compare ExpectedVersion with the entity's RowVersion.
 
 Implemented registrations: `ExamAccessGuard`, `ExamFoundationService`, `IExamAccessStore`, `IExamFoundationReader`, `IExamUnitOfWork`, `IExamNotifier` (now `SignalRExamNotifier`, registered in `Program.cs`). `ExamFoundationStore` implements read/access facts, not module mutations.
 
@@ -77,8 +77,8 @@ Review/apply migrations explicitly on a chosen development database:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection = '<development connection string>'
-dotnet ef database update --project AIpoweredVivaExamSystem.Persistence --startup-project AIpoweredVivaExamSystem.Web
-dotnet ef migrations has-pending-model-changes --project AIpoweredVivaExamSystem.Persistence --startup-project AIpoweredVivaExamSystem.Web
+dotnet ef database update --project AIpoweredVivaExamSystem.DataAccess
+dotnet ef migrations has-pending-model-changes --project AIpoweredVivaExamSystem.DataAccess
 ```
 
 The host does not apply migrations on startup. The MVC integration page is read-only and intentionally says the module implementations are pending. Existing sign-in requires configured JWT settings as before. No AI key is needed for these foundation tests.

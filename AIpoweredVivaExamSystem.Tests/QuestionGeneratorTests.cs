@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
-using AIpoweredVivaExamSystem.Application.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Infrastructure.QuestionBank;
+using AIpoweredVivaExamSystem.DataAccess.Models.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.Business.Integrations.QuestionBank;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 

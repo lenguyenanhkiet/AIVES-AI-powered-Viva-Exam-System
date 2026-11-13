@@ -1,13 +1,15 @@
 using System.Text.Json;
-using AIpoweredVivaExamSystem.Application.Authentication;
-using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Common;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
-using AIpoweredVivaExamSystem.Persistence.Context;
-using AIpoweredVivaExamSystem.Persistence.Repositories;
-using AIpoweredVivaExamSystem.Web.Realtime;
+using AIpoweredVivaExamSystem.Business.Authentication;
+using AIpoweredVivaExamSystem.Business.Exams;
+using AIpoweredVivaExamSystem.DataAccess.Models.Exams;
+using AIpoweredVivaExamSystem.Business.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions;
+using AIpoweredVivaExamSystem.DataAccess.Common;
+using AIpoweredVivaExamSystem.DataAccess.Entities;
+using AIpoweredVivaExamSystem.DataAccess.Enums;
+using AIpoweredVivaExamSystem.DataAccess.Context;
+using AIpoweredVivaExamSystem.DataAccess.Repositories;
+using AIpoweredVivaExamSystem.Presentation.Realtime;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -59,7 +61,7 @@ public sealed class VivaSessionTests(SqlServerFixture fixture)
     private ApplicationDbContext Context(Actor actor) => new(new DbContextOptionsBuilder<ApplicationDbContext>()
         .UseSqlServer(fixture.ConnectionString).Options, actor);
     private IVivaSessionService Service(ApplicationDbContext db, Actor actor, Notifier notifier) => new VivaSessionService(
-        new VivaSessionStore(db, new ExamUnitOfWork(db, notifier, NullLogger<ExamUnitOfWork>.Instance), actor),
+        new VivaSessionStore(db, new NotifyingExamUnitOfWork(new ExamUnitOfWork(db), notifier), actor),
         new ExamAccessGuard(new ExamFoundationStore(db), actor), actor);
 
     private async Task<ExamDemo> SeedAsync(int poolSize = 4, int slotOffset = -1, ExamStatus status = ExamStatus.Ongoing)
