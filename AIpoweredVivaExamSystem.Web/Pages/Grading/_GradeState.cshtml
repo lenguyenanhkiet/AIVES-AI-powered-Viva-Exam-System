@@ -1,0 +1,13 @@
+@model string
+@{
+    var (label, css) = Model switch
+    {
+        "not-started" => ("Chưa thi", "badge-inactive"),
+        "in-progress" => ("Đang thi", "badge-inactive"),
+        "awaiting-review" => ("Chờ chấm", "badge-warning"),
+        "draft" => ("Đang chấm (nháp)", "badge-accent"),
+        "finalised" => ("Đã chốt điểm", "badge-active"),
+        _ => (Model, "badge-inactive")
+    };
+}
+<span class="badge @css">@label</span>

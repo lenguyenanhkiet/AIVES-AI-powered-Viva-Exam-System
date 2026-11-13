@@ -30,6 +30,7 @@ public sealed class VivaInterviewService(
 
     public async Task<VivaInterviewState> SubmitAnswerAsync(SubmitAnswerRequest request, CancellationToken ct)
     {
+        var receivedAt = DateTimeOffset.UtcNow;
         RequireStudent();
         DomainRules.RequiredId(request.SessionId, nameof(request.SessionId));
         DomainRules.RequiredId(request.TurnId, nameof(request.TurnId));
@@ -37,19 +38,48 @@ public sealed class VivaInterviewService(
         var enrollmentId = await sessionStore.FindEnrollmentAsync(request.SessionId, ct);
         await guard.OwnExamStudentAsync(enrollmentId, ct);
 
+        await using var submission = await interviewStore.AcquireSubmissionAsync(request.SessionId, ct);
+        var state = await interviewStore.GetStateAsync(request.SessionId, ct);
+        var turn = state.Turns.SingleOrDefault(t => t.TurnId == request.TurnId)
+            ?? throw new ResourceNotFoundException("Turn not found.");
+        if (turn.AnsweredAt.HasValue) return state;
+        if (state.CompletedAt.HasValue)
+            throw new DomainValidationException("Phiên thi đã kết thúc, không thể nộp thêm câu trả lời.");
+        if (state.ActiveTurn?.TurnId != turn.TurnId)
+            throw new ResourceConflictException("The active turn has changed. Reload the interview.");
+        var timedOut = receivedAt >= state.SlotEndAt ||
+            VivaTurnDeadline.HasExpired(state.SlotEndAt, receivedAt, request.TimedOut) ||
+            VivaTurnDeadline.HasExpired(turn.AskedAt.AddSeconds(state.TurnLimitSeconds), receivedAt, request.TimedOut);
+
+        var tooLate = receivedAt > state.SlotEndAt.AddSeconds(VivaTurnDeadline.GraceSeconds) ||
+            receivedAt > turn.AskedAt.AddSeconds(state.TurnLimitSeconds + VivaTurnDeadline.GraceSeconds);
+        if (tooLate)
+            request = request with { Transcript = VivaTurnDeadline.NoAnswerMarker, AudioBytes = null };
+
         var transcript = request.Transcript?.Trim();
         if (string.IsNullOrWhiteSpace(transcript) && request.AudioBytes is { Length: > 0 })
         {
             var hint = await interviewStore.GetSubjectHintAsync(request.SessionId, ct);
             var ext = GuessExtension(request.AudioMimeType);
-            transcript = await transcriber.TranscribeAsync(request.AudioBytes, $"answer{ext}", request.Language, hint, ct);
+            try
+            {
+                transcript = await transcriber.TranscribeAsync(request.AudioBytes, $"answer{ext}", request.Language, hint, ct);
+            }
+            catch (Exception ex) when (timedOut && !ct.IsCancellationRequested &&
+                ex is ResourceConflictException or HttpRequestException or OperationCanceledException)
+            {
+                // Preserve timeout submissions even when the speech provider cannot transcribe them.
+            }
         }
+
+        if (timedOut && string.IsNullOrWhiteSpace(transcript))
+            transcript = VivaTurnDeadline.NoAnswerMarker;
 
         if (string.IsNullOrWhiteSpace(transcript))
             throw new DomainValidationException("Vui lòng trả lời bằng giọng nói hoặc nhập nội dung câu trả lời trước khi nộp.");
 
         var normalizedRequest = request with { Transcript = transcript.Trim() };
-        return await interviewStore.SubmitAnswerAsync(normalizedRequest, ct);
+        return await interviewStore.SubmitAnswerAsync(normalizedRequest, receivedAt, ct);
     }
 
     public async Task<string> TranscribeAudioAsync(Guid sessionId, byte[] audioBytes, string fileName, string language, CancellationToken ct)

@@ -34,6 +34,9 @@ namespace AIpoweredVivaExamSystem.Application
             services.AddScoped<ExamStudents.IExamRosterReader>(p => p.GetRequiredService<ExamStudents.ExamRosterService>());
             services.AddScoped<Exams.IVivaSessionService, VivaSessions.VivaSessionService>();
             services.AddScoped<VivaSessions.IVivaInterviewService, VivaSessions.VivaInterviewService>();
+            services.AddScoped<VivaSessions.VivaQuestionSpeechService>();
+            services.AddScoped<VivaSessions.VivaScribeTokenService>();
+            services.AddScoped<Grading.GradingService>();
             services.AddValidatorsFromAssemblyContaining<CreateRubricRequestValidator>();
             return services;
         }

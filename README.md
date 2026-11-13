@@ -68,6 +68,8 @@ aives-sqlserver  SQL Server 2022    → localhost,1433
    ```env
    DB_PASSWORD=mat_khau_manh_cua_ban
    JWT_KEY=key_ngau_nhien_it_nhat_32_byte
+   AI_API_KEY=your_zai_key
+   ELEVENLABS_API_KEY=your_optional_elevenlabs_key
    ```
 
 2. Build và chạy:
@@ -78,6 +80,12 @@ aives-sqlserver  SQL Server 2022    → localhost,1433
    ```
 
 3. Mở **http://localhost:8081**.
+
+AI uses z.ai's `glm-5.3-flash` by default; `AI_MODEL` and `AI_BASE_URL` override the model and OpenAI-compatible endpoint. Blank overrides keep the defaults. Optional `ELEVENLABS_API_KEY` enables Vietnamese/English examiner audio and Scribe speech recognition; otherwise the browser reads questions aloud and uses built-in recognition when available. See [provider and voice settings](docs/GROUP_1_SETUP.md#interview-voice-and-answer-timing) for voice and Scribe model overrides and answer time limits. Outside Docker use `Ai__ApiKey` and `ElevenLabs__ApiKey`; the app does not load `.env` itself.
+
+Lecturers review transcripts, authorised audio and AI score suggestions at `/Grading`, then save a draft or explicitly finalise their own scores. Students see only finalised totals and lecturer comments. Apply the new grading migration first; see [lecturer grading](docs/GROUP_1_SETUP.md#lecturer-grading-and-student-results).
+
+For a repeatable local PRN222 demonstration with accounts, recordings and grading scenarios, see the [panel demo run sheet](docs/GROUP_1_SETUP.md#panel-demo).
 
 Trong container, connection string được biến môi trường `ConnectionStrings__DefaultConnection`
 (khai báo trong `docker-compose.yml`) ghi đè lên `appsettings.json`, dùng `Server=sqlserver,1433`.

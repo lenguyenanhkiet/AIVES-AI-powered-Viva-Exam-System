@@ -13,17 +13,17 @@ public sealed class OpenAiVivaExaminer(HttpClient http, IConfiguration configura
     public async Task<ExaminerDecision> EvaluateAndFollowUpAsync(ExaminerEvaluationContext context, CancellationToken ct)
     {
         var key = configuration["Ai:ApiKey"];
-        var model = configuration["Ai:Model"];
+        var model = AiEndpoint.Model(configuration);
 
-        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(model))
+        if (string.IsNullOrWhiteSpace(key))
         {
             if (string.Equals(configuration["Ai:RequireProvider"], "true", StringComparison.OrdinalIgnoreCase))
-                throw new ResourceConflictException("AI is not configured. Set Ai__ApiKey and Ai__Model on the server.");
+                throw new ResourceConflictException("AI is not configured. Set Ai__ApiKey on the server.");
 
             return EvaluateByRubricFallback(context);
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+        using var request = new HttpRequestMessage(HttpMethod.Post, AiEndpoint.Url(configuration, "chat/completions"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
         request.Content = JsonContent.Create(new
         {
@@ -61,7 +61,7 @@ public sealed class OpenAiVivaExaminer(HttpClient http, IConfiguration configura
 
         try
         {
-            using var response = await http.SendAsync(request, ct);
+            using var response = await AiRequest.SendAsync(http, request, ct);
             if (!response.IsSuccessStatusCode)
                 throw new ResourceConflictException($"AI provider returned HTTP {(int)response.StatusCode}.");
 

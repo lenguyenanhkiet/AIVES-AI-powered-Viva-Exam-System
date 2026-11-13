@@ -18,6 +18,7 @@ public sealed class AnswerModel(IVivaInterviewService interview) : PageModel
         IFormFile? audioFile,
         int? audioDurationSeconds,
         string language = "vi",
+        bool timedOut = false,
         CancellationToken ct = default)
     {
         byte[]? audioBytes = null;
@@ -40,7 +41,7 @@ public sealed class AnswerModel(IVivaInterviewService interview) : PageModel
         try
         {
             var state = await interview.SubmitAnswerAsync(
-                new SubmitAnswerRequest(sessionId, turnId, transcript, audioBytes, audioMime, audioDurationSeconds, language),
+                new SubmitAnswerRequest(sessionId, turnId, transcript, audioBytes, audioMime, audioDurationSeconds, language, timedOut),
                 ct);
 
             if (WantsJson())

@@ -154,12 +154,13 @@ public sealed class VivaExaminerUnitTests
     }
 
     [Fact]
-    public async Task OpenAiVivaExaminer_parses_structured_json_response()
+    public async Task OpenAiVivaExaminer_retries_transient_failure_and_parses_structured_json_response()
     {
         var aiPayload = """
         {
           "choices": [
             {
+              "finish_reason": "stop",
               "message": {
                 "content": "{\"isComplete\":false,\"analysisSummary\":\"Thiếu giải thích về vòng đời Scoped và Transient.\",\"missingConcepts\":\"Scoped, Transient\",\"followUpPrompt\":\"Bạn hãy phân biệt sự khác nhau giữa vòng đời Scoped và Transient trong DI container?\"}"
               }
@@ -168,29 +169,88 @@ public sealed class VivaExaminerUnitTests
         }
         """;
 
-        using var http = new HttpClient(new StubHandler(aiPayload));
+        var handler = new StubHandler(aiPayload, transientFailures: 1);
+        using var http = new HttpClient(handler);
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Ai:ApiKey"] = "test-key",
-                ["Ai:Model"] = "gpt-4o-mini"
+                ["Ai:Model"] = " "
             })
             .Build();
         var examiner = new OpenAiVivaExaminer(http, config);
 
         var decision = await examiner.EvaluateAndFollowUpAsync(SampleContext("Trả lời sơ lược", followUpLevel: 0, maxFollowUps: 2), default);
+        Assert.Equal(2, handler.Calls);
         Assert.False(decision.IsComplete);
         Assert.Equal("Scoped, Transient", decision.MissingConcepts);
         Assert.Equal("Bạn hãy phân biệt sự khác nhau giữa vòng đời Scoped và Transient trong DI container?", decision.FollowUpPrompt);
     }
 
-    private sealed class StubHandler(string responseBody, HttpStatusCode status = HttpStatusCode.OK) : HttpMessageHandler
+    [Fact]
+    public async Task OpenAiVivaExaminer_stops_after_bounded_transient_failures()
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(status)
+        var handler = new StubHandler("{}", transientFailures: int.MaxValue);
+        using var http = new HttpClient(handler);
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Ai:ApiKey"] = "test-key",
+            ["Ai:Model"] = "glm-5.3-flash"
+        }).Build();
+        var examiner = new OpenAiVivaExaminer(http, config);
+
+        await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceConflictException>(() =>
+            examiner.EvaluateAndFollowUpAsync(SampleContext("Incomplete"), default));
+        Assert.InRange(handler.Calls, 2, 3);
+    }
+
+    [Fact]
+    public async Task Scribe_retries_without_losing_the_recorded_audio()
+    {
+        var handler = new StubHandler("{\"text\":\"Transcribed answer\"}", transientFailures: 1);
+        using var http = new HttpClient(handler);
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ElevenLabs:ApiKey"] = "test-key"
+        }).Build();
+
+        var transcript = await new ElevenLabsSpeechTranscriber(http, config)
+            .TranscribeAsync([0, 1, 2, 255], "answer.webm", "vi", null, default);
+
+        Assert.Equal(2, handler.Calls);
+        Assert.False(string.IsNullOrWhiteSpace(transcript));
+    }
+
+    [Fact]
+    public async Task Retry_backoff_shares_the_request_timeout_budget()
+    {
+        var handler = new StubHandler("{}", transientFailures: int.MaxValue);
+        using var http = new HttpClient(handler) { Timeout = TimeSpan.FromMilliseconds(50) };
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Ai:ApiKey"] = "test-key"
+        }).Build();
+        await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceConflictException>(() =>
+            new OpenAiVivaExaminer(http, config).EvaluateAndFollowUpAsync(SampleContext("Incomplete"), default));
+        Assert.Equal(1, handler.Calls);
+    }
+
+    private sealed class StubHandler(string responseBody, int transientFailures = 0) : HttpMessageHandler
+    {
+        public int Calls { get; private set; }
+        private string? firstBody;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+            firstBody ??= body;
+            Assert.Equal(firstBody, body);
+            Calls++;
+            return new HttpResponseMessage(Calls <= transientFailures ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
             {
                 Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
-            });
+            };
+        }
     }
 }
 
@@ -215,10 +275,10 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
             Task.FromResult(decide(context));
     }
 
-    private sealed class FakeTranscriber(string text = "Transcribed from server audio") : ISpeechTranscriber
+    private sealed class FakeTranscriber(string text = "Transcribed from server audio", bool unavailable = false) : ISpeechTranscriber
     {
         public Task<string> TranscribeAsync(byte[] audioBytes, string fileName, string language, string? promptHint, CancellationToken ct) =>
-            Task.FromResult(text);
+            unavailable ? throw new AIpoweredVivaExamSystem.Application.Common.ResourceConflictException("Use browser recognition or type.") : Task.FromResult(text);
     }
 
     private sealed class FakeAudioStorage : IAnswerAudioStorage
@@ -332,7 +392,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
                 Transcript: "Câu trả lời còn Mơ hồ chưa rõ ý.",
                 AudioBytes: [1, 2, 3, 4],
                 AudioMimeType: "audio/webm",
-                AudioDurationSeconds: 12), default);
+                AudioDurationSeconds: 12, TimedOut: true), default);
         }
 
         Assert.Null(state.CompletedAt);
@@ -394,6 +454,161 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         }
     }
 
+    private sealed class ConcurrentExaminer : IVivaAiExaminer
+    {
+        public int Calls;
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<ExaminerDecision> EvaluateAndFollowUpAsync(ExaminerEvaluationContext context, CancellationToken ct)
+        {
+            Interlocked.Increment(ref Calls); Entered.TrySetResult();
+            await Release.Task.WaitAsync(ct);
+            return new ExaminerDecision(true, null, null, null, "test-model");
+        }
+    }
+
+    [Fact]
+    public async Task Concurrent_submits_of_the_same_turn_commit_one_answer_and_one_advance()
+    {
+        var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 0);
+        var actor = new Actor(demo.Student.Id);
+        var examiner = new ConcurrentExaminer();
+        await using var firstDb = Context(actor);
+        await using var secondDb = Context(actor);
+        var firstService = CreateInterviewService(firstDb, actor, new Notifier(), examiner);
+        var secondService = CreateInterviewService(secondDb, actor, new Notifier(), examiner);
+        var state = await firstService.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        var request = new SubmitAnswerRequest(state.SessionId, state.ActiveTurn!.TurnId, "Answer");
+        var first = firstService.SubmitAnswerAsync(request, default);
+        Task<VivaInterviewState>? second = null;
+        try
+        {
+            await examiner.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            second = secondService.SubmitAnswerAsync(request, default);
+        }
+        finally { examiner.Release.TrySetResult(); }
+        var results = await Task.WhenAll(first, second!);
+        Assert.All(results, result => Assert.NotNull(result.CompletedAt));
+        Assert.Equal(1, examiner.Calls);
+        await using var verify = fixture.CreateContext();
+        Assert.Equal(1, await verify.StudentAnswers.CountAsync(a => a.Id == request.TurnId && a.AnsweredAt != null));
+        Assert.Equal(1, await verify.AnswerAnalyses.CountAsync(a => a.StudentAnswerId == request.TurnId));
+    }
+
+    [Fact]
+    public async Task Examiner_runs_outside_the_exam_transaction()
+    {
+        var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 0);
+        var actor = new Actor(demo.Student.Id);
+        await using var db = Context(actor);
+        var examiner = new FakeExaminer(_ => {
+            Assert.Null(db.Database.CurrentTransaction);
+            Assert.Null(System.Transactions.Transaction.Current);
+            return new ExaminerDecision(true, null, null, null, "test-model");
+        });
+        var service = CreateInterviewService(db, actor, new Notifier(), examiner);
+        var state = await service.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        state = await service.SubmitAnswerAsync(new SubmitAnswerRequest(state.SessionId, state.ActiveTurn!.TurnId, "Answer"), default);
+        Assert.NotNull(state.CompletedAt);
+    }
+
+    [Fact]
+    public async Task Expired_turn_records_audio_without_answer_or_examiner_and_advances()
+    {
+        var demo = await SeedOngoingExamAsync(mainQuestions: 2, maxFollowUps: 1);
+        var actor = new Actor(demo.Student.Id);
+        var examiner = new FakeExaminer(_ => throw new InvalidOperationException("Expired answers must bypass AI."));
+        var notifier = new Notifier();
+        await using var db = Context(actor);
+        var service = CreateInterviewService(db, actor, notifier, examiner, new FakeTranscriber(unavailable: true));
+        var state = await service.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        var expired = await db.StudentAnswers.IgnoreQueryFilters().SingleAsync(a => a.Id == state.ActiveTurn!.TurnId);
+        db.Entry(expired).Property(a => a.AskedAt).CurrentValue = DateTimeOffset.UtcNow.AddSeconds(-state.TurnLimitSeconds);
+        await db.SaveChangesAsync();
+
+        state = await service.SubmitAnswerAsync(new SubmitAnswerRequest(
+            state.SessionId, expired.Id, " ", [1, 2, 3], "audio/webm"), default);
+
+        var recorded = state.Turns.Single(t => t.TurnId == expired.Id);
+        Assert.NotNull(recorded.AnsweredAt);
+        Assert.Null(recorded.Transcript);
+        Assert.True(recorded.TimedOut);
+        Assert.False(string.IsNullOrWhiteSpace(expired.Transcript));
+        Assert.True(recorded.HasAudio);
+        Assert.Equal(2, state.CurrentMainPosition);
+        Assert.Equal(AnswerType.Main, state.ActiveTurn!.AnswerType);
+        Assert.DoesNotContain(state.Turns, t => t.AnswerType == AnswerType.FollowUp);
+
+        // An honest browser flag within the grace band keeps the captured answer and also skips AI.
+        var finalTurn = await db.StudentAnswers.IgnoreQueryFilters().SingleAsync(a => a.Id == state.ActiveTurn!.TurnId);
+        db.Entry(finalTurn).Property(a => a.AskedAt).CurrentValue = DateTimeOffset.UtcNow.AddSeconds(-state.TurnLimitSeconds + 1);
+        await db.SaveChangesAsync();
+        var captured = "Student's answer captured before the countdown ended.";
+        state = await service.SubmitAnswerAsync(new SubmitAnswerRequest(
+            state.SessionId, finalTurn.Id, captured, TimedOut: true), default);
+        var finalAnswer = state.Turns.Single(t => t.TurnId == finalTurn.Id);
+        Assert.True(finalAnswer.TimedOut);
+        Assert.Equal(captured, finalAnswer.Transcript);
+        Assert.NotNull(state.CompletedAt);
+    }
+
+    [Fact]
+    public async Task Late_turn_discards_unearned_content_and_still_advances()
+    {
+        var demo = await SeedOngoingExamAsync();
+        var actor = new Actor(demo.Student.Id);
+        await using var db = Context(actor);
+        var service = CreateInterviewService(db, actor, new Notifier(),
+            new FakeExaminer(_ => throw new InvalidOperationException("Late answers must bypass AI.")));
+        var state = await service.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        var turn = await db.StudentAnswers.IgnoreQueryFilters().SingleAsync(a => a.Id == state.ActiveTurn!.TurnId);
+        db.Entry(turn).Property(a => a.AskedAt).CurrentValue = DateTimeOffset.UtcNow.AddSeconds(-state.TurnLimitSeconds - 10);
+        await db.SaveChangesAsync();
+
+        state = await service.SubmitAnswerAsync(new SubmitAnswerRequest(
+            state.SessionId, turn.Id, "Content produced after time expired", [1, 2, 3], "audio/webm"), default);
+
+        var recorded = state.Turns.Single(t => t.TurnId == turn.Id);
+        Assert.NotNull(recorded.AnsweredAt);
+        Assert.NotEqual("Content produced after time expired", recorded.Transcript);
+        Assert.False(recorded.HasAudio);
+        Assert.Equal(2, state.CurrentMainPosition);
+        Assert.Equal(AnswerType.Main, state.ActiveTurn!.AnswerType);
+    }
+
+    [Fact]
+    public async Task Expired_slot_accepts_empty_submission_and_completes_without_another_question()
+    {
+        var demo = await SeedOngoingExamAsync();
+        var actor = new Actor(demo.Student.Id);
+        await using var db = Context(actor);
+        var service = CreateInterviewService(db, actor, new Notifier(),
+            new FakeExaminer(_ => throw new InvalidOperationException("Expired slots must bypass AI.")));
+        var state = await service.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        var enrollment = await db.ExamStudents.IgnoreQueryFilters().SingleAsync(e => e.Id == demo.Enrollment.Id);
+        db.Entry(enrollment).Property(e => e.ScheduledAt).CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-demo.Exam.DurationMinutes).AddSeconds(-10);
+        await db.SaveChangesAsync();
+
+        state = await service.SubmitAnswerAsync(new SubmitAnswerRequest(
+            state.SessionId, state.ActiveTurn!.TurnId, null, TimedOut: true), default);
+
+        Assert.NotNull(state.CompletedAt);
+        Assert.Null(state.ActiveTurn);
+        Assert.NotNull(Assert.Single(state.Turns).AnsweredAt);
+    }
+
+    private sealed class ForbiddenTokens : IRealtimeScribeTokenProvider
+    {
+        public Task<ScribeToken?> CreateAsync(string language, CancellationToken ct) =>
+            throw new InvalidOperationException("Unauthorized requests must not obtain a token.");
+    }
+
+    private sealed class ForbiddenSpeech : IExaminerSpeechSynthesizer
+    {
+        public Task<byte[]?> SynthesizeAsync(string text, CancellationToken ct) =>
+            throw new InvalidOperationException("Unauthorized requests must not reach speech generation or cache.");
+    }
+
     [Fact]
     public async Task SubmitAnswer_UsesServerTranscriberWhenTranscriptIsBlankAndAudioProvided_AndBlocksOtherStudent()
     {
@@ -416,6 +631,25 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
             var intruderService = CreateInterviewService(intruderDb, intruder, notifier, examiner);
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
                 intruderService.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default));
+            var speech = new VivaQuestionSpeechService(intruderService, new ForbiddenSpeech());
+            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceNotFoundException>(() =>
+                speech.SpeakAsync(state.SessionId, state.ActiveTurn!.TurnId, default));
+            var tokens = new VivaScribeTokenService(intruderService, new ForbiddenTokens());
+            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceNotFoundException>(() =>
+                tokens.CreateAsync(state.SessionId, "vi", default));
+        }
+
+        // Missing speech configuration must fail a manual audio-only submit without consuming the turn.
+        await using (var db = Context(owner))
+        {
+            using var http = new HttpClient();
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Ai:ApiKey"] = "test-key"
+            }).Build();
+            var service = CreateInterviewService(db, owner, notifier, examiner, new ElevenLabsSpeechTranscriber(http, config));
+            await Assert.ThrowsAsync<AIpoweredVivaExamSystem.Application.Common.ResourceConflictException>(() =>
+                service.SubmitAnswerAsync(new SubmitAnswerRequest(state.SessionId, state.ActiveTurn!.TurnId, null, [1, 2, 3], "audio/webm"), default));
         }
 
         // Submitting empty transcript with audio uses ISpeechTranscriber fallback automatically
