@@ -5,6 +5,7 @@ using System.Text.Json;
 using AIpoweredVivaExamSystem.Application;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Exams;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Application.Grading;
 using AIpoweredVivaExamSystem.Application.VivaSessions;
 using AIpoweredVivaExamSystem.Domain.Entities;
@@ -104,9 +105,9 @@ foreach(var (key,user,offset) in new[]{("strong",strong,-120),("partial",partial
 }
 await db.SaveChangesAsync();
 // The real lifecycle service checks the approved pool and nonoverlapping in-window roster.
-await examService.TransitionAsync(exam.Summary.Id,ExamStatus.Published,exam.RowVersion,default);
+await examService.TransitionAsync(exam.Summary.Id,ContractExamStatus.Published,exam.RowVersion,default);
 exam=await examService.GetAsync(exam.Summary.Id,default);
-await examService.TransitionAsync(exam.Summary.Id,ExamStatus.Ongoing,exam.RowVersion,default);
+await examService.TransitionAsync(exam.Summary.Id,ContractExamStatus.Ongoing,exam.RowVersion,default);
 
 var storage=scope.ServiceProvider.GetRequiredService<IAnswerAudioStorage>();
 async Task<(VivaSession Session,SessionQuestion[] Questions)> SessionAsync(string key,string[] questionKeys,string?[][] answers)
