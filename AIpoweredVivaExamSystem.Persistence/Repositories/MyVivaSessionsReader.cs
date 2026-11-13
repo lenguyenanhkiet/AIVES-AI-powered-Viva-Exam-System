@@ -12,9 +12,14 @@ public sealed class MyVivaSessionsReader(ApplicationDbContext db, ICurrentUser a
         if (actor.Id == Guid.Empty || actor.IsAdministrator || actor.IsLecturer) throw new UnauthorizedAccessException();
         var rows = await ExamSlotQueries.ForStudent(db, actor.Id)
             .OrderBy(x => x.Enrollment.ScheduledAt).ThenBy(x => x.Enrollment.Id)
-            .Select(x => new { x.Enrollment.Id, x.Exam.Name, x.Exam.Status,
-                x.Enrollment.ScheduledAt, x.EndAt }).ToArrayAsync(ct);
-        return rows.Select(x => new MyVivaExam(x.Id, x.Name, (ContractExamStatus)x.Status,
-            x.ScheduledAt, x.EndAt)).ToArray();
+            .Select(x => new { x.Enrollment.Id, x.Exam,
+                x.Enrollment.ScheduledAt, x.EndAt,
+                HasSession = db.VivaSessions.Any(s => s.ExamStudentId == x.Enrollment.Id) }).ToArrayAsync(ct);
+        return rows.Select(x =>
+        {
+            var entry = x.Exam.EntryWindow(x.ScheduledAt);
+            return new MyVivaExam(x.Id, x.Exam.Name, (ContractExamStatus)x.Exam.Status,
+                x.ScheduledAt, x.EndAt, x.HasSession, entry?.OpensAt, entry?.ClosesAt);
+        }).ToArray();
     }
 }

@@ -7,7 +7,14 @@
         state.classList.toggle('badge-active', live);
         state.classList.toggle('badge-inactive', !live);
     };
+    const studentSchedule = root.hasAttribute('data-student-schedule');
     let loading = false, pending = false, timer = null, connection = null, joinedBefore = false;
+    let slotTimer = null;
+    function scheduleSlotRefresh() {
+        clearTimeout(slotTimer);
+        const marker = root.querySelector('[data-schedule-refresh-ms]');
+        if (marker) slotTimer = setTimeout(refresh, Math.min(Number(marker.dataset.scheduleRefreshMs) + 100, 2147483647));
+    }
     function scheduleRefresh() {
         clearTimeout(timer);
         timer = setTimeout(refresh, 300);
@@ -24,6 +31,7 @@
             if (!next || !current) throw new Error('Không lấy được danh sách. Tải lại trang để cập nhật.');
             const known = new Set([...current.querySelectorAll('[data-exam-id]')].map(row => row.dataset.examId));
             current.replaceChildren(...next.childNodes);
+            if (studentSchedule) scheduleSlotRefresh();
             for (const row of current.querySelectorAll('[data-exam-id]')) {
                 if (!known.has(row.dataset.examId)) {
                     row.animate([{ backgroundColor: 'var(--success-soft)' }, { backgroundColor: 'transparent' }], { duration: 2500, easing: 'ease-out' });
@@ -33,15 +41,16 @@
         } catch (error) { setState(error.message, false); }
         finally { loading = false; if (pending) { pending = false; refresh(); } }
     }
+    if (studentSchedule) scheduleSlotRefresh();
     if (!window.signalR) { setState('Không có cập nhật trực tiếp', false); return; }
     connection = new signalR.HubConnectionBuilder().withUrl(root.dataset.hubUrl).withAutomaticReconnect().build();
     async function join() {
-        await connection.invoke('JoinExamList');
+        await connection.invoke(studentSchedule ? 'JoinStudentSchedule' : 'JoinExamList');
         setState('Cập nhật trực tiếp', true);
-        if (joinedBefore) await refresh();
+        if (studentSchedule || joinedBefore) await refresh();
         joinedBefore = true;
     }
-    connection.on('ExamListChanged', scheduleRefresh);
+    connection.on(studentSchedule ? 'StudentScheduleChanged' : 'ExamListChanged', scheduleRefresh);
     connection.onreconnecting(() => setState('Đang kết nối lại…', false));
     connection.onreconnected(() => join().catch(() => { setState('Không có quyền nhận cập nhật', false); connection.stop(); }));
     connection.onclose(() => { setState('Mất kết nối. Đang thử lại…', false); setTimeout(start, 5000); });

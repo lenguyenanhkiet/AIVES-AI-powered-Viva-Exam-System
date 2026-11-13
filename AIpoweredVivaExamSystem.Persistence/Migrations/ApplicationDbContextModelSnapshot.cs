@@ -219,6 +219,9 @@ namespace AIpoweredVivaExamSystem.Persistence.Migrations
                     b.Property<DateTimeOffset>("StartAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
