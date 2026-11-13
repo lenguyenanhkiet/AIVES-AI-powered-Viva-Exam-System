@@ -107,6 +107,11 @@
 
     @if (isCompleted)
     {
+        <section id="viva-student-result" data-session-id="@state.SessionId"
+                 data-hub-url="@Url.Content("~/hubs/student-results")"
+                 data-result-url="@Url.Page("/VivaSessions/Open", new { id = state.SessionId })">
+        <p class="hint" data-result-connection role="status">Điểm và nhận xét sẽ tự cập nhật khi giảng viên chốt hoặc mở lại bài chấm.</p>
+        <div data-result-content>
         @if (state.Result is { } result)
         {
             <section class="card" aria-labelledby="viva-result-title">
@@ -145,6 +150,8 @@
         {
             <div class="alert alert-info" role="status">@Icons.Get("clock") <span>Bạn đã hoàn thành phiên vấn đáp. Kết quả đang chờ giảng viên chấm và chốt điểm; điểm và nhận xét sẽ hiện tại đây khi có.</span></div>
         }
+        </div>
+        </section>
     }
 
     @if (activeTurn is not null)
@@ -174,10 +181,17 @@
                     </div>
                 </div>
 
+                @if (activeTurn.AnswerType == AnswerType.FollowUp)
+                {
+                    <div class="alert alert-warning" role="note">
+                        <strong>Câu hỏi xoáy cho câu @activeTurn.MainPosition.</strong>
+                        Giám khảo hỏi thêm dựa trên câu trả lời vừa rồi của bạn; hãy bổ sung hoặc làm rõ ý đó.
+                    </div>
+                }
                 <div class="viva-prompt-box">
                     <p class="viva-prompt-text">@activeTurn.PromptText</p>
                     <button type="button" class="btn btn-secondary btn-sm js-speak" id="btn-speak-active"
-                            data-turn-id="@activeTurn.TurnId" data-tts-text="@activeTurn.PromptText">
+                            data-turn-id="@activeTurn.TurnId" data-tts-text="@VivaQuestionSpeechService.SpokenText(activeTurn)">
                         @Icons.Get("volume", 15) <span class="js-speak-label">Nghe câu hỏi</span>
                     </button>
                 </div>
@@ -251,7 +265,7 @@
                                 <span class="badge @(turn.AnswerType == AnswerType.FollowUp ? "badge-warning" : "badge-inactive")">@TurnLabel(turn)</span>
                                 <span class="hint">Hỏi lúc @turn.AskedAt.ToLocalText()</span>
                                 <button type="button" class="btn btn-ghost btn-sm js-speak js-tts-replay"
-                                        data-turn-id="@turn.TurnId" data-tts-text="@turn.PromptText"
+                                        data-turn-id="@turn.TurnId" data-tts-text="@VivaQuestionSpeechService.SpokenText(turn)"
                                         aria-label="Nghe lại câu hỏi: @TurnLabel(turn)">
                                     @Icons.Get("volume", 14) <span class="js-speak-label">Nghe lại</span>
                                 </button>
@@ -311,6 +325,11 @@
 
 @section Scripts {
     <script src="~/js/viva-interview.js" asp-append-version="true"></script>
+    @if (isCompleted)
+    {
+        <script src="~/lib/signalr/signalr.min.js"></script>
+        <script src="~/js/viva-result.js" asp-append-version="true"></script>
+    }
 }
 }
 else

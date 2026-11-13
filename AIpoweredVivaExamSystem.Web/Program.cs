@@ -42,6 +42,8 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<AIpoweredVivaExamSystem.Web.Realtime.ExamConnections>();
 builder.Services.AddScoped<AIpoweredVivaExamSystem.Web.Realtime.ExamRealtimeAccess>();
 builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Exams.IExamNotifier, AIpoweredVivaExamSystem.Web.Realtime.SignalRExamNotifier>();
+builder.Services.AddSingleton<AIpoweredVivaExamSystem.Web.Realtime.StudentResultConnections>();
+builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Grading.IStudentResultNotifier, AIpoweredVivaExamSystem.Web.Realtime.SignalRStudentResultNotifier>();
 builder.Services.AddScoped<AIpoweredVivaExamSystem.Application.Authentication.ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
@@ -67,6 +69,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets().AllowAnonymous();
 app.MapHub<AIpoweredVivaExamSystem.Web.Realtime.ExamHub>("/hubs/exams", options => options.CloseOnAuthenticationExpiration = true);
+app.MapHub<AIpoweredVivaExamSystem.Web.Realtime.StudentResultHub>("/hubs/student-results", options => options.CloseOnAuthenticationExpiration = true);
 
 app.MapRazorPages().WithStaticAssets();
 

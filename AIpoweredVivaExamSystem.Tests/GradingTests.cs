@@ -61,9 +61,19 @@ public sealed class GradingSqlTests(SqlServerFixture fixture)
     {public Task<ExaminerDecision> EvaluateAndFollowUpAsync(ExaminerEvaluationContext c,CancellationToken ct)=>Task.FromResult(new ExaminerDecision(true,null,null,null,"test"));}
     private sealed class Transcriber:ISpeechTranscriber
     {public Task<string> TranscribeAsync(byte[] b,string f,string l,string? h,CancellationToken ct)=>Task.FromResult("Answer");}
+    private sealed class FailingResultNotifier(ApplicationDbContext db):IStudentResultNotifier
+    {
+        public int Calls;
+        public Task NotifyChangedAsync(Guid sessionId,CancellationToken ct)
+        {
+            Assert.Null(db.Database.CurrentTransaction);
+            Calls++;
+            throw new IOException("Notification transport unavailable.");
+        }
+    }
     private ApplicationDbContext Db(Actor actor)=>new(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(fixture.ConnectionString).Options,actor);
-    private static GradingService Service(ApplicationDbContext db,Actor actor,IAiRubricGrader grader)=>new(new GradingStore(db,new ExamUnitOfWork(db,new Notifier(),NullLogger<ExamUnitOfWork>.Instance)),
-        new ExamAccessGuard(new ExamFoundationStore(db),actor),actor,grader);
+    private static GradingService Service(ApplicationDbContext db,Actor actor,IAiRubricGrader grader,IStudentResultNotifier? notifier=null)=>new(new GradingStore(db,new ExamUnitOfWork(db,new Notifier(),NullLogger<ExamUnitOfWork>.Instance)),
+        new ExamAccessGuard(new ExamFoundationStore(db),actor),actor,grader,notifier);
     private static IVivaInterviewService StudentService(ApplicationDbContext db,Actor actor,ISpeechTranscriber? transcriber=null)
     {
         var uow=new ExamUnitOfWork(db,new Notifier(),NullLogger<ExamUnitOfWork>.Instance);
@@ -94,10 +104,11 @@ public sealed class GradingSqlTests(SqlServerFixture fixture)
     {
         var seed=await SeedAsync();var actor=new Actor(seed.Demo.Lecturer.Id,IsLecturer:true);
         await using var db=Db(actor);var offered=1m;
+        var notifier=new FailingResultNotifier(db);
         var service=Service(db,actor,new Grader(c=>{
             Assert.Null(db.Database.CurrentTransaction);
             return new(c.Criteria.Select(r=>new SuggestedCriterion(r.Id,offered,"Supported by the explanation.")).ToArray(),"Concept","Example absent","Example","test-model");
-        }));
+        }),notifier);
         var review=await service.ReviewAsync(seed.Session.Id,default);
         await service.SuggestAsync(seed.Session.Id,seed.Question.Id,false,default);
         review=await service.ReviewAsync(seed.Session.Id,default);
@@ -114,6 +125,7 @@ public sealed class GradingSqlTests(SqlServerFixture fixture)
         Assert.All(review.Questions.SelectMany(q=>q.Criteria),c=>Assert.Equal(3,c.SuggestedScore));
         Assert.Null((await studentService.GetStateAsync(seed.Session.Id,default)).Result);
         await Assert.ThrowsAsync<ResourceConflictException>(()=>service.SaveAsync(seed.Session.Id,input,false,default));
+        Assert.Equal(0,notifier.Calls);
         await service.SaveAsync(seed.Session.Id,Input(review),true,default);
         var result=(await studentService.GetStateAsync(seed.Session.Id,default)).Result;
         Assert.NotNull(result);Assert.Equal(4,result.Total);
@@ -125,6 +137,7 @@ public sealed class GradingSqlTests(SqlServerFixture fixture)
         review=await service.ReviewAsync(seed.Session.Id,default);
         await service.SaveAsync(seed.Session.Id,Input(review,3),true,default);
         Assert.Equal(6,(await studentService.GetStateAsync(seed.Session.Id,default)).Result!.Total);
+        Assert.Equal(3,notifier.Calls); // finalise, reopen, re-finalise all survive failed delivery
     }
 
     [Fact]

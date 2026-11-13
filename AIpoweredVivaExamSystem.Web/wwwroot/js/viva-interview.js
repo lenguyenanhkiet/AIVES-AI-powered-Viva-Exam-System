@@ -126,7 +126,7 @@
             case "transcribing":
                 return ["AI Server đang nhận diện bản ghi âm…", "Văn bản sẽ hiện trong ô câu trả lời sau ít giây."];
             case "submitting":
-                return ["Giám khảo AI đang phân tích câu trả lời…", "Việc này có thể mất khoảng 15–30 giây. Vui lòng chờ, đừng tải lại trang."];
+                return ["Đang nộp câu trả lời…", "Hệ thống đang chuẩn bị lượt tiếp theo. Vui lòng chờ, đừng tải lại trang."];
             case "timeout-turn":
                 return ["Hết thời gian trả lời lượt này", "Hệ thống đang nộp đúng phần bạn đã có (văn bản và bản ghi âm nếu có). Lượt này được ghi nhận là hết giờ, không có câu hỏi xoáy, và phiên thi chuyển sang câu hỏi chính tiếp theo."];
             case "timeout-slot":
@@ -348,11 +348,12 @@
     // Tự đọc câu hỏi mới đúng một lần mỗi lượt (không đọc lại khi tải lại trang sau khi đã đọc được).
     if (!isCompleted && btnSpeakActive && activeTurnId &&
         sessionStorage.getItem("aives_last_spoken_turn") !== activeTurnId) {
-        setTimeout(function () {
+        // Run after initialization, without adding a delay before loading the next voice.
+        Promise.resolve().then(function () {
             if (studentState === "idle") {
                 playExaminerVoice(activeTurnId, btnSpeakActive.getAttribute("data-tts-text") || "", btnSpeakActive);
             }
-        }, 350);
+        });
     }
 
     // ---------------- 2. Ghi âm & chữ trực tiếp ----------------

@@ -85,8 +85,13 @@ public sealed class VivaInterviewStore(
         var previewLimit = VivaInterviewService.CalculateTurnLimitSeconds(previewExam.DurationMinutes, previewExam.NumberOfMainQuestions, previewExam.MaxFollowUpPerQuestion);
         var previewTimedOut = VivaTurnDeadline.HasExpired(previewEnd, receivedAt, request.TimedOut) ||
             VivaTurnDeadline.HasExpired(previewTurn.AskedAt.AddSeconds(previewLimit), receivedAt, request.TimedOut);
-        var evaluatedDecision = new ExaminerDecision(false, null, "Turn deadline expired; advanced without AI evaluation.", null, VivaTurnDeadline.TimeoutModelName);
-        if (!previewTimedOut)
+        var evaluatedDecision = previewTimedOut
+            ? new ExaminerDecision(false, null, "Turn deadline expired; advanced without AI evaluation.", null, VivaTurnDeadline.TimeoutModelName)
+            : new ExaminerDecision(false, null, "Không còn lượt hỏi xoáy; lưu câu trả lời để giảng viên chấm theo rubric.", null, "server-no-follow-up");
+        // This AI decides whether to ask another follow-up. Grading happens separately;
+        // when the configured cap/time forbids a follow-up there is no decision to wait for.
+        if (!previewTimedOut && previewTurn.FollowUpLevel < previewExam.MaxFollowUpPerQuestion &&
+            (previewEnd - receivedAt).TotalSeconds >= 15)
         {
             var subjectName = await db.Subjects.IgnoreQueryFilters().AsNoTracking().Where(x => x.Id == previewExam.SubjectId).Select(x => x.Name).SingleAsync(ct);
             var history = previewTurns.Where(t => t.AnsweredAt.HasValue).Select(t => new ConversationTurn(t.AnswerType,t.FollowUpLevel,t.PromptText,t.Transcript ?? ""))

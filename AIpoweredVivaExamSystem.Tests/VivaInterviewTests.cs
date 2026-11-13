@@ -347,6 +347,8 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         // Examiner asks 1 follow-up on Question 1 (incomplete), then marks complete on Question 2
         var examiner = new FakeExaminer(ctx =>
         {
+            Assert.True(ctx.CurrentFollowUpLevel < ctx.MaxFollowUpPerQuestion,
+                "The examiner must not be called when another follow-up is forbidden.");
             var lastTranscript = ctx.History.LastOrDefault()?.Transcript ?? "";
             if (ctx.CurrentFollowUpLevel == 0 && lastTranscript.Contains("Mơ hồ"))
             {
@@ -468,9 +470,28 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
     }
 
     [Fact]
-    public async Task Concurrent_submits_of_the_same_turn_commit_one_answer_and_one_advance()
+    public async Task Answer_without_available_followups_is_stored_and_completes_without_the_examiner()
     {
         var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 0);
+        var actor = new Actor(demo.Student.Id);
+        await using var db = Context(actor);
+        var service = CreateInterviewService(db, actor, new Notifier(),
+            new FakeExaminer(_ => throw new InvalidOperationException("There is no follow-up decision to make.")));
+        var state = await service.OpenOrResumeByEnrollmentAsync(demo.Enrollment.Id, default);
+        var turnId = state.ActiveTurn!.TurnId;
+        state = await service.SubmitAnswerAsync(new(state.SessionId, turnId, "The captured answer.", [1,2,3], "audio/webm"), default);
+        Assert.NotNull(state.CompletedAt);
+        var turn = Assert.Single(state.Turns);
+        Assert.Equal("The captured answer.", turn.Transcript);
+        Assert.True(turn.HasAudio);
+        Assert.False(turn.TimedOut);
+        Assert.Null(state.Result);
+    }
+
+    [Fact]
+    public async Task Concurrent_submits_of_the_same_turn_commit_one_answer_and_one_advance()
+    {
+        var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 1);
         var actor = new Actor(demo.Student.Id);
         var examiner = new ConcurrentExaminer();
         await using var firstDb = Context(actor);
@@ -498,7 +519,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
     [Fact]
     public async Task Examiner_runs_outside_the_exam_transaction()
     {
-        var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 0);
+        var demo = await SeedOngoingExamAsync(mainQuestions: 1, maxFollowUps: 1);
         var actor = new Actor(demo.Student.Id);
         await using var db = Context(actor);
         var examiner = new FakeExaminer(_ => {
