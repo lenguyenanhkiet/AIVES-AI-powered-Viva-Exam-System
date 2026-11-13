@@ -1,10 +1,12 @@
 using AIpoweredVivaExamSystem.Application.Common;
+using ContractUserRole = AIpoweredVivaExamSystem.Application.Contracts.UserRole;
+using DomainUserRole = AIpoweredVivaExamSystem.Domain.Enums.UserRole;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Domain.Enums;
 
 namespace AIpoweredVivaExamSystem.Application.Authentication;
 
-public sealed record AccessUser(Guid Id, string Email, string FullName, UserRole Role);
+public sealed record AccessUser(Guid Id, string Email, string FullName, ContractUserRole Role);
 public sealed record AccessSubject(Guid Id, string Code);
 public sealed record SubjectAssignment(Guid Id, string LecturerEmail, string SubjectCode);
 public sealed record AccessOverview(IReadOnlyList<AccessUser> Users, IReadOnlyList<AccessSubject> Subjects,
@@ -22,13 +24,14 @@ public interface IAccessStore
 public sealed class AccessService(IAccessStore store, ICurrentUser actor)
 {
     public Task<AccessOverview> OverviewAsync(CancellationToken ct) { RequireAdmin(); return store.OverviewAsync(ct); }
-    public async Task AssignRoleAsync(Guid userId, UserRole role, CancellationToken ct)
+    public async Task AssignRoleAsync(Guid userId, ContractUserRole role, CancellationToken ct)
     {
         RequireAdmin();
-        if (userId == actor.Id && role != UserRole.ADMIN)
+        if (!Enum.IsDefined(role)) throw new ResourceConflictException("Choose a valid role.");
+        if (userId == actor.Id && role != ContractUserRole.ADMIN)
             throw new ResourceConflictException("You cannot remove your own administrator role.");
         var user = await store.FindUserAsync(userId, ct) ?? throw new ResourceNotFoundException("User not found.");
-        user.AssignRole(role); await store.SaveAsync(ct);
+        user.AssignRole((DomainUserRole)role); await store.SaveAsync(ct);
     }
     public async Task AssignSubjectAsync(Guid lecturerId, Guid subjectId, CancellationToken ct)
     {

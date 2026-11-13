@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Security.Claims;
 using AIpoweredVivaExamSystem.Application.Authentication;
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -16,7 +16,7 @@ public sealed class ExamConnections
     public ConcurrentDictionary<string, ExamListSubscription> ListWatchers { get; } = new();
 }
 
-public sealed class ExamRealtimeAccess(ILoginUserRepository users, IExamAccessStore exams)
+public sealed class ExamRealtimeAccess(IRealtimeUserReader users, IExamAccessStore exams)
 {
     public Task<bool> CanManageAsync(Guid userId, Guid examId, CancellationToken ct) =>
         CanManageCoreAsync(userId, examId, false, ct);
@@ -26,8 +26,8 @@ public sealed class ExamRealtimeAccess(ILoginUserRepository users, IExamAccessSt
 
     private async Task<bool> CanManageCoreAsync(Guid userId, Guid examId, bool includeDeleted, CancellationToken ct)
     {
-        var user = await users.FindByIdAsync(userId, ct);
-        if (user is null || user.DeletedAt != null || user.Status != UserStatus.Active) return false;
+        var user = await users.FindAsync(userId, ct);
+        if (user is null || user.IsDeleted || user.Status != UserStatus.Active) return false;
         var exam = includeDeleted
             ? await exams.FindExamForNotificationAsync(examId, ct)
             : await exams.FindExamAsync(examId, ct);

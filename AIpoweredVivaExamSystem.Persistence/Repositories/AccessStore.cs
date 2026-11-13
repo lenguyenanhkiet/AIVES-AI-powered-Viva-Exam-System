@@ -9,11 +9,19 @@ namespace AIpoweredVivaExamSystem.Persistence.Repositories;
 
 public sealed class AccessStore(ApplicationDbContext db) : IAccessStore
 {
-    public async Task<AccessOverview> OverviewAsync(CancellationToken ct) => new(
-        await db.Users.Where(u => u.DeletedAt == null).OrderBy(u => u.Email).Select(u => new AccessUser(u.Id, u.Email, u.FullName, u.Role)).ToArrayAsync(ct),
-        await db.Subjects.Where(s => s.DeletedAt == null).OrderBy(s => s.Code).Select(s => new AccessSubject(s.Id, s.Code)).ToArrayAsync(ct),
-        await (from a in db.LecturerSubjects join u in db.Users on a.LecturerId equals u.Id
-               join s in db.Subjects on a.SubjectId equals s.Id select new SubjectAssignment(a.Id, u.Email, s.Code)).ToArrayAsync(ct));
+    public async Task<AccessOverview> OverviewAsync(CancellationToken ct)
+    {
+        var users = await db.Users.Where(u => u.DeletedAt == null).OrderBy(u => u.Email)
+            .Select(u => new { u.Id, u.Email, u.FullName, u.Role }).ToArrayAsync(ct);
+        return new(
+            users.Select(u => new AccessUser(u.Id, u.Email, u.FullName,
+                (AIpoweredVivaExamSystem.Application.Contracts.UserRole)u.Role)).ToArray(),
+            await db.Subjects.Where(s => s.DeletedAt == null).OrderBy(s => s.Code)
+                .Select(s => new AccessSubject(s.Id, s.Code)).ToArrayAsync(ct),
+            await (from a in db.LecturerSubjects join u in db.Users on a.LecturerId equals u.Id
+                   join s in db.Subjects on a.SubjectId equals s.Id
+                   select new SubjectAssignment(a.Id, u.Email, s.Code)).ToArrayAsync(ct));
+    }
     public Task<User?> FindUserAsync(Guid id, CancellationToken ct) => db.Users.SingleOrDefaultAsync(x => x.Id == id && x.DeletedAt == null, ct);
     public Task<bool> SubjectExistsAsync(Guid id, CancellationToken ct) => db.Subjects.AnyAsync(x => x.Id == id && x.DeletedAt == null, ct);
     public Task<bool> AssignmentExistsAsync(Guid lecturerId, Guid subjectId, CancellationToken ct) => db.LecturerSubjects.AnyAsync(x => x.LecturerId == lecturerId && x.SubjectId == subjectId, ct);

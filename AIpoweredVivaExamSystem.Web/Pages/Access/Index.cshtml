@@ -9,7 +9,7 @@
     {
         <tr><td>@user.FullName — @user.Email</td><td>
         <form method="post" asp-page="/Access/Role"><input type="hidden" name="userId" value="@user.Id" />
-            <select class="select" name="role" asp-items="@(new SelectList(Enum.GetValues<AIpoweredVivaExamSystem.Domain.Enums.UserRole>(), user.Role))"></select>
+            <select class="select" name="role" asp-items="@(new SelectList(Enum.GetValues<AIpoweredVivaExamSystem.Application.Contracts.UserRole>(), user.Role))"></select>
             <button class="btn btn-secondary" type="submit">Lưu</button>
         </form></td></tr>
     }
@@ -17,7 +17,7 @@
     <h2>Phân công môn</h2>
     <form method="post" class="card card-body stack" asp-page="/Access/Assign">
         <label class="label">Giảng viên</label><select class="select" name="lecturerId" required>
-        @foreach (var user in Model.Vm.Users.Where(u => u.Role == AIpoweredVivaExamSystem.Domain.Enums.UserRole.LECTURER))
+        @foreach (var user in Model.Vm.Users.Where(u => u.Role == AIpoweredVivaExamSystem.Application.Contracts.UserRole.LECTURER))
         { <option value="@user.Id">@user.Email</option> }
         </select><label class="label">Môn học</label><select class="select" name="subjectId" required>
         @foreach (var subject in Model.Vm.Subjects) { <option value="@subject.Id">@subject.Code</option> }
