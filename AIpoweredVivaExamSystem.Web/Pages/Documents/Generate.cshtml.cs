@@ -5,7 +5,6 @@ using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,7 +39,7 @@ public sealed class GenerateModel(DocumentService documents, IQuestionBankStore 
                 TempData["Toast"] = $"Đã sinh {ids.Count} câu hỏi Nháp có nguồn trích dẫn. Thêm rubric trước khi duyệt.";
                 return RedirectToPage("/Questions/Index", new { subjectId = document.SubjectId });
             }
-            catch (Exception ex) when (ex is ResourceConflictException or DomainValidationException)
+            catch (Exception ex) when (ex is ResourceConflictException || BusinessErrors.IsRuleViolation(ex))
             { ModelState.AddModelError("", ex.Message); }
         }
         Input.FileName = document.FileName;

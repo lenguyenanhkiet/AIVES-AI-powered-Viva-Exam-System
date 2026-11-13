@@ -1,6 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -30,7 +29,7 @@ public sealed class TranscribeModel(IVivaInterviewService interview) : PageModel
             var transcript = await interview.TranscribeAudioAsync(sessionId, ms.ToArray(), audioFile.FileName, language, ct);
             return new JsonResult(new { transcript });
         }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         {
             return new JsonResult(new { error = ex.Message }) { StatusCode = StatusCodes.Status409Conflict };
         }

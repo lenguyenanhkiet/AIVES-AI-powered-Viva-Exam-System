@@ -5,7 +5,6 @@ using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,7 +33,7 @@ public sealed class UploadModel(DocumentService documents, ISubjectService subje
                 var document = await documents.UploadAsync(Input.SubjectId!.Value, stream.ToArray(), Input.File.FileName, ct);
                 return RedirectToPage("/Documents/Generate", new { id = document.Id });
             }
-            catch (Exception ex) when (ex is ResourceConflictException or DomainValidationException)
+            catch (Exception ex) when (ex is ResourceConflictException || BusinessErrors.IsRuleViolation(ex))
             { ModelState.AddModelError("", ex.Message); }
         }
         Input = await LoadAsync(Input, ct);

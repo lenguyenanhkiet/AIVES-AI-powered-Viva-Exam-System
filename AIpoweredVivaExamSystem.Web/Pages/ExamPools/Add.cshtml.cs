@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.ExamPools;
 using Microsoft.AspNetCore.Authorization;
@@ -32,7 +31,7 @@ public sealed class AddModel(ExamPoolService pools) : PageModel
             TempData.Toast("Đã thêm câu hỏi vào pool.");
             return RedirectToPage("/ExamPools/Index", new { id });
         }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             Vm = await PageAsync(id, Input, ct);

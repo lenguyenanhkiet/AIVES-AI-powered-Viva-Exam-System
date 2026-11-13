@@ -3,7 +3,6 @@ using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Rubrics;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -71,7 +70,7 @@ public sealed class EditModel(IRubricService rubrics, IQuestionService questions
             case ValidationException validation:
                 ModelState.AddErrors(validation, nameof(Input));
                 return true;
-            case DomainValidationException domain:
+            case Exception domain when BusinessErrors.IsRuleViolation(domain):
                 ModelState.AddModelError(nameof(Input), domain.Message);
                 return true;
             default:

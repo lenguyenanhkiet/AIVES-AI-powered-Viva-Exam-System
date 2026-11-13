@@ -6,7 +6,6 @@ using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
 using FluentValidation;
@@ -55,7 +54,7 @@ public sealed class CreateModel(ISubjectService subjects) : PageModel
             case ResourceConflictException:
                 ModelState.AddModelError($"Input.{nameof(SubjectFormViewModel.Code)}", "Mã môn này đã tồn tại.");
                 return true;
-            case DomainValidationException domain:
+            case Exception domain when BusinessErrors.IsRuleViolation(domain):
                 ModelState.AddModelError(nameof(Input), domain.Message);
                 return true;
             default:

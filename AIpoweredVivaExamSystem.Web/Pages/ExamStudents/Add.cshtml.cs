@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.ExamStudents;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.ExamStudents;
 using Microsoft.AspNetCore.Authorization;
@@ -34,7 +33,7 @@ public sealed class AddModel(IExamRosterService roster, IExamRosterReader detail
             TempData.Toast("Đã thêm sinh viên vào kỳ thi.");
             return RedirectToPage("/ExamStudents/Roster", new { id });
         }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             // Refresh SQL after a failed write; keep the submitted email and validation errors.

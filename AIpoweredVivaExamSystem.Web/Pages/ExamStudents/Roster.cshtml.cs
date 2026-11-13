@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.ExamStudents;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.ExamStudents;
 using Microsoft.AspNetCore.Authorization;

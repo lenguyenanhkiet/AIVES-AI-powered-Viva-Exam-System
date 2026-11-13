@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Scheduling;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.Schedules;
@@ -24,7 +23,7 @@ public sealed class ApplyModel(IExamScheduleService schedules) : PageModel
             await schedules.ApplyAsync(id, previewToken ?? "", ct);
             TempData.Toast("Đã lưu lịch thi.");
         }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         { TempData.Toast(ex.Message, success: false); }
         return RedirectToPage("/Schedules/Exam", new { id });
     }

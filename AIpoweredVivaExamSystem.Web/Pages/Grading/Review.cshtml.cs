@@ -1,6 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Grading;
-using AIpoweredVivaExamSystem.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -52,14 +51,14 @@ public sealed class ReviewModel(GradingService grading) : PageModel
             if (ModelState.IsValid) { await grading.SaveAsync(id,Input,finalise,ct); return RedirectToPage(new {id}); }
         } catch (UnauthorizedAccessException) { return StatusCode(403); }
         catch (GradingValidationException ex) { foreach (var e in ex.Errors) ModelState.AddModelError(e.Key,e.Value); }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException) { ModelState.AddModelError("",ex.Message); }
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException) { ModelState.AddModelError("",ex.Message); }
         try { await LoadAsync(id,false,ct); return Page(); } catch (UnauthorizedAccessException) { return StatusCode(403); }
     }
     public async Task<IActionResult> OnPostReopenAsync(Guid id,string version,CancellationToken ct)
     {
         try { await grading.ReopenAsync(id,version,ct); return RedirectToPage(new {id}); }
         catch (UnauthorizedAccessException) { return StatusCode(403); }
-        catch (Exception ex) when (ex is ResourceConflictException or DomainValidationException) { ModelState.AddModelError("",ex.Message); await LoadAsync(id,true,ct); return Page(); }
+        catch (Exception ex) when (ex is ResourceConflictException || BusinessErrors.IsRuleViolation(ex)) { ModelState.AddModelError("",ex.Message); await LoadAsync(id,true,ct); return Page(); }
     }
     public async Task<IActionResult> OnPostSuggestAsync(Guid id,Guid questionId,bool regenerate=false,CancellationToken ct=default)
     {

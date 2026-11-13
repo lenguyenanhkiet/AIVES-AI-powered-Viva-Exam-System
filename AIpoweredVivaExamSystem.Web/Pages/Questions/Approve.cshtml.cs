@@ -7,7 +7,6 @@ using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -32,7 +31,7 @@ public sealed class ApproveModel(IQuestionService questions) : PageModel
         {
             TempData.Toast("Chưa thể duyệt: câu hỏi cần có rubric chấm điểm trước.", success: false);
         }
-        catch (DomainValidationException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex))
         {
             TempData.Toast("Chỉ duyệt được câu hỏi đang ở trạng thái Nháp.", success: false);
         }

@@ -7,7 +7,6 @@ using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -28,7 +27,7 @@ public sealed class RejectModel(IQuestionService questions) : PageModel
             await questions.RejectAsync(id, cancellationToken);
             TempData.Toast("Đã từ chối câu hỏi. Sửa lại nội dung để gửi duyệt lần nữa.");
         }
-        catch (DomainValidationException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex))
         {
             TempData.Toast("Chỉ từ chối được câu hỏi đang ở trạng thái Nháp.", success: false);
         }

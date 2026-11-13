@@ -3,7 +3,6 @@ using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -57,7 +56,7 @@ public sealed class EditModel(IExamService examService, ISubjectService subjectS
                 TempData.Toast("Đã lưu thay đổi kỳ thi.");
                 return RedirectToPage("/Exams/Details", new { id });
             }
-            catch (DomainValidationException ex)
+            catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex))
             {
                 ModelState.AddModelError(nameof(Input), ex.Message);
             }

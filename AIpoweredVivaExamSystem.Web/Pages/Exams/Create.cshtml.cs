@@ -3,7 +3,6 @@ using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -49,7 +48,7 @@ public sealed class CreateModel(IExamService examService, ISubjectService subjec
                 TempData.Toast("Đã tạo kỳ thi thành công.");
                 return RedirectToPage("/Exams/Details", new { id = created.Summary.Id });
             }
-            catch (DomainValidationException ex)
+            catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex))
             {
                 ModelState.AddModelError(nameof(Input), ex.Message);
             }

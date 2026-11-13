@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Scheduling;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.Schedules;
@@ -23,7 +22,7 @@ public sealed class PreviewModel(IExamScheduleService schedules, IScheduleReader
     {
         SchedulePreview? preview = null;
         try { preview = await schedules.PreviewAsync(id, ct); }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         { TempData.Toast(ex.Message, success: false); }
         Vm = await ModelAsync(id, preview, ct);
         return Page();

@@ -1,7 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -27,7 +26,7 @@ public sealed class OpenModel(IVivaInterviewService interview, IMyVivaSessionsRe
                 InterviewState.CompletedAt,
                 InterviewState.Questions);
         }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         {
             ModelState.AddModelError("", ex.Message);
             Vm = await mine.ListAsync(ct);
@@ -50,7 +49,7 @@ public sealed class OpenModel(IVivaInterviewService interview, IMyVivaSessionsRe
                 InterviewState.Questions);
             return Page();
         }
-        catch (Exception ex) when (ex is DomainValidationException or ResourceConflictException)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex) || ex is ResourceConflictException)
         {
             ModelState.AddModelError("", ex.Message);
             Vm = await mine.ListAsync(ct);

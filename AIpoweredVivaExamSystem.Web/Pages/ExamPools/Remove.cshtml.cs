@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.ExamPools;
 using Microsoft.AspNetCore.Authorization;
@@ -37,7 +36,7 @@ public sealed class RemoveModel(ExamPoolService pools) : PageModel
             TempData.Toast(ex.Message, success: false);
             return RedirectToPage("/ExamPools/Index", new { id });
         }
-        catch (DomainValidationException ex)
+        catch (Exception ex) when (BusinessErrors.IsRuleViolation(ex))
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             Vm = await PageAsync(id, Input, ct);

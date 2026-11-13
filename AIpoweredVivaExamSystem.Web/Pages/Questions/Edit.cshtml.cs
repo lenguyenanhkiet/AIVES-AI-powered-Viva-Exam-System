@@ -7,7 +7,6 @@ using AIpoweredVivaExamSystem.Application.Subjects;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Enums;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels;
@@ -80,7 +79,7 @@ public sealed class EditModel(IQuestionService questions, ISubjectService subjec
             case ResourceConflictException:
                 ModelState.AddModelError(nameof(Input), "Môn học hoặc chủ đề vừa bị xóa. Tải lại trang và thử lại.");
                 return true;
-            case DomainValidationException:
+            case Exception rule when BusinessErrors.IsRuleViolation(rule):
                 ModelState.AddModelError($"Input.{nameof(QuestionFormViewModel.TopicId)}", "Chủ đề phải thuộc môn học đã chọn.");
                 return true;
             default:
