@@ -15,21 +15,21 @@ using AIpoweredVivaExamSystem.Web.Common;
 namespace AIpoweredVivaExamSystem.Web.Pages.Documents;
 
 [Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class GenerateModel(DocumentService documents, IQuestionBankStore store, ITopicService topics) : PageModel
+public sealed class GenerateModel(DocumentService documents, ITopicService topics) : PageModel
 {
     [BindProperty]
     public GenerateQuestionsViewModel Input { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken ct)
     {
-        var document = await store.FindDocumentAsync(id, ct) ?? throw new ResourceNotFoundException("Document not found.");
+        var document = await documents.GetAsync(id, ct);
         Input = await LoadGenerateAsync(new() { DocumentId = document.Id, FileName = document.FileName }, document.SubjectId, ct);
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
     {
-        var document = await store.FindDocumentAsync(Input.DocumentId, ct) ?? throw new ResourceNotFoundException("Document not found.");
+        var document = await documents.GetAsync(Input.DocumentId, ct);
         if (ModelState.IsValid)
         {
             try

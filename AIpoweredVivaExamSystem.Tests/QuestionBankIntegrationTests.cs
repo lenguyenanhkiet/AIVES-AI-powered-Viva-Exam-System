@@ -82,12 +82,12 @@ public class QuestionBankIntegrationTests(SqlServerFixture fixture)
         var service = new DocumentService(store, new Extractor(), new Generator(), actor);
         var doc = await service.UploadAsync(subject.Id, [1, 2, 3], "lecture.pdf", default);
         Assert.Equal(doc.Id, (await service.UploadAsync(subject.Id, [1, 2, 3], "lecture.pdf", default)).Id);
-        var ids = await service.GenerateAsync(doc.Id, null, "dependency injection", BloomLevel.Understand, QuestionDifficulty.Medium, 1, default);
+        var ids = await service.GenerateAsync(doc.Id, null, "dependency injection", AIpoweredVivaExamSystem.Application.Contracts.BloomLevel.Understand, AIpoweredVivaExamSystem.Application.Contracts.QuestionDifficulty.Medium, 1, default);
         Assert.Equal(QuestionStatus.Draft, (await db.Questions.SingleAsync(x => x.Id == ids[0])).Status);
         var citation = Assert.Single(await store.CitationsAsync(ids[0], default));
         Assert.Equal(4, citation.PageNumber); Assert.Equal("supplies dependencies", citation.Quote);
         var invalid = new DocumentService(store, new Extractor(), new Generator(true), actor);
-        await Assert.ThrowsAsync<DomainValidationException>(() => invalid.GenerateAsync(doc.Id, null, "dependency injection", BloomLevel.Understand, QuestionDifficulty.Medium, 1, default));
+        await Assert.ThrowsAsync<DomainValidationException>(() => invalid.GenerateAsync(doc.Id, null, "dependency injection", AIpoweredVivaExamSystem.Application.Contracts.BloomLevel.Understand, AIpoweredVivaExamSystem.Application.Contracts.QuestionDifficulty.Medium, 1, default));
         Assert.Single(await db.Questions.ToArrayAsync());
     }
 }

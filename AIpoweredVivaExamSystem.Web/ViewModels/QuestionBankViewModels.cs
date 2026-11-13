@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using AIpoweredVivaExamSystem.Application.QuestionBank;
-using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AIpoweredVivaExamSystem.Web.ViewModels;
@@ -16,7 +15,7 @@ public sealed class DocumentsViewModel
 {
     [Required] public Guid? SubjectId { get; set; }
     public IFormFile? File { get; set; }
-    public IReadOnlyList<CourseDocument> Documents { get; set; } = [];
+    public IReadOnlyList<CourseDocumentView> Documents { get; set; } = [];
     public IEnumerable<SelectListItem> Subjects { get; set; } = [];
 }
 public sealed class GenerateQuestionsViewModel

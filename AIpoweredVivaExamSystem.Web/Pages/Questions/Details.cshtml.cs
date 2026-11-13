@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace AIpoweredVivaExamSystem.Web.Pages.Questions;
 
 [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMIN,LECTURER")]
-public sealed class DetailsModel(IQuestionService questions, ISubjectService subjects, ITopicService topics, IRubricService rubrics, AIpoweredVivaExamSystem.Application.QuestionBank.IQuestionBankStore bank) : PageModel
+public sealed class DetailsModel(IQuestionService questions, ISubjectService subjects, ITopicService topics, IRubricService rubrics, AIpoweredVivaExamSystem.Application.QuestionBank.QuestionCitationService citations) : PageModel
 {
     public QuestionDetailsViewModel Vm { get; private set; } = default!;
 
@@ -34,7 +34,7 @@ public sealed class DetailsModel(IQuestionService questions, ISubjectService sub
             Subject = await subjects.GetAsync(question.SubjectId, cancellationToken),
             Topic = question.TopicId is { } topicId ? await topics.GetAsync(topicId, cancellationToken) : null,
             Rubric = rubric,
-            Citations = await bank.CitationsAsync(id, cancellationToken)
+            Citations = await citations.ListAsync(id, cancellationToken)
         };
         return Page();
     }
