@@ -231,18 +231,20 @@ public class ExamScheduleTests(SqlServerFixture fixture)
         await service.ApplyAsync(demo.Exam.Id, preview.PreviewToken, default);
     }
 
-    [Fact]
-    public async Task CancelledExamsDoNotReserveStudentOrLecturerSlots()
+    [Theory]
+    [InlineData(ExamStatus.Cancelled)]
+    [InlineData(ExamStatus.Completed)]
+    public async Task ClosedExamsDoNotReserveStudentOrLecturerSlots(ExamStatus status)
     {
         var demo = await SeedAsync();
         await using (var setup = fixture.CreateContext())
         {
-            var cancelled = new Exam(demo.Subject.Id, demo.Lecturer.Id, "Cancelled exam",
+            var closed = new Exam(demo.Subject.Id, demo.Lecturer.Id, "Closed exam",
                 demo.Exam.StartAt, demo.Exam.EndAt, 15, 2, 1);
-            var entry = new ExamStudent(cancelled.Id, demo.Student.Id);
-            entry.Schedule(cancelled.StartAt);
-            setup.AddRange(cancelled, entry);
-            setup.Entry(cancelled).Property(x => x.Status).CurrentValue = ExamStatus.Cancelled;
+            var entry = new ExamStudent(closed.Id, demo.Student.Id);
+            entry.Schedule(closed.StartAt);
+            setup.AddRange(closed, entry);
+            setup.Entry(closed).Property(x => x.Status).CurrentValue = status;
             await setup.SaveChangesAsync();
         }
         await using var db = Scoped(Owner(demo));

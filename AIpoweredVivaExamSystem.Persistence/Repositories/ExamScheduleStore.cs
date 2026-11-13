@@ -53,7 +53,8 @@ public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleSt
         // Guard has authorized this mutation. Conflict detection must include exams hidden by request filters.
         // Only existence is read across owners; no other exam/student data is returned to the caller.
         var otherSlots = ExamSlotQueries.All(db).Where(x => x.Exam.Id != exam.Id &&
-            x.Exam.Status != ExamStatus.Cancelled && x.Enrollment.ScheduledAt != null);
+            x.Exam.Status != ExamStatus.Cancelled && x.Exam.Status != ExamStatus.Completed &&
+            x.Enrollment.ScheduledAt != null);
         var firstStart = slots[0].StartAt;
         var lastEnd = slots[^1].EndAt;
         if (await otherSlots.AnyAsync(x => x.Exam.LecturerId == exam.LecturerId &&
