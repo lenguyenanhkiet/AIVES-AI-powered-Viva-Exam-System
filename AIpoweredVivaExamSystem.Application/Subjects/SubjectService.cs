@@ -1,4 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Common;
+using ContractStatus = AIpoweredVivaExamSystem.Application.Contracts.AcademicStatus;
+using DomainStatus = AIpoweredVivaExamSystem.Domain.Enums.AcademicStatus;
 using AIpoweredVivaExamSystem.Application.Interfaces;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
@@ -16,7 +18,7 @@ public sealed class SubjectService(
     public async Task<SubjectResponse> CreateAsync(CreateSubjectRequest request, CancellationToken cancellationToken)
     {
         await createValidator.ValidateAndThrowAsync(request, cancellationToken);
-        var subject = new Subject(request.Code, request.Name, request.Description, request.Status);
+        var subject = new Subject(request.Code, request.Name, request.Description, (DomainStatus)request.Status);
         if (await repository.CodeExistsAsync(subject.Code, null, cancellationToken))
             throw new ResourceConflictException("A subject with this code already exists.");
         repository.Add(subject);
@@ -31,7 +33,8 @@ public sealed class SubjectService(
     {
         await listValidator.ValidateAndThrowAsync(query, cancellationToken);
         var (items, totalCount) = await repository.ListAsync(
-            query.Keyword?.Trim(), query.Status, query.Page, query.PageSize, cancellationToken);
+            query.Keyword?.Trim(), query.Status is null ? null : (DomainStatus)query.Status.Value,
+            query.Page, query.PageSize, cancellationToken);
         return new(items.Select(Map).ToArray(), totalCount, query.Page, query.PageSize);
     }
 
@@ -39,7 +42,7 @@ public sealed class SubjectService(
     {
         await updateValidator.ValidateAndThrowAsync(request, cancellationToken);
         var subject = await FindAsync(id, cancellationToken);
-        subject.Update(request.Code, request.Name, request.Description, request.Status);
+        subject.Update(request.Code, request.Name, request.Description, (DomainStatus)request.Status);
         if (await repository.CodeExistsAsync(subject.Code, subject.Id, cancellationToken))
             throw new ResourceConflictException("A subject with this code already exists.");
         await repository.SaveChangesAsync(cancellationToken);
@@ -61,6 +64,6 @@ public sealed class SubjectService(
         ?? throw new ResourceNotFoundException("Subject was not found.");
 
     private static SubjectResponse Map(Subject subject) => new(
-        subject.Id, subject.Code, subject.Name, subject.Description, subject.Status,
+        subject.Id, subject.Code, subject.Name, subject.Description, (ContractStatus)subject.Status,
         subject.CreatedAt, subject.UpdatedAt);
 }

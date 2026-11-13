@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.Application.Contracts;
 
 namespace AIpoweredVivaExamSystem.Web.ViewModels;
 

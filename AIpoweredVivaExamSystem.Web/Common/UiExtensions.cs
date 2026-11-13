@@ -2,6 +2,7 @@ using System.Globalization;
 using AIpoweredVivaExamSystem.Application.VivaSessions;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Domain.Enums;
+using ContractAcademicStatus = AIpoweredVivaExamSystem.Application.Contracts.AcademicStatus;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -19,6 +20,13 @@ public static class UiExtensions
     {
         AcademicStatus.Active => "Đang dùng",
         AcademicStatus.Inactive => "Ngừng dùng",
+        _ => status.ToString()
+    };
+
+    public static string ToLabel(this ContractAcademicStatus status) => status switch
+    {
+        ContractAcademicStatus.Active => "Đang dùng",
+        ContractAcademicStatus.Inactive => "Ngừng dùng",
         _ => status.ToString()
     };
 

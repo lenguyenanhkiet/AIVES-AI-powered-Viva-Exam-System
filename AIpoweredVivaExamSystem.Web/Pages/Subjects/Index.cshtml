@@ -29,7 +29,7 @@
             </label>
             <select class="select" name="status" data-auto-submit>
                 <option value="">Tất cả trạng thái</option>
-                @foreach (var status in Enum.GetValues<AcademicStatus>())
+                @foreach (var status in Enum.GetValues<AIpoweredVivaExamSystem.Application.Contracts.AcademicStatus>())
                 {
                     <option value="@status" selected="@(Model.Vm.Query.Status == status)">@status.ToLabel()</option>
                 }

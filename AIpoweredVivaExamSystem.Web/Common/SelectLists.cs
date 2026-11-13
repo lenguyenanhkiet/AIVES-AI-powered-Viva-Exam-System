@@ -1,5 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Subjects.DTOs;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AIpoweredVivaExamSystem.Web.Common;

@@ -1,4 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Common;
+using ContractStatus = AIpoweredVivaExamSystem.Application.Contracts.AcademicStatus;
+using DomainStatus = AIpoweredVivaExamSystem.Domain.Enums.AcademicStatus;
 using AIpoweredVivaExamSystem.Application.Interfaces;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
 using AIpoweredVivaExamSystem.Application.Topics.DTOs;
@@ -18,7 +20,7 @@ public sealed class TopicService(
         await createValidator.ValidateAndThrowAsync(request, cancellationToken);
         if (!await repository.SubjectExistsAsync(request.SubjectId, cancellationToken))
             throw new ResourceNotFoundException("Subject was not found.");
-        var topic = new Topic(request.SubjectId, request.Name, request.Description, request.Status);
+        var topic = new Topic(request.SubjectId, request.Name, request.Description, (DomainStatus)request.Status);
         if (await repository.NameExistsAsync(topic.SubjectId, topic.Name, null, cancellationToken))
             throw new ResourceConflictException("This subject already has a topic with the same name.");
         repository.Add(topic);
@@ -33,7 +35,8 @@ public sealed class TopicService(
     {
         await listValidator.ValidateAndThrowAsync(query, cancellationToken);
         var (items, totalCount) = await repository.ListAsync(
-            query.SubjectId, query.Keyword?.Trim(), query.Status, query.Page, query.PageSize, cancellationToken);
+            query.SubjectId, query.Keyword?.Trim(), query.Status is null ? null : (DomainStatus)query.Status.Value,
+            query.Page, query.PageSize, cancellationToken);
         return new(items.Select(Map).ToArray(), totalCount, query.Page, query.PageSize);
     }
 
@@ -41,7 +44,7 @@ public sealed class TopicService(
     {
         await updateValidator.ValidateAndThrowAsync(request, cancellationToken);
         var topic = await FindAsync(id, cancellationToken);
-        topic.Update(request.Name, request.Description, request.Status);
+        topic.Update(request.Name, request.Description, (DomainStatus)request.Status);
         if (await repository.NameExistsAsync(topic.SubjectId, topic.Name, topic.Id, cancellationToken))
             throw new ResourceConflictException("This subject already has a topic with the same name.");
         await repository.SaveChangesAsync(cancellationToken);
@@ -63,6 +66,6 @@ public sealed class TopicService(
         ?? throw new ResourceNotFoundException("Topic was not found.");
 
     private static TopicResponse Map(Topic topic) => new(
-        topic.Id, topic.SubjectId, topic.Name, topic.Description, topic.Status,
+        topic.Id, topic.SubjectId, topic.Name, topic.Description, (ContractStatus)topic.Status,
         topic.CreatedAt, topic.UpdatedAt);
 }
