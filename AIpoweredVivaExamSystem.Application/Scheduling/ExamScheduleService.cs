@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Authentication;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Domain.Common;
@@ -19,7 +20,8 @@ public sealed class ExamScheduleService(IExamScheduleStore store, ExamAccessGuar
     {
         await guard.CanManageExamAsync(examId, ct);
         var exam = await FindAsync(examId, ct);
-        return new(new(exam.Id, exam.SubjectId, exam.Name, exam.Status, exam.StartAt, exam.EndAt),
+        return new(new(exam.Id, exam.SubjectId, exam.Name, (ContractExamStatus)exam.Status,
+                exam.StartAt, exam.EndAt),
             exam.DurationMinutes, await store.ListRosterAsync(examId, ct));
     }
 

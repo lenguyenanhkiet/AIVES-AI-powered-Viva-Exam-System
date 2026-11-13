@@ -218,7 +218,7 @@ public sealed class VivaSessionTests(SqlServerFixture fixture)
         var reader = new ExamLiveReader(manager, new ExamFoundationStore(manager));
         Assert.Equal(d.Exam.Name, (await reader.SummaryAsync(d.Exam.Id, default)).Name);
         var live = await reader.ReadAsync(d.Exam.Id, default);
-        Assert.Equal(ExamStatus.Ongoing, live.Status);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.ExamStatus.Ongoing, live.Status);
         Assert.Equal(1, live.Counts.Sessions);
         Assert.Equal(SessionState.InProgress, Assert.Single(live.Roster).SessionStatus);
     }

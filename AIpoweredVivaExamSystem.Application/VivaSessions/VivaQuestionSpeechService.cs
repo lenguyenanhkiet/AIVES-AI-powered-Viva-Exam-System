@@ -26,7 +26,8 @@ public sealed class VivaQuestionSpeechService(IVivaInterviewService interview, I
     }
 
     // The examiner announces a follow-up aloud so the student knows it is not a new main question.
-    public static string SpokenText(VivaTurnItem turn) => turn.AnswerType == AnswerType.FollowUp
+    public static string SpokenText(VivaTurnItem turn) =>
+        turn.AnswerType == AIpoweredVivaExamSystem.Application.Contracts.AnswerType.FollowUp
         ? $"Câu hỏi xoáy cho câu {turn.MainPosition}. {turn.PromptText}"
         : turn.PromptText;
 

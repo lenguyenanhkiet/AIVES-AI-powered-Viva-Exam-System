@@ -2,12 +2,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Exams;
 using AIpoweredVivaExamSystem.Application.Scheduling;
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using AIpoweredVivaExamSystem.Web.Common;
 using AIpoweredVivaExamSystem.Web.ViewModels.Schedules;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ExamEntity = AIpoweredVivaExamSystem.Domain.Entities.Exam;
 
 
 namespace AIpoweredVivaExamSystem.Web.Pages.Schedules;
@@ -34,7 +33,7 @@ public sealed class ExamModel(IScheduleReader reader) : PageModel
             DurationMinutes = current.DurationMinutes,
             CanEdit = current.Exam.Status == ExamStatus.Draft,
             Current = current.Roster.Select((x, i) => Row(x, i, x.ScheduledAt,
-                x.ScheduledAt is { } start ? ExamEntity.SlotEnd(start, current.DurationMinutes) : null)).ToArray(),
+                x.ScheduledAt is { } start ? start.AddMinutes(current.DurationMinutes) : null)).ToArray(),
             Preview = preview?.Slots.Where(x => roster.ContainsKey(x.EnrollmentId))
                 .Select((x, i) => Row(roster[x.EnrollmentId], i, x.StartAt, x.EndAt)).ToArray(),
             PreviewToken = preview?.PreviewToken

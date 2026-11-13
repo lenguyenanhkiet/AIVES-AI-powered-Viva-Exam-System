@@ -36,8 +36,8 @@ public sealed class VivaSpeechTests
         public int Position=1;
         public VivaInterviewState State()=>new(sessionId,Guid.NewGuid(),"Exam","PRN222","Subject",DateTimeOffset.UtcNow,null,
             DateTimeOffset.UtcNow.AddMinutes(20),1200,300,300,Position,2,0,1,
-            new(turnId,questionId,Position,AnswerType.Main,0,Position==1?"Current question":"Next main question",null,DateTimeOffset.UtcNow,null,false),
-            [new(turnId,questionId,Position,AnswerType.Main,0,Position==1?"Current question":"Next main question",null,DateTimeOffset.UtcNow,null,false)],
+            new(turnId,questionId,Position,AIpoweredVivaExamSystem.Application.Contracts.AnswerType.Main,0,Position==1?"Current question":"Next main question",null,DateTimeOffset.UtcNow,null,false),
+            [new(turnId,questionId,Position,AIpoweredVivaExamSystem.Application.Contracts.AnswerType.Main,0,Position==1?"Current question":"Next main question",null,DateTimeOffset.UtcNow,null,false)],
             [new(Guid.NewGuid(),1,"Current question"),new(Guid.NewGuid(),2,"Next main question")]);
         public Task<VivaInterviewState> GetStateAsync(Guid id,CancellationToken ct)=>Task.FromResult(State());
         public Task<VivaInterviewState> OpenOrResumeByEnrollmentAsync(Guid id,CancellationToken ct)=>throw new NotSupportedException();

@@ -3,7 +3,7 @@ using AIpoweredVivaExamSystem.Application.Questions;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
 using AIpoweredVivaExamSystem.Domain.Common;
 using AIpoweredVivaExamSystem.Domain.Entities;
-using AIpoweredVivaExamSystem.Domain.Enums;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using AIpoweredVivaExamSystem.Persistence.Context;
 using AIpoweredVivaExamSystem.Persistence.Repositories;
 using FluentValidation;

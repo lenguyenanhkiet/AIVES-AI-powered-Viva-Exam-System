@@ -381,7 +381,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         Assert.Equal(0, state.CurrentFollowUpLevel);
         Assert.Equal(1, state.MaxFollowUpPerQuestion);
         Assert.NotNull(state.ActiveTurn);
-        Assert.Equal(AnswerType.Main, state.ActiveTurn!.AnswerType);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.AnswerType.Main, state.ActiveTurn!.AnswerType);
         Assert.DoesNotContain("SECRET", JsonSerializer.Serialize(state));
 
         // Turn 1: Student gives an incomplete answer with audio -> triggers Follow-up #1 on Question 1
@@ -401,7 +401,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         Assert.Equal(1, state.CurrentMainPosition);
         Assert.Equal(1, state.CurrentFollowUpLevel);
         Assert.NotNull(state.ActiveTurn);
-        Assert.Equal(AnswerType.FollowUp, state.ActiveTurn!.AnswerType);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.AnswerType.FollowUp, state.ActiveTurn!.AnswerType);
         Assert.Equal(1, state.ActiveTurn.FollowUpLevel);
         Assert.Equal("Bạn hãy làm rõ hơn ví dụ thực tế cho câu số 1?", state.ActiveTurn.PromptText);
         Assert.True(state.Turns.First(t => t.AnsweredAt.HasValue).HasAudio);
@@ -421,7 +421,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         Assert.Equal(2, state.CurrentMainPosition);
         Assert.Equal(0, state.CurrentFollowUpLevel);
         Assert.NotNull(state.ActiveTurn);
-        Assert.Equal(AnswerType.Main, state.ActiveTurn!.AnswerType);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.AnswerType.Main, state.ActiveTurn!.AnswerType);
         Assert.Equal(2, state.ActiveTurn.MainPosition);
 
         // Turn 3: Student gives a complete answer to Main Question #2 (skips follow-up & auto-completes session)
@@ -557,8 +557,8 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         Assert.False(string.IsNullOrWhiteSpace(expired.Transcript));
         Assert.True(recorded.HasAudio);
         Assert.Equal(2, state.CurrentMainPosition);
-        Assert.Equal(AnswerType.Main, state.ActiveTurn!.AnswerType);
-        Assert.DoesNotContain(state.Turns, t => t.AnswerType == AnswerType.FollowUp);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.AnswerType.Main, state.ActiveTurn!.AnswerType);
+        Assert.DoesNotContain(state.Turns, t => t.AnswerType == AIpoweredVivaExamSystem.Application.Contracts.AnswerType.FollowUp);
 
         // An honest browser flag within the grace band keeps the captured answer and also skips AI.
         var finalTurn = await db.StudentAnswers.IgnoreQueryFilters().SingleAsync(a => a.Id == state.ActiveTurn!.TurnId);
@@ -594,7 +594,7 @@ public sealed class VivaInterviewSqlTests(SqlServerFixture fixture)
         Assert.NotEqual("Content produced after time expired", recorded.Transcript);
         Assert.False(recorded.HasAudio);
         Assert.Equal(2, state.CurrentMainPosition);
-        Assert.Equal(AnswerType.Main, state.ActiveTurn!.AnswerType);
+        Assert.Equal(AIpoweredVivaExamSystem.Application.Contracts.AnswerType.Main, state.ActiveTurn!.AnswerType);
     }
 
     [Fact]

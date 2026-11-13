@@ -1,4 +1,4 @@
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Application.Contracts;
 
 namespace AIpoweredVivaExamSystem.Application.Exams;
 

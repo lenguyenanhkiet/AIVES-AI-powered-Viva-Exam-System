@@ -78,11 +78,16 @@ public sealed class ExamScheduleStore(ApplicationDbContext db) : IExamScheduleSt
         }
     }
 
-    public async Task<IReadOnlyList<PersonalSchedule>> MyScheduleAsync(Guid studentId, CancellationToken ct) =>
-        await ExamSlotQueries.ForStudent(db, studentId).Where(x => x.Enrollment.ScheduledAt != null)
+    public async Task<IReadOnlyList<PersonalSchedule>> MyScheduleAsync(Guid studentId, CancellationToken ct)
+    {
+        var rows = await ExamSlotQueries.ForStudent(db, studentId).Where(x => x.Enrollment.ScheduledAt != null)
             .OrderBy(x => x.Enrollment.ScheduledAt).ThenBy(x => x.Enrollment.Id)
-            .Select(x => new PersonalSchedule(x.Enrollment.Id, x.Exam.Name, x.Exam.Status,
-                x.Enrollment.ScheduledAt!.Value, x.EndAt!.Value)).ToArrayAsync(ct);
+            .Select(x => new { x.Enrollment.Id, x.Exam.Name, x.Exam.Status,
+                StartAt = x.Enrollment.ScheduledAt!.Value, EndAt = x.EndAt!.Value }).ToArrayAsync(ct);
+        return rows.Select(x => new PersonalSchedule(x.Id, x.Name,
+            (AIpoweredVivaExamSystem.Application.Contracts.ExamStatus)x.Status,
+            x.StartAt, x.EndAt)).ToArray();
+    }
 
     private void RequireTransaction()
     {

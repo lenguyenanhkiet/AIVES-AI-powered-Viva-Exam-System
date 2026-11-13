@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Exams;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,8 @@ public sealed class ExamPoolStore(ApplicationDbContext db) : IExamPoolStore
                                 db.Rubrics.IgnoreQueryFilters().Any(r => r.QuestionId == question.Id && r.DeletedAt == null),
                                 question.DeletedAt != null, eligiblePoolIds.Contains(question.Id))).ToArrayAsync(ct);
 
-        var summary = new ExamSummary(exam.Id, exam.SubjectId, exam.Name, exam.Status, exam.StartAt, exam.EndAt);
+        var summary = new ExamSummary(exam.Id, exam.SubjectId, exam.Name, (ContractExamStatus)exam.Status,
+            exam.StartAt, exam.EndAt);
         return new ExamPoolPage(summary, exam.NumberOfMainQuestions, pooled.Length, eligiblePoolIds.Count,
             available, pooled);
     }

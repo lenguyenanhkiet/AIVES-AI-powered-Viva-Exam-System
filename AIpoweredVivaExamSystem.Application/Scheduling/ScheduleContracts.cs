@@ -1,5 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Application.Contracts;
+using Exam = AIpoweredVivaExamSystem.Domain.Entities.Exam;
 
 namespace AIpoweredVivaExamSystem.Application.Scheduling;
 

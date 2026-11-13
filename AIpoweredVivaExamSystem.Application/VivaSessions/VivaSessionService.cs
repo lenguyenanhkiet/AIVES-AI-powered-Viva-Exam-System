@@ -1,6 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Authentication;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Entities;
 
 namespace AIpoweredVivaExamSystem.Application.VivaSessions;
 

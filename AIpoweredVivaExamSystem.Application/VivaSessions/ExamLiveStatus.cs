@@ -1,5 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Application.Contracts;
 namespace AIpoweredVivaExamSystem.Application.VivaSessions;
 
 public enum SessionState { NotStarted, InProgress, Completed }

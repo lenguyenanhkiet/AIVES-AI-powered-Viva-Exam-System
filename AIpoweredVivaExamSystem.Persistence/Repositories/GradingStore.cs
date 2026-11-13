@@ -136,14 +136,14 @@ public sealed class GradingStore(ApplicationDbContext db,IExamUnitOfWork uow,Tim
             var evidence=turns.Where(t=>t.SessionQuestionId==q.Id).Select(t=>{
                 var audio=audios.SingleOrDefault(a=>a.StudentAnswerId==t.Id);
                 var transcript=GradingRules.IsNoAnswerMarker(t.Transcript)?null:t.Transcript;
-                return new TurnEvidence(t.Id,t.AnswerType,t.FollowUpLevel,t.PromptText,transcript,t.AskedAt,t.AnsweredAt,timeouts.Contains(t.Id),
+                return new TurnEvidence(t.Id,(AIpoweredVivaExamSystem.Application.Contracts.AnswerType)t.AnswerType,t.FollowUpLevel,t.PromptText,transcript,t.AskedAt,t.AnsweredAt,timeouts.Contains(t.Id),
                     Math.Max(0,((t.AnsweredAt??DateTimeOffset.UtcNow)-t.AskedAt).TotalSeconds),limit,audio?.DurationSeconds,
                     transcript?.Length??0,audio is null?null:$"/Grading/Audio/{audio.Id}",audio?.MimeType);
             }).ToArray();
             var pending=grade?.SuggestionAttemptId.HasValue==true && grade.SuggestionStartedAt>DateTimeOffset.UtcNow.AddMinutes(-2);
             var state=pending?"pending":grade?.SuggestionError is not null?"failed":suggestion is not null?"ready":"empty";
             return new QuestionReview(q.Id,q.Position,q.ContentSnapshot,rubric.ExpectedAnswer,criteria,evidence,
-                new(evidence.Sum(t=>t.AnswerSeconds),limit,evidence.Count(t=>t.AnswerType==AnswerType.FollowUp),evidence.Sum(t=>t.AudioDurationSeconds??0),evidence.Sum(t=>t.AnswerLength)),
+                new(evidence.Sum(t=>t.AnswerSeconds),limit,evidence.Count(t=>t.AnswerType==AIpoweredVivaExamSystem.Application.Contracts.AnswerType.FollowUp),evidence.Sum(t=>t.AudioDurationSeconds??0),evidence.Sum(t=>t.AnswerLength)),
                 state,grade?.SuggestionError is null?null:GradingRules.UnavailableSuggestionMessage,grade?.AiModel,grade?.SuggestedAt,suggestion?.Strengths,suggestion?.Weaknesses,suggestion?.MissingPoints,
                 suggestion is null?null:suggestion.Criteria.Sum(c=>c.Score),criteria.Any(c=>c.LecturerScore.HasValue)?criteria.Sum(c=>c.LecturerScore??0):null,
                 criteria.Sum(c=>c.MaxScore),grade?.LecturerComment);

@@ -1,5 +1,5 @@
 using AIpoweredVivaExamSystem.Application.VivaSessions;
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Application.Contracts;
 
 namespace AIpoweredVivaExamSystem.Web.Common;
 

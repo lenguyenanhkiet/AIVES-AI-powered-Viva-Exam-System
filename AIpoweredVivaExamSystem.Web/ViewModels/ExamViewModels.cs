@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using AIpoweredVivaExamSystem.Application.Exams;
-using AIpoweredVivaExamSystem.Domain.Entities;
+using AIpoweredVivaExamSystem.Application.Contracts;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace AIpoweredVivaExamSystem.Web.ViewModels;

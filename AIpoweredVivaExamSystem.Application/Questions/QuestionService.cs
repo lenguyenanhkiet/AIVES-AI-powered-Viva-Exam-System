@@ -1,4 +1,6 @@
 using AIpoweredVivaExamSystem.Application.Common;
+using DomainEnums = AIpoweredVivaExamSystem.Domain.Enums;
+using ContractEnums = AIpoweredVivaExamSystem.Application.Contracts;
 using AIpoweredVivaExamSystem.Application.Interfaces;
 using AIpoweredVivaExamSystem.Application.Questions.DTOs;
 using AIpoweredVivaExamSystem.Application.Rubrics.DTOs;
@@ -19,8 +21,9 @@ public sealed class QuestionService(
         if (!await repository.SubjectExistsAsync(request.SubjectId, cancellationToken))
             throw new ResourceNotFoundException("Subject was not found.");
         var topic = await FindTopicAsync(request.TopicId, cancellationToken);
-        var question = new Question(request.SubjectId, request.Content, request.BloomLevel,
-            request.Difficulty, request.ExpectedAnswer, topic);
+        var question = new Question(request.SubjectId, request.Content,
+            (DomainEnums.BloomLevel)request.BloomLevel, (DomainEnums.QuestionDifficulty)request.Difficulty,
+            request.ExpectedAnswer, topic);
         repository.Add(question);
         await repository.SaveChangesAsync(cancellationToken);
         return Map(question, hasRubric: false);
@@ -36,7 +39,10 @@ public sealed class QuestionService(
     {
         await listValidator.ValidateAndThrowAsync(query, cancellationToken);
         var (items, totalCount) = await repository.ListAsync(query.SubjectId, query.TopicId, query.Keyword?.Trim(),
-            query.BloomLevel, query.Difficulty, query.Status, query.Page, query.PageSize, cancellationToken);
+            query.BloomLevel is null ? null : (DomainEnums.BloomLevel)query.BloomLevel.Value,
+            query.Difficulty is null ? null : (DomainEnums.QuestionDifficulty)query.Difficulty.Value,
+            query.Status is null ? null : (DomainEnums.QuestionStatus)query.Status.Value,
+            query.Page, query.PageSize, cancellationToken);
         return new(items.Select(x => Map(x.Question, x.HasRubric)).ToArray(), totalCount, query.Page, query.PageSize);
     }
 
@@ -45,7 +51,8 @@ public sealed class QuestionService(
         await updateValidator.ValidateAndThrowAsync(request, cancellationToken);
         var question = await FindAsync(id, cancellationToken);
         var topic = await FindTopicAsync(request.TopicId, cancellationToken);
-        question.Update(request.Content, request.ExpectedAnswer, request.BloomLevel, request.Difficulty, topic);
+        question.Update(request.Content, request.ExpectedAnswer,
+            (DomainEnums.BloomLevel)request.BloomLevel, (DomainEnums.QuestionDifficulty)request.Difficulty, topic);
         await repository.SaveChangesAsync(cancellationToken);
         return Map(question, await repository.HasRubricAsync(id, cancellationToken));
     }
@@ -89,6 +96,9 @@ public sealed class QuestionService(
 
     private static QuestionResponse Map(Question question, bool hasRubric) => new(
         question.Id, question.SubjectId, question.TopicId, question.Content, question.ExpectedAnswer,
-        question.BloomLevel, question.Difficulty, question.SourceType, question.Status, hasRubric,
+        (ContractEnums.BloomLevel)question.BloomLevel,
+        (ContractEnums.QuestionDifficulty)question.Difficulty,
+        (ContractEnums.QuestionSourceType)question.SourceType,
+        (ContractEnums.QuestionStatus)question.Status, hasRubric,
         question.CreatedAt, question.UpdatedAt);
 }

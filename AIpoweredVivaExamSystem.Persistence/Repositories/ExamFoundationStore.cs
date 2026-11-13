@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Exams;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,9 +19,16 @@ public sealed class ExamFoundationStore(ApplicationDbContext db) : IExamAccessSt
         db.Subjects.IgnoreQueryFilters().Any(s => s.Id == subjectId && s.DeletedAt == null), ct);
     public Task<bool> IsEnrolledAsync(Guid examId, Guid studentId, CancellationToken ct) => db.ExamStudents.IgnoreQueryFilters().AnyAsync(e => e.ExamId == examId && e.StudentId == studentId &&
         db.Exams.IgnoreQueryFilters().Any(x => x.Id == examId && x.DeletedAt == null), ct);
-    public async Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct) => await db.Exams.AsNoTracking().Where(e => e.DeletedAt == null)
-        .OrderByDescending(e => e.CreatedAt).ThenByDescending(e => e.Id)
-        .Select(e => new ExamSummary(e.Id, e.SubjectId, e.Name, e.Status, e.StartAt, e.EndAt)).Take(100).ToArrayAsync(ct);
+    public async Task<IReadOnlyList<ExamSummary>> ListManagedAsync(CancellationToken ct)
+    {
+        var rows = await db.Exams.AsNoTracking().Where(e => e.DeletedAt == null)
+            .OrderByDescending(e => e.CreatedAt).ThenByDescending(e => e.Id)
+            .Take(100)
+            .Select(e => new { e.Id, e.SubjectId, e.Name, e.Status, e.StartAt, e.EndAt })
+            .ToArrayAsync(ct);
+        return rows.Select(e => new ExamSummary(e.Id, e.SubjectId, e.Name,
+            (ContractExamStatus)e.Status, e.StartAt, e.EndAt)).ToArray();
+    }
     public async Task<ExamFoundationCounts> CountsAsync(Guid examId, CancellationToken ct)
     {
         var exam = await db.Exams.SingleAsync(e => e.Id == examId, ct);

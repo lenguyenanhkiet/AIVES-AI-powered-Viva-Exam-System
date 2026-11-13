@@ -7,7 +7,7 @@ public sealed record VivaTurnItem(
     Guid TurnId,
     Guid SessionQuestionId,
     int MainPosition,
-    AnswerType AnswerType,
+    AIpoweredVivaExamSystem.Application.Contracts.AnswerType AnswerType,
     int FollowUpLevel,
     string PromptText,
     string? Transcript,

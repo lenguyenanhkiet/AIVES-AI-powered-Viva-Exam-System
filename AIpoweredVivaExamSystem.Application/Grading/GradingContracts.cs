@@ -6,7 +6,8 @@ public sealed record GradingSessionRow(Guid EnrollmentId, Guid? SessionId, strin
     DateTimeOffset? StartedAt, DateTimeOffset? CompletedAt, string State, decimal? FinalTotal, decimal? SuggestedTotal, decimal? LecturerTotal, decimal MaxTotal);
 public sealed record GradingExamList(Guid ExamId, string ExamName, IReadOnlyList<GradingSessionRow> Sessions);
 public sealed record EvidenceSignals(double AnswerSeconds, int TurnLimitSeconds, int FollowUpCount, int AudioSeconds, int AnswerLength);
-public sealed record TurnEvidence(Guid TurnId, AnswerType AnswerType, int FollowUpLevel, string PromptText, string? Transcript,
+public sealed record TurnEvidence(Guid TurnId, AIpoweredVivaExamSystem.Application.Contracts.AnswerType AnswerType,
+    int FollowUpLevel, string PromptText, string? Transcript,
     DateTimeOffset AskedAt, DateTimeOffset? AnsweredAt, bool TimedOut, double AnswerSeconds, int TurnLimitSeconds,
     int? AudioDurationSeconds, int AnswerLength, string? AudioUrl, string? AudioMimeType);
 public sealed record CriterionReview(Guid Id, string Name, string? Description, string? ExpectedConcepts, decimal MaxScore,

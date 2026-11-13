@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Exams;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Application.ExamStudents;
 using AIpoweredVivaExamSystem.Domain.Entities;
 using AIpoweredVivaExamSystem.Persistence.Context;
@@ -15,16 +16,23 @@ public sealed class ExamRosterStore(ApplicationDbContext db) : IExamRosterStore
         var total = await query.CountAsync(ct);
         var lastPage = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
         page = Math.Clamp(page, 1, lastPage);
-        var items = await query.OrderByDescending(x => x.StartAt).ThenBy(x => x.Id)
+        var rows = await query.OrderByDescending(x => x.StartAt).ThenBy(x => x.Id)
             .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt)).ToArrayAsync(ct);
+            .Select(x => new { x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt })
+            .ToArrayAsync(ct);
+        var items = rows.Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name,
+            (ContractExamStatus)x.Status, x.StartAt, x.EndAt)).ToArray();
         return new(items, page, pageSize, total);
     }
 
-    public Task<ExamSummary?> FindExamSummaryAsync(Guid examId, CancellationToken ct) =>
-        db.Exams.AsNoTracking().Where(x => x.Id == examId && x.DeletedAt == null)
-            .Select(x => new ExamSummary(x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt))
+    public async Task<ExamSummary?> FindExamSummaryAsync(Guid examId, CancellationToken ct)
+    {
+        var row = await db.Exams.AsNoTracking().Where(x => x.Id == examId && x.DeletedAt == null)
+            .Select(x => new { x.Id, x.SubjectId, x.Name, x.Status, x.StartAt, x.EndAt })
             .SingleOrDefaultAsync(ct);
+        return row is null ? null : new(row.Id, row.SubjectId, row.Name,
+            (ContractExamStatus)row.Status, row.StartAt, row.EndAt);
+    }
 
     public async Task<IReadOnlyList<RosterEntry>> ListAsync(Guid examId, CancellationToken ct) =>
         await (from enrollment in db.ExamStudents.AsNoTracking()

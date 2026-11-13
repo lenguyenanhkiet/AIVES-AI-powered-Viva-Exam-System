@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Exams;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Application.VivaSessions;
 using AIpoweredVivaExamSystem.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -6,9 +7,15 @@ namespace AIpoweredVivaExamSystem.Persistence.Repositories;
 
 public sealed class ExamLiveReader(ApplicationDbContext db, IExamFoundationReader foundation) : IExamLiveReader
 {
-    public Task<ExamSummary> SummaryAsync(Guid examId, CancellationToken ct) => db.Exams.AsNoTracking()
+    public async Task<ExamSummary> SummaryAsync(Guid examId, CancellationToken ct)
+    {
+        var row = await db.Exams.AsNoTracking()
         .Where(e => e.Id == examId && e.DeletedAt == null)
-        .Select(e => new ExamSummary(e.Id, e.SubjectId, e.Name, e.Status, e.StartAt, e.EndAt)).SingleAsync(ct);
+        .Select(e => new { e.Id, e.SubjectId, e.Name, e.Status, e.StartAt, e.EndAt })
+        .SingleAsync(ct);
+        return new(row.Id, row.SubjectId, row.Name, (ContractExamStatus)row.Status,
+            row.StartAt, row.EndAt);
+    }
     public async Task<ExamLiveStatus> ReadAsync(Guid examId, CancellationToken ct)
     {
         var exam = await db.Exams.AsNoTracking().SingleAsync(e => e.Id == examId && e.DeletedAt == null, ct);
@@ -19,7 +26,7 @@ public sealed class ExamLiveReader(ApplicationDbContext db, IExamFoundationReade
                                 db.VivaSessions.Any(s => s.ExamStudentId == r.Id && s.CompletedAt != null) ? SessionState.Completed :
                                 db.VivaSessions.Any(s => s.ExamStudentId == r.Id) ? SessionState.InProgress : SessionState.NotStarted))
                             .ToArrayAsync(ct);
-        return new(exam.Status, await foundation.CountsAsync(examId, ct),
+        return new((ContractExamStatus)exam.Status, await foundation.CountsAsync(examId, ct),
             roster.Count(r => r.SessionStatus == SessionState.Completed), roster);
     }
 }

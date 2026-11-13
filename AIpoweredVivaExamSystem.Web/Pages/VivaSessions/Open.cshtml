@@ -1,7 +1,6 @@
 @page "/VivaSessions/Open/{id?}"
 @model AIpoweredVivaExamSystem.Web.Pages.VivaSessions.OpenModel
 @using AIpoweredVivaExamSystem.Application.VivaSessions
-@using AIpoweredVivaExamSystem.Domain.Enums
 @if (Model.InterviewState is { } state)
 {
     ViewData["Title"] = $"Phiên thi vấn đáp — {state.ExamName}";

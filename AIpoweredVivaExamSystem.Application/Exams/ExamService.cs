@@ -1,4 +1,5 @@
 using AIpoweredVivaExamSystem.Application.Authentication;
+using ContractExamStatus = AIpoweredVivaExamSystem.Application.Contracts.ExamStatus;
 using AIpoweredVivaExamSystem.Application.Common;
 using AIpoweredVivaExamSystem.Application.Scheduling;
 using AIpoweredVivaExamSystem.Domain.Common;
@@ -77,7 +78,7 @@ public sealed class ExamService(
         }, [examId], ct);
     }
 
-    public async Task TransitionAsync(Guid examId, ExamStatus target, byte[] expectedVersion, CancellationToken ct)
+    public async Task TransitionAsync(Guid examId, ContractExamStatus target, byte[] expectedVersion, CancellationToken ct)
     {
         await guard.CanManageExamAsync(examId, ct);
         await uow.ExecuteAsync(async token =>
@@ -88,20 +89,20 @@ public sealed class ExamService(
 
             switch (target)
             {
-                case ExamStatus.Published:
+                case ContractExamStatus.Published:
                     await ValidatePublishReadinessAsync(examId, exam, token);
                     exam.Publish();
                     break;
 
-                case ExamStatus.Ongoing:
+                case ContractExamStatus.Ongoing:
                     exam.Start(DateTimeOffset.UtcNow);
                     break;
 
-                case ExamStatus.Completed:
+                case ContractExamStatus.Completed:
                     exam.Complete();
                     break;
 
-                case ExamStatus.Cancelled:
+                case ContractExamStatus.Cancelled:
                     exam.Cancel();
                     break;
 
@@ -151,7 +152,8 @@ public sealed class ExamService(
     }
 
     private static ExamDetails Map(Exam exam) => new(
-        new ExamSummary(exam.Id, exam.SubjectId, exam.Name, exam.Status, exam.StartAt, exam.EndAt),
+        new ExamSummary(exam.Id, exam.SubjectId, exam.Name, (ContractExamStatus)exam.Status,
+            exam.StartAt, exam.EndAt),
         exam.DurationMinutes,
         exam.NumberOfMainQuestions,
         exam.MaxFollowUpPerQuestion,

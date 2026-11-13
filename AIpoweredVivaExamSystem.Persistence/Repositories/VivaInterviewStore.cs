@@ -325,7 +325,7 @@ public sealed class VivaInterviewStore(
                 t.Id,
                 t.SessionQuestionId,
                 posBySqId[t.SessionQuestionId],
-                t.AnswerType,
+                (AIpoweredVivaExamSystem.Application.Contracts.AnswerType)t.AnswerType,
                 t.FollowUpLevel,
                 t.PromptText,
                 t.TimedOut && (t.Transcript == VivaTurnDeadline.NoAnswerMarker ||

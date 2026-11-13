@@ -293,7 +293,8 @@ public sealed class ExamLifecycleSqlTests(SqlServerFixture fixture)
         });
         var service = Service(db, demo, notifier);
         var version = demo.Exam.RowVersion;
-        Task Publish() => service.TransitionAsync(demo.Exam.Id, ExamStatus.Published, version, default);
+        Task Publish() => service.TransitionAsync(demo.Exam.Id,
+            AIpoweredVivaExamSystem.Application.Contracts.ExamStatus.Published, version, default);
 
         // An insufficient eligible pool must prevent publication.
         await Assert.ThrowsAsync<DomainValidationException>(Publish);
@@ -376,7 +377,8 @@ public sealed class ExamLifecycleSqlTests(SqlServerFixture fixture)
             probed = true;
         });
         await Service(db, demo, new Notifier(), reader).TransitionAsync(
-            demo.Exam.Id, ExamStatus.Published, demo.Exam.RowVersion, default);
+            demo.Exam.Id, AIpoweredVivaExamSystem.Application.Contracts.ExamStatus.Published,
+            demo.Exam.RowVersion, default);
         Assert.True(probed);
     }
 
