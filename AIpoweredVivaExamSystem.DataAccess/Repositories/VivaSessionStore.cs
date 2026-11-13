@@ -52,10 +52,9 @@ public sealed class VivaSessionStore(ApplicationDbContext db, IExamUnitOfWork uo
             var existing = await db.VivaSessions.SingleOrDefaultAsync(s => s.ExamStudentId == enrollmentId, token);
             if (existing is not null) { sessionId = existing.Id; return; }
             var now = DateTimeOffset.UtcNow;
-            if (exam.Status != ExamStatus.Ongoing || entry.ScheduledAt is not { } start ||
-                start < exam.StartAt || exam.SlotEnd(start) > exam.EndAt ||
-                now < start || now >= exam.SlotEnd(start) || now >= exam.EndAt)
-                throw new DomainValidationException("The exam must be ongoing and your scheduled slot must be open.");
+            if (exam.Status != ExamStatus.Ongoing || exam.EntryWindow(entry.ScheduledAt) is not { } window ||
+                now < window.OpensAt || now >= window.ClosesAt)
+                throw new DomainValidationException("Chỉ có thể mở phiên mới trong 5 phút đầu kể từ khi ca thi mở, trước giờ kết thúc ca.");
 
             var assigned = await db.LecturerSubjects.AnyAsync(a => a.LecturerId == exam.LecturerId && a.SubjectId == exam.SubjectId, token);
             if (!assigned) throw new DomainValidationException("The exam lecturer is no longer assigned to this subject.");

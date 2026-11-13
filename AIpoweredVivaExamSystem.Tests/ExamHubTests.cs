@@ -33,10 +33,17 @@ public sealed class ExamHubTests(SqlServerFixture fixture)
     private sealed class FakeClients : IHubClients
     {
         public List<(string ConnectionId, string Method, Guid ExamId)> Messages { get; } = [];
+        public List<string> StudentScheduleMessages { get; } = [];
         private sealed class ClientProxy(FakeClients clients, string connectionId) : IClientProxy
         {
             public Task SendCoreAsync(string method, object?[] args, CancellationToken ct = default)
             {
+                if (method == "StudentScheduleChanged")
+                {
+                    Assert.Empty(args);
+                    clients.StudentScheduleMessages.Add(connectionId);
+                    return Task.CompletedTask;
+                }
                 clients.Messages.Add((connectionId, method, Assert.IsType<Guid>(Assert.Single(args))));
                 return Task.CompletedTask;
             }
@@ -55,6 +62,38 @@ public sealed class ExamHubTests(SqlServerFixture fixture)
     {
         public IHubClients Clients => clients;
         public IGroupManager Groups => groups;
+    }
+
+    [Fact]
+    public async Task ScheduleChangesReachOnlyActiveEnrolledStudents()
+    {
+        await using var db = fixture.CreateContext();
+        var demo = await ExamDemo.SeedAsync(db);
+        var other = new User(Guid.NewGuid() + "@example.test", "unused", "Other student", UserStatus.Active);
+        other.AssignRole(UserRole.STUDENT);
+        db.Add(other);
+        await db.SaveChangesAsync();
+
+        var access = new ExamRealtimeAccess(new LoginUserRepository(db), new ExamFoundationStore(db));
+        var registry = new ExamConnections();
+        var groups = new Groups();
+        var clients = new FakeClients();
+        var student = new ExamHub(access, registry) { Context = new Caller(demo.Student.Id, "enrolled"), Groups = groups };
+        var outsider = new ExamHub(access, registry) { Context = new Caller(other.Id, "outsider"), Groups = groups };
+        await student.JoinStudentSchedule();
+        await outsider.JoinStudentSchedule();
+
+        var notifier = new SignalRExamNotifier(new HubContext(clients, groups), registry, access);
+        await notifier.NotifyChangedAsync(demo.Exam.Id, default);
+        Assert.Equal("enrolled", Assert.Single(clients.StudentScheduleMessages));
+
+        clients.StudentScheduleMessages.Clear();
+        demo.Student.Lock();
+        await db.SaveChangesAsync();
+        await notifier.NotifyChangedAsync(demo.Exam.Id, default);
+        Assert.Empty(clients.StudentScheduleMessages);
+        await student.OnDisconnectedAsync(null);
+        Assert.False(registry.StudentScheduleWatchers.ContainsKey("enrolled"));
     }
 
     [Fact]

@@ -12,6 +12,7 @@ public sealed class Exam : AuditableEntity
     public string Name { get; private set; } = "";
     public DateTimeOffset StartAt { get; private set; }
     public DateTimeOffset EndAt { get; private set; }
+    public DateTimeOffset? StartedAt { get; private set; }
     public int DurationMinutes { get; private set; }
     public int NumberOfMainQuestions { get; private set; }
     public int MaxFollowUpPerQuestion { get; private set; }
@@ -65,6 +66,7 @@ public sealed class Exam : AuditableEntity
         if (now < StartAt || now >= EndAt)
             throw new DomainValidationException("Exam can only be started within its scheduled window.");
         Status = ExamStatus.Ongoing;
+        StartedAt = now;
     }
 
     public void Complete()
@@ -86,4 +88,21 @@ public sealed class Exam : AuditableEntity
     // A student's slot is the half-open interval [start, SlotEnd(start)).
     public DateTimeOffset SlotEnd(DateTimeOffset start) => SlotEnd(start, DurationMinutes);
     public static DateTimeOffset SlotEnd(DateTimeOffset start, int durationMinutes) => start.AddMinutes(durationMinutes);
+
+    public (DateTimeOffset OpensAt, DateTimeOffset ClosesAt)? EntryWindow(DateTimeOffset? scheduledAt)
+    {
+        if (scheduledAt is not { } start || start < StartAt)
+            return null;
+
+        var end = SlotEnd(start);
+        if (end > EndAt)
+            return null;
+
+        var opens = StartedAt is { } actualStart && actualStart > start ? actualStart : start;
+        if (opens >= end)
+            return null;
+
+        var deadline = opens.AddMinutes(5);
+        return (opens, deadline < end ? deadline : end);
+    }
 }

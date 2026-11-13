@@ -56,6 +56,8 @@ public sealed class RubricService(
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         var rubric = await FindAsync(id, cancellationToken);
+        if (await questions.IsApprovedAsync(rubric.QuestionId, cancellationToken))
+            throw new ResourceConflictException("Cannot delete the rubric of an approved question.");
         repository.Remove(rubric);
         await repository.SaveChangesAsync(cancellationToken);
     }

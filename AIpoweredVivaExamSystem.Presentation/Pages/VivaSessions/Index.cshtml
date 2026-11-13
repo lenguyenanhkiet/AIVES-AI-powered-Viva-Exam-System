@@ -1,12 +1,19 @@
 @page "/VivaSessions"
 @model AIpoweredVivaExamSystem.Presentation.Pages.VivaSessions.IndexModel
 @{ ViewData["Title"] = "Lịch thi của tôi"; }
+@{
+    var now = DateTimeOffset.UtcNow;
+    var nextTransition = Model.Vm.Where(e => e.Status == ExamStatus.Ongoing)
+        .SelectMany(e => new[] { e.EntryOpensAt, e.EntryClosesAt, e.EndAt })
+        .Where(at => at > now).Min();
+}
 
-<div class="container">
+<div class="container" data-exam-list-realtime data-student-schedule data-hub-url="@Url.Content("~/hubs/exams")">
     <div class="page-head">
         <div>
             <h1 class="page-title">Lịch thi của tôi</h1>
             <p class="page-sub">Các kỳ thi vấn đáp bạn tham gia. Giờ Việt Nam (UTC+7).</p>
+            <span class="badge badge-inactive" data-connection-state role="status">Đang kết nối…</span>
         </div>
     </div>
 
@@ -16,7 +23,11 @@
     }
     <div asp-validation-summary="All" class="alert" role="alert"></div>
 
-    <div class="card">
+    <div class="card" data-exam-list aria-live="polite">
+        @if (nextTransition is { } at)
+        {
+            <span hidden data-schedule-refresh-ms="@((long)Math.Ceiling((at - now).TotalMilliseconds))"></span>
+        }
         @if (Model.Vm.Count == 0)
         {
             <div class="empty">
@@ -55,3 +66,8 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/exam-list-realtime.js" asp-append-version="true"></script>
+}

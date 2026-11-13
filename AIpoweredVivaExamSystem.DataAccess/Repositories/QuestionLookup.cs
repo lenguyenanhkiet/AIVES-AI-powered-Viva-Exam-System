@@ -1,3 +1,4 @@
+using AIpoweredVivaExamSystem.DataAccess.Enums;
 using AIpoweredVivaExamSystem.DataAccess.Contracts.Interfaces;
 using AIpoweredVivaExamSystem.DataAccess.Context;
 using Microsoft.EntityFrameworkCore;
@@ -8,4 +9,8 @@ public sealed class QuestionLookup(ApplicationDbContext context) : IQuestionLook
 {
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken) =>
         context.Questions.AnyAsync(x => x.Id == id && x.DeletedAt == null, cancellationToken);
+
+    public Task<bool> IsApprovedAsync(Guid id, CancellationToken cancellationToken) =>
+        context.Questions.AnyAsync(x => x.Id == id && x.DeletedAt == null &&
+            x.Status == QuestionStatus.Approved, cancellationToken);
 }

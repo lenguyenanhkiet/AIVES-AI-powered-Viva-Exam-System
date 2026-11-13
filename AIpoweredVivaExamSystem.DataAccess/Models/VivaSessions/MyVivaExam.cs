@@ -7,4 +7,4 @@ using AIpoweredVivaExamSystem.DataAccess.Entities;
 namespace AIpoweredVivaExamSystem.DataAccess.Models.VivaSessions;
 
 public sealed record MyVivaExam(Guid EnrollmentId, string Name, ExamStatus Status,
-    DateTimeOffset? ScheduledAt, DateTimeOffset? EndAt);
+    DateTimeOffset? ScheduledAt, DateTimeOffset? EndAt, bool HasSession, DateTimeOffset? EntryOpensAt, DateTimeOffset? EntryClosesAt);
