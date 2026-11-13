@@ -13,8 +13,12 @@ public class RubricServiceTests
     private sealed class FakeQuestionLookup : IQuestionLookup
     {
         public HashSet<Guid> ExistingQuestions { get; } = [];
+        public HashSet<Guid> ApprovedQuestions { get; } = [];
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(ExistingQuestions.Contains(id));
+
+        public Task<bool> IsApprovedAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(ApprovedQuestions.Contains(id));
     }
 
     private sealed class FakeRubricRepository : IRubricRepository
@@ -59,6 +63,20 @@ public class RubricServiceTests
             new CreateRubricRequestValidator(),
             new UpdateRubricRequestValidator(),
             new RubricListQueryValidator());
+    }
+
+    [Fact]
+    public async Task Delete_rejects_rubric_of_approved_question()
+    {
+        var questionId = Guid.NewGuid();
+        _questionLookup.ExistingQuestions.Add(questionId);
+        var created = await _service.CreateAsync(new CreateRubricRequest(
+            questionId, "Approved rubric", null,
+            [new CriterionRequest("Accuracy", null, null, 5m, 1)]), default);
+        _questionLookup.ApprovedQuestions.Add(questionId);
+
+        await Assert.ThrowsAsync<ResourceConflictException>(() => _service.DeleteAsync(created.Id, default));
+        Assert.Contains(_repository.Rubrics, rubric => rubric.Id == created.Id);
     }
 
     [Fact]
